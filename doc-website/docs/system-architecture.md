@@ -1,0 +1,54 @@
+---
+sidebar_position: 2
+title: System Architecture
+id: system-architecture
+---
+
+# System Architecture
+
+PRISM is organized into five architectural domains. Each domain has a separate responsibility so the protocol can reason cleanly about credit sourcing, deterministic accounting, market pricing, integrity, and user-facing interaction.
+
+| Domain | Purpose | Primary Concern |
+| --- | --- | --- |
+| Sourcing Layer | Introduces credit into the system | Origination and capital intake |
+| Core Protocol Layer | Executes deterministic vault accounting | Tranches, waterfall, loss cascade |
+| Risk & Market Layer | Provides liquidity and price discovery | AMMs and market/NAV divergence |
+| Integrity Layer | Ensures correctness and verifiability | Credit events, controls, optional privacy |
+| Surface Layer | Presents protocol state to users | Dashboard, positions, strategies |
+
+## Design Philosophy
+
+PRISM separates credit behavior into narrow, inspectable modules.
+
+The vault should not need to know how a frontend visualizes risk. The AMM should not be able to rewrite vault accounting. The dashboard should not create financial truth; it should read and explain the financial truth already committed on-chain.
+
+This separation gives PRISM three important properties:
+
+- **Determinism:** accounting rules are enforced by protocol logic, not user interface interpretation.
+- **Composability:** tranche tokens can be used by external markets, dashboards, or strategy tools.
+- **Auditability:** every yield distribution, credit event, loss, mint, burn, and swap has an on-chain trail.
+
+## Data Flow Summary
+
+The high-level lifecycle is:
+
+1. A vault is initialized with Senior, Mezzanine, and Equity tranches.
+2. Users deposit USDC into a chosen tranche.
+3. The protocol mints tranche tokens according to current NAV.
+4. Authorized yield is injected into the vault.
+5. The waterfall distributes yield to tranches by priority.
+6. A credit event may reduce vault assets.
+7. Losses cascade from Equity to Mezzanine to Senior.
+8. Users either withdraw through the vault or trade tranche tokens on AMMs.
+
+## Accounting Boundary
+
+The vault is the source of truth for intrinsic value. It tracks tranche assets, supply, and NAV. The AMM is the source of market price. It tracks pool reserves and swap pricing.
+
+PRISM intentionally keeps these two values separate:
+
+- NAV answers: "What is this tranche redeemable for inside the protocol?"
+- Market price answers: "What are traders willing to pay right now?"
+
+This separation is what allows live credit risk pricing.
+
