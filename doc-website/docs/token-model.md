@@ -34,9 +34,9 @@ PRISM's purpose is to make credit risk programmable, transparent, and tradable. 
 
 | Token | Tranche | Meaning |
 | --- | --- | --- |
-| `pPRIME` | Senior | Claim on Senior tranche NAV |
-| `pCORE` | Mezzanine | Claim on Mezzanine tranche NAV |
-| `pALPHA` | Equity | Claim on Equity tranche NAV |
+| `pPRIME` | Prime | Claim on Prime tranche NAV |
+| `pCORE` | Core | Claim on Core tranche NAV |
+| `pALPHA` | Alpha | Claim on Alpha tranche NAV |
 
 ## Lifecycle
 

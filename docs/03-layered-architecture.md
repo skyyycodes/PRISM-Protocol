@@ -66,7 +66,7 @@ Status legend:
 | 12 | Liquidity Bootstrap | A. Sourcing | ⚪ | Demo seeds vault with admin liquidity; no real bootstrap |
 | 13 | Risk Isolation | C. Risk | 🟢 | Separate AMM program + vault state machine |
 | 14 | Transparency & Analytics | E. Surface | 🟢 + 🟦 | Custom dashboard + Dune SIM data layer. **Hero feature #5** |
-| 15 | Strategy Automation | E. Surface | 🟢 | 3 real preset buttons: 🟢 Safe (70% Senior) · 🟡 Balanced (50/30/20) · 🔴 Aggressive (Equity-heavy) |
+| 15 | Strategy Automation | E. Surface | 🟢 | 3 real preset buttons: 🟢 Safe (70% Prime) · 🟡 Balanced (50/30/20) · 🔴 Aggressive (Alpha-heavy) |
 
 **Build coverage:** 8 layers built (🟢), 4 partner-integrated (🟦), 1 mocked (🟡), 4 roadmap (⚪). That's **80% of the spec touched** in some form — credible for 16 days.
 
@@ -83,9 +83,9 @@ Pitch line: *"Market-driven pricing emerges via secondary markets — oracle-dri
 Mocked UI = weak. A working preset selector signals "users can interact intelligently with the system." Implementation cost is trivial: three buttons, each calls deposit on a fixed allocation across the three tranches.
 
 ```
-🟢 Safe       →  70% Senior  /  20% Mezz  /  10% Equity
-🟡 Balanced   →  50% Senior  /  30% Mezz  /  20% Equity
-🔴 Aggressive →  20% Senior  /  30% Mezz  /  50% Equity
+🟢 Safe       →  70% Prime  /  20% Core  /  10% Alpha
+🟡 Balanced   →  50% Prime  /  30% Core  /  20% Alpha
+🔴 Aggressive →  20% Prime  /  30% Core  /  50% Alpha
 ```
 
 No ML, no complex logic. Half a day of work. Pays for itself in pitch impact.
@@ -191,9 +191,9 @@ Every demo click is also a walk through the architecture. This coherence is rare
 | Hero feature | Layer | Domain | What judge sees |
 |---|---|---|---|
 | Tranche Vault | L2 Structured Credit | B. Core | Deposit into 3 risk classes, get 3 different SPL tokens |
-| Live Yield Source | L1 Origination + waterfall | A + B | USDC flows in, cascades down through Senior → Mezz → Equity |
+| Live Yield Source | L1 Origination + waterfall | A + B | USDC flows in, cascades down through Prime → Core → Alpha |
 | Secondary Market | L6 Secondary Markets | C. Risk | Swap pPRIME ↔ USDC; price discovers premium/discount |
-| Default + Loss Sim | L11 Default Resolution | B. Core | Click "Trigger Default" → Equity NAV → 0, Mezz partial, Senior holds |
+| Default + Loss Sim | L11 Default Resolution | B. Core | Click "Trigger Default" → Alpha NAV → 0, Core partial, Prime holds |
 | Visual Dashboard | L14 Analytics | E. Surface | Real-time NAV bars, event log, tranche performance |
 | (Bonus) Strategy Presets | L15 Strategy Auto | E. Surface | 3 buttons — Safe / Balanced / Aggressive |
 

@@ -38,9 +38,9 @@ pub const ORACLE_STALENESS_LIMIT_SECS: i64 = 300;  // 5 minutes
 | pPRIME | 6 | 1_000_000 |
 | pCORE | 6 | 1_000_000 |
 | pALPHA | 6 | 1_000_000 |
-| LP-SENIOR | 6 | 1_000_000 |
-| LP-MEZZ | 6 | 1_000_000 |
-| LP-EQUITY | 6 | 1_000_000 |
+| LP-PRIME | 6 | 1_000_000 |
+| LP-CORE | 6 | 1_000_000 |
+| LP-ALPHA | 6 | 1_000_000 |
 
 All tokens use 6 decimals to match USDC base units. NAV math at 1.0 → 1 USDC base = 1 pTRANCHE base (clean integer math).
 
@@ -48,15 +48,15 @@ All tokens use 6 decimals to match USDC base units. NAV math at 1.0 → 1 USDC b
 
 | Tranche | `kind` byte | `target_apy_bps` |
 |---|---|---|
-| Senior | `0` | `500` (5%) |
-| Mezz | `1` | `1200` (12%) |
-| Equity | `2` | `0` (residual — gets whatever's left after Senior + Mezz targets) |
+| Prime | `0` | `500` (5%) |
+| Core | `1` | `1200` (12%) |
+| Alpha | `2` | `0` (residual — gets whatever's left after Prime + Core targets) |
 
 ### 1.4 Locked demo numbers
 
 **Tranche deposits (per [§8.5](08-open-questions.md))**
 
-| Source | Senior | Mezz | Equity |
+| Source | Prime | Core | Alpha |
 |---|---:|---:|---:|
 | LP wallet | 5,000 | 3,000 | 2,000 |
 | MM wallet | — | 500 | 2,000 |
@@ -67,20 +67,20 @@ All tokens use 6 decimals to match USDC base units. NAV math at 1.0 → 1 USDC b
 **Borrower wallet pre-fund (for yield):** 10,000 USDC.
 
 **Yield event:** 100 USDC over 30 days
-- Senior take: 41.10 USDC (5% APY × 30/365 × 10,000)
-- Mezz take: 44.40 USDC (12% APY × 30/365 × 4,500)
-- Equity take: 14.50 USDC (residual)
+- Prime take: 41.10 USDC (5% APY × 30/365 × 10,000)
+- Core take: 44.40 USDC (12% APY × 30/365 × 4,500)
+- Alpha take: 14.50 USDC (residual)
 
 **Default loss:** 6,500 USDC
-- Equity loss: 5,014.50 (full — wiped to NAV 0)
-- Mezz loss: 1,485.50 (NAV 1.00987 → 0.6798, ~32% drop)
-- Senior loss: 0 (unchanged at NAV 1.00411)
+- Alpha loss: 5,014.50 (full — wiped to NAV 0)
+- Core loss: 1,485.50 (NAV 1.00987 → 0.6798, ~32% drop)
+- Prime loss: 0 (unchanged at NAV 1.00411)
 
 **AMM pool sizes (per pool — initial seeding by admin)**
 
 | Pool | Tranche side | USDC side | Why differentiated |
 |---|---:|---:|---|
-| pPRIME/USDC | 5,000 | 5,000 | Deep — Senior swap should feel stable |
+| pPRIME/USDC | 5,000 | 5,000 | Deep — Prime swap should feel stable |
 | pCORE/USDC | 1,000 | 1,000 | Thin — allows Trade #2 repricing |
 | pALPHA/USDC | 1,000 | 1,000 | Thin — same reason |
 
@@ -94,9 +94,9 @@ All tokens use 6 decimals to match USDC base units. NAV math at 1.0 → 1 USDC b
 
 | Wallet | USDC funded at setup |
 |---|---:|
-| `lp_senior` | 5,000 |
-| `lp_mezz` | 3,000 |
-| `lp_equity` | 2,000 |
+| `lp_prime` | 5,000 |
+| `lp_core` | 3,000 |
+| `lp_alpha` | 2,000 |
 | `mm` | 2,500 |
 | `admin` | 7,000 (5K + 1K + 1K for AMM seeding + buffer) |
 | `borrower` | 10,000 |
@@ -301,7 +301,7 @@ All events emit through Anchor's `emit!` macro and are indexed by Dune SIM.
 
 #[event] pub struct YieldDistributed {
     pub vault: Pubkey, pub total_yield: u64,
-    pub senior_take: u64, pub mezz_take: u64, pub equity_take: u64,
+    pub prime_take: u64, pub core_take: u64, pub alpha_take: u64,
     pub timestamp: i64,
 }
 
@@ -333,16 +333,16 @@ All wallets stored as JSON keypair files in `keys/`. Committed to repo (devnet o
 
 | Filename | Pubkey label | Role | SOL needed | USDC needed |
 |---|---|---|---|---|
-| `keys/admin.json` | `admin` | Init authority, admin signer for accrue_yield + trigger_default + run_market_reaction | 2 SOL | 7,000 USDC (5K Senior AMM + 1K Mezz AMM + 1K Equity AMM) |
+| `keys/admin.json` | `admin` | Init authority, admin signer for accrue_yield + trigger_default + run_market_reaction | 2 SOL | 7,000 USDC (5K Prime AMM + 1K Core AMM + 1K Alpha AMM) |
 | `keys/borrower.json` | `borrower` | Yield USDC source for `accrue_yield` pull pattern | 0.1 SOL | 10,000 USDC |
-| `keys/lp_senior.json` | `User A` | Senior LP for the demo PnL panel | 0.1 SOL | 5,000 USDC |
-| `keys/lp_mezz.json` | `User B` | Mezz LP | 0.1 SOL | 3,000 USDC |
-| `keys/lp_equity.json` | `User C` | Equity LP | 0.1 SOL | 2,000 USDC |
+| `keys/lp_prime.json` | `User A` | Prime LP for the demo PnL panel | 0.1 SOL | 5,000 USDC |
+| `keys/lp_core.json` | `User B` | Core LP | 0.1 SOL | 3,000 USDC |
+| `keys/lp_alpha.json` | `User C` | Alpha LP | 0.1 SOL | 2,000 USDC |
 | `keys/mm.json` | `Market Maker` | Holds 2,000 pALPHA + 500 pCORE for Trade #2 dumps | 0.1 SOL | 2,500 USDC |
 
 **Total funding:** ~3 SOL + ~30,000 USDC, all on devnet.
 
-The PnL panel hard-references `lp_senior`, `lp_mezz`, `lp_equity` — see [§9.12](09-lld-completion.md) for `app/src/lib/demo-wallets.ts`.
+The PnL panel hard-references `lp_prime`, `lp_core`, `lp_alpha` — see [§9.12](09-lld-completion.md) for `app/src/lib/demo-wallets.ts`.
 
 ---
 
@@ -354,10 +354,10 @@ Vocabulary that appears across the docs. If two words could be confused, both ar
 |---|---|
 | **NAV** (Net Asset Value) | The USDC value of one tranche token. `nav = total_assets / total_supply`. Stored as `nav_per_share_q` in Q64.64 format on the Tranche account |
 | **Q64.64** | Fixed-point number representation. `u128` where bits 0–63 are fractional, bits 64–127 are integer. `Q64_ONE` (= 2^64) represents 1.0 |
-| **Tranche** | A single risk class within a vault. Three exist per vault: Senior (priority 0), Mezz (priority 1), Equity (priority 2) |
-| **Tranche kind** | `u8` byte indicating Senior/Mezz/Equity. Senior = 0, Mezz = 1, Equity = 2 |
-| **Waterfall** | Yield distribution algorithm. Senior gets first call up to its target APY, then Mezz, then Equity gets the residual |
-| **Cascade** | Loss application algorithm. Reverse of waterfall — Equity absorbs first, Mezz next, Senior last |
+| **Tranche** | A single risk class within a vault. Three exist per vault: Prime (priority 0), Core (priority 1), Alpha (priority 2) |
+| **Tranche kind** | `u8` byte indicating Prime/Core/Alpha. Prime = 0, Core = 1, Alpha = 2 |
+| **Waterfall** | Yield distribution algorithm. Prime gets first call up to its target APY, then Core, then Alpha gets the residual |
+| **Cascade** | Loss application algorithm. Reverse of waterfall — Alpha absorbs first, Core next, Prime last |
 | **Loss bucket** | A PDA-controlled token account holding USDC moved out of the vault on default. Maintains the cash invariant: `vault_reserve.amount == sum(tranche.total_assets)` |
 | **Closed-loop demo** | The MVP demo skips real loan disbursement. USDC stays in the vault; default just moves loss USDC to the loss bucket. See [§8.1](08-open-questions.md) |
 | **Pull pattern** (yield) | `accrue_yield` instruction transfers USDC from borrower's ATA into vault reserve in one tx, then runs waterfall. Visible borrower → vault flow |

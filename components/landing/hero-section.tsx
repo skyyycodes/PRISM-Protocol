@@ -205,7 +205,7 @@ export function HeroSection() {
       >
         <div className="max-w-[1400px] mx-auto flex items-start gap-10 lg:gap-20">
           {[
-            { value: "3", label: "Senior / Mezz / Equity layers" },
+            { value: "3", label: "Prime / Core / Alpha layers" },
             { value: "$6.5k", label: "demo loss cascade" },
             { value: "AMM", label: "live tranche pricing" },
           ].map((stat) => (

@@ -25,7 +25,7 @@ This section is the bridge between design and code. Instruction signatures, acco
 |---|---|---|---|
 | 1 | `initialize_global_config` | admin | One-time. Sets admin, USDC mint, default yield_rate, oracle allowlist |
 | 2 | `initialize_vault` | admin | Creates Vault + USDC reserve token account |
-| 3 | `initialize_tranche` | admin | × 3 (Senior, Mezz, Equity). Creates SPL mint + Tranche PDA |
+| 3 | `initialize_tranche` | admin | × 3 (Prime, Core, Alpha). Creates SPL mint + Tranche PDA |
 | 4 | `initialize_loan` | admin | Single loan for demo |
 | 5 | `disburse_loan` | admin | Moves USDC vault → borrower; transitions Loan to Active |
 | 6 | **`deposit`** | user | Mints pTRANCHE; updates tranche assets + supply |
@@ -145,12 +145,12 @@ pub struct AccrueYield<'info> {
     pub vault: Account<'info, Vault>,
 
     /// Tranches passed in fixed order (kind constraint enforces it)
-    #[account(mut, constraint = tranche_senior.kind == TrancheKind::Senior)]
-    pub tranche_senior: Account<'info, Tranche>,
-    #[account(mut, constraint = tranche_mezz.kind == TrancheKind::Mezz)]
-    pub tranche_mezz: Account<'info, Tranche>,
-    #[account(mut, constraint = tranche_equity.kind == TrancheKind::Equity)]
-    pub tranche_equity: Account<'info, Tranche>,
+    #[account(mut, constraint = tranche_prime.kind == TrancheKind::Prime)]
+    pub tranche_prime: Account<'info, Tranche>,
+    #[account(mut, constraint = tranche_core.kind == TrancheKind::Core)]
+    pub tranche_core: Account<'info, Tranche>,
+    #[account(mut, constraint = tranche_alpha.kind == TrancheKind::Alpha)]
+    pub tranche_alpha: Account<'info, Tranche>,
 
     /// Borrower's USDC ATA — yield is PULLED from here.
     /// In v1: admin proxy. In v1.5: Ika dWallet's USDC ATA.
@@ -196,12 +196,12 @@ pub struct TriggerCreditEvent<'info> {
     )]
     pub vault: Account<'info, Vault>,
 
-    #[account(mut, constraint = tranche_senior.kind == TrancheKind::Senior)]
-    pub tranche_senior: Account<'info, Tranche>,
-    #[account(mut, constraint = tranche_mezz.kind == TrancheKind::Mezz)]
-    pub tranche_mezz: Account<'info, Tranche>,
-    #[account(mut, constraint = tranche_equity.kind == TrancheKind::Equity)]
-    pub tranche_equity: Account<'info, Tranche>,
+    #[account(mut, constraint = tranche_prime.kind == TrancheKind::Prime)]
+    pub tranche_prime: Account<'info, Tranche>,
+    #[account(mut, constraint = tranche_core.kind == TrancheKind::Core)]
+    pub tranche_core: Account<'info, Tranche>,
+    #[account(mut, constraint = tranche_alpha.kind == TrancheKind::Alpha)]
+    pub tranche_alpha: Account<'info, Tranche>,
 
     #[account(mut, has_one = vault)]
     pub loan: Account<'info, Loan>,
@@ -326,7 +326,7 @@ pub enum PrismError {
 PDA-signer pattern in Anchor:
 
 ```rust
-let kind_byte = [TrancheKind::Senior as u8];
+let kind_byte = [TrancheKind::Prime as u8];
 let vault_key = vault.key();
 let seeds = &[b"tranche", vault_key.as_ref(), &kind_byte, &[tranche.bump]];
 let signer_seeds = &[&seeds[..]];

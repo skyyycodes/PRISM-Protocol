@@ -6,25 +6,25 @@ const features = [
   {
     number: "01",
     title: "Tranche Vaults",
-    description: "Deposit USDC into Senior, Mezzanine, or Equity tranches. Each tranche has its own risk profile, target yield, and place in the loss waterfall.",
+    description: "Deposit USDC into Prime, Core, or Alpha tranches. Each tranche has its own risk profile, target yield, and place in the loss waterfall.",
     stats: { value: "3", label: "risk tranches per vault" },
   },
   {
     number: "02",
     title: "Yield Waterfall",
-    description: "Borrower coupons distribute through tranches in priority order. Senior gets paid first up to its target rate, Mezz next, Equity takes the residual.",
-    stats: { value: "5% / 12%", label: "Senior + Mezz target yields" },
+    description: "Borrower coupons distribute through tranches in priority order. Prime gets paid first up to its target rate, Core next, Alpha takes the residual.",
+    stats: { value: "5% / 12%", label: "Prime + Core target yields" },
   },
   {
     number: "03",
     title: "Default Cascade",
-    description: "When a credit event hits, losses absorb in reverse priority. Equity wipes first. Mezz takes the residual hit. Senior holders are protected — exactly as the contract promised.",
+    description: "When a credit event hits, losses absorb in reverse priority. Alpha wipes first. Core takes the residual hit. Prime holders are protected — exactly as the contract promised.",
     stats: { value: "100%", label: "loss absorption proven on-chain" },
   },
   {
     number: "04",
     title: "Live Secondary Market",
-    description: "Tranche tokens (pSENIOR, pMEZZ, pEQUITY) trade on a constant-product AMM. Markets price credit risk in real time.",
+    description: "Tranche tokens (pPRIME, pCORE, pALPHA) trade on a constant-product AMM. Markets price credit risk in real time.",
     stats: { value: "0", label: "intermediaries" },
   },
 ];

@@ -49,9 +49,9 @@ prism-protocol/
 ├── keys/                         (devnet wallet keypairs — committed)
 │   ├── admin.json
 │   ├── borrower.json
-│   ├── lp_senior.json
-│   ├── lp_mezz.json
-│   ├── lp_equity.json
+│   ├── lp_prime.json
+│   ├── lp_core.json
+│   ├── lp_alpha.json
 │   └── mm.json
 ├── programs/
 │   ├── prism-core/
@@ -538,9 +538,9 @@ pub struct Tranche {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, InitSpace)]
 pub enum TrancheKind {
-    Senior,
-    Mezz,
-    Equity,
+    Prime,
+    Core,
+    Alpha,
 }
 
 #[account]
@@ -834,9 +834,9 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        senior: "#0EA5E9",   // sky-500 — stable blue
-        mezz:   "#F59E0B",   // amber-500 — risk amber
-        equity: "#EF4444",   // red-500 — high risk
+        prime: "#0EA5E9",   // sky-500 — stable blue
+        core:   "#F59E0B",   // amber-500 — risk amber
+        alpha: "#EF4444",   // red-500 — high risk
         positive: "#10B981", // emerald-500 — for PnL gains
         negative: "#DC2626", // red-600 — for PnL losses
       },
@@ -1004,21 +1004,21 @@ export const BPS_DENOMINATOR = 10_000;
 
 // Tranche kinds
 export enum TrancheKind {
-  Senior = 0,
-  Mezz = 1,
-  Equity = 2,
+  Prime = 0,
+  Core = 1,
+  Alpha = 2,
 }
 
 export const TRANCHE_LABEL: Record<TrancheKind, string> = {
-  [TrancheKind.Senior]: "Senior",
-  [TrancheKind.Mezz]: "Mezzanine",
-  [TrancheKind.Equity]: "Equity",
+  [TrancheKind.Prime]: "Prime",
+  [TrancheKind.Core]: "Core",
+  [TrancheKind.Alpha]: "Alpha",
 };
 
 export const TRANCHE_COLOR: Record<TrancheKind, string> = {
-  [TrancheKind.Senior]: "senior",
-  [TrancheKind.Mezz]: "mezz",
-  [TrancheKind.Equity]: "equity",
+  [TrancheKind.Prime]: "prime",
+  [TrancheKind.Core]: "core",
+  [TrancheKind.Alpha]: "alpha",
 };
 ```
 
@@ -1046,9 +1046,9 @@ This is the IDL sync rule from [CLAUDE.md](CLAUDE.md). Run after every contract 
 mkdir -p keys
 solana-keygen new --no-bip39-passphrase --silent --outfile keys/admin.json
 solana-keygen new --no-bip39-passphrase --silent --outfile keys/borrower.json
-solana-keygen new --no-bip39-passphrase --silent --outfile keys/lp_senior.json
-solana-keygen new --no-bip39-passphrase --silent --outfile keys/lp_mezz.json
-solana-keygen new --no-bip39-passphrase --silent --outfile keys/lp_equity.json
+solana-keygen new --no-bip39-passphrase --silent --outfile keys/lp_prime.json
+solana-keygen new --no-bip39-passphrase --silent --outfile keys/lp_core.json
+solana-keygen new --no-bip39-passphrase --silent --outfile keys/lp_alpha.json
 solana-keygen new --no-bip39-passphrase --silent --outfile keys/mm.json
 ```
 
@@ -1073,7 +1073,7 @@ solana airdrop 5 -k keys/admin.json --url devnet
 solana airdrop 2 -k keys/admin.json --url devnet
 
 # Each demo wallet gets 0.5 SOL for fees
-for wallet in borrower lp_senior lp_mezz lp_equity mm; do
+for wallet in borrower lp_prime lp_core lp_alpha mm; do
   solana airdrop 0.5 -k keys/$wallet.json --url devnet
 done
 

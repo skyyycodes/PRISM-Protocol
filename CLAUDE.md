@@ -151,7 +151,7 @@ prism-protocol/
 - Examples:
   - `feat(core): implement deposit instruction with NAV-per-share math`
   - `feat(amm): add constant-product swap with fee accumulation`
-  - `fix(core): correct loss cascade order — equity must drain first`
+  - `fix(core): correct loss cascade order — alpha must drain first`
   - `test(core): add cascade test matching §4.5 numbers`
 
 ### Branches

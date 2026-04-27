@@ -38,15 +38,15 @@ See [Risk & Market Layer](./risk-market-layer.md).
 
 ### How does the loss cascade actually work?
 
-When a credit event is recorded, realized loss is applied to tranche assets in reverse priority — Equity first, then Mezzanine, then Senior — until the loss is fully absorbed. Each tranche's NAV updates as its assets shrink. Token supply does not change.
+When a credit event is recorded, realized loss is applied to tranche assets in reverse priority — Alpha first, then Core, then Prime — until the loss is fully absorbed. Each tranche's NAV updates as its assets shrink. Token supply does not change.
 
 A USDC amount equal to the realized loss is moved from the vault reserve to the loss bucket account so the reserve invariant continues to hold.
 
 See [Edge Case Handling](./edge-case-handling.md) for boundary conditions.
 
-### Can Senior holders ever lose money?
+### Can Prime holders ever lose money?
 
-Yes, but only after Equity and Mezzanine have been fully wiped. Senior is loss-protected by subordination, not by guarantee. If a loss exceeds the combined capital of Equity and Mezzanine, the residual loss flows to Senior.
+Yes, but only after Alpha and Core have been fully wiped. Prime is loss-protected by subordination, not by guarantee. If a loss exceeds the combined capital of Alpha and Core, the residual loss flows to Prime.
 
 ### What if I deposit into a tranche that's been wiped?
 

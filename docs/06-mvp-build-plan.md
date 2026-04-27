@@ -86,7 +86,7 @@ If solo:
 | 2 | Apr 27 | All account structs + 5 init instructions (`config`, `vault`, `tranche` × 3, `loan`) | Init script creates a vault with 3 tranches + 3 SPL mints on devnet |
 | 3 | Apr 28 | NAV math (Q64.64), `deposit`, `withdraw` + tests | Deposit USDC → get pTRANCHE; burn → get USDC. NAV holds at 1.0 |
 | 4 | Apr 29 | Waterfall math, `accrue_yield` (pull pattern) + tests | After yield, all 3 NAVs tick up by §4.3 expected values |
-| 5 | Apr 30 | `trigger_credit_event` with 3 event types + tests + **MINI DEMO CHECKPOINT** | Default test → Equity NAV→0, Mezz partial, Senior unchanged |
+| 5 | Apr 30 | `trigger_credit_event` with 3 event types + tests + **MINI DEMO CHECKPOINT** | Default test → Alpha NAV→0, Core partial, Prime unchanged |
 
 #### ★ Day 5 Mini Demo Checkpoint ★
 
@@ -96,9 +96,9 @@ This is the safety net. If everything else breaks later — UI bugs, wallet issu
 
 ```typescript
 // Example fallback demo script
-await deposit(senior, 1000_000_000)   // 1000 USDC
-await deposit(mezz,   1000_000_000)
-await deposit(equity, 1000_000_000)
+await deposit(prime, 1000_000_000)   // 1000 USDC
+await deposit(core,   1000_000_000)
+await deposit(alpha, 1000_000_000)
 console.log("NAVs:", await navsOf(vault))
 await accrueYield(60_000_000)          // 60 USDC yield
 console.log("After yield:", await navsOf(vault))

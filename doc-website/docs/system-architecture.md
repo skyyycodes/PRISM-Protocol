@@ -32,13 +32,13 @@ This separation gives PRISM three important properties:
 
 The high-level lifecycle is:
 
-1. A vault is initialized with Senior, Mezzanine, and Equity tranches.
+1. A vault is initialized with Prime, Core, and Alpha tranches.
 2. Users deposit USDC into a chosen tranche.
 3. The protocol mints tranche tokens according to current NAV.
 4. Authorized yield is injected into the vault.
 5. The waterfall distributes yield to tranches by priority.
 6. A credit event may reduce vault assets.
-7. Losses cascade from Equity to Mezzanine to Senior.
+7. Losses cascade from Alpha to Core to Prime.
 8. Users either withdraw through the vault or trade tranche tokens on AMMs.
 
 ## Accounting Boundary

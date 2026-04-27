@@ -7,9 +7,9 @@ const steps = [
     number: "01",
     title: "Deposit",
     subtitle: "into a tranche",
-    description: "Pick your risk class — Senior for stability, Mezz for balanced yield, Equity for upside. Receive pTRANCHE tokens that represent your share of the vault.",
+    description: "Pick your risk class — Prime for stability, Core for balanced yield, Alpha for upside. Receive pTRANCHE tokens that represent your share of the vault.",
     code: `await prism.deposit({
-  tranche: 'senior',          // or 'mezz' | 'equity'
+  tranche: 'prime',          // or 'core' | 'alpha'
   amount: 1_000_000_000n,     // 1,000 USDC
   vault: 0,
 })`,
@@ -18,19 +18,19 @@ const steps = [
     number: "02",
     title: "Waterfall",
     subtitle: "yield in priority",
-    description: "The borrower pays a coupon. The waterfall distributes it: Senior first up to its target APY, then Mezz, then Equity. Your tranche's NAV updates on every event.",
+    description: "The borrower pays a coupon. The waterfall distributes it: Prime first up to its target APY, then Core, then Alpha. Your tranche's NAV updates on every event.",
     code: `// Yield event distributes via waterfall
-// Senior → 5% APY  (target)
-// Mezz   → 12% APY (target)
-// Equity → residual returns`,
+// Prime → 5% APY  (target)
+// Core   → 12% APY (target)
+// Alpha → residual returns`,
   },
   {
     number: "03",
     title: "Default",
     subtitle: "then reprice",
-    description: "Trigger a credit event and watch the loss move through the stack. Equity absorbs first, Mezz takes the residual, and AMM prices react in real time.",
+    description: "Trigger a credit event and watch the loss move through the stack. Alpha absorbs first, Core takes the residual, and AMM prices react in real time.",
     code: `await prism.swap({
-  from: 'pSENIOR',
+  from: 'pPRIME',
   to:   'USDC',
   amount: 50_000_000n,
 })

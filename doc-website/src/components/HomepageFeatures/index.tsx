@@ -15,7 +15,7 @@ const FeatureList: FeatureItem[] = [
     Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
     description: (
       <>
-        PRISM vaults split credit exposure into Senior, Mezzanine, and Equity
+        PRISM vaults split credit exposure into Prime, Core, and Alpha
         tranches with explicit priority and loss behavior.
       </>
     ),

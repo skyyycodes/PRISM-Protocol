@@ -51,11 +51,11 @@ export default function Home(): ReactNode {
             <div className="row">
               <FeatureCard
                 title="Risk-Segmented Credit"
-                description="PRISM means Programmable Risk & Income Structured Markets: every vault separates credit into Senior, Mezzanine, and Equity tranches."
+                description="PRISM means Programmable Risk & Income Structured Markets: every vault separates credit into Prime, Core, and Alpha tranches."
               />
               <FeatureCard
                 title="Deterministic Waterfalls"
-                description="Yield flows top-down to seniority. Losses flow bottom-up through subordination. The protocol makes credit behavior explicit and reproducible on-chain."
+                description="Yield flows top-down to primeity. Losses flow bottom-up through subordination. The protocol makes credit behavior explicit and reproducible on-chain."
               />
               <FeatureCard
                 title="Liquid Credit Markets"

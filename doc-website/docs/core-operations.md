@@ -14,7 +14,7 @@ Users deposit USDC into a selected tranche and receive tranche tokens proportion
 
 Deposit flow:
 
-1. User selects Senior, Mezzanine, or Equity.
+1. User selects Prime, Core, or Alpha.
 2. User transfers USDC into the vault reserve.
 3. Protocol calculates shares using current NAV.
 4. Protocol mints tranche tokens to the user.
@@ -31,9 +31,9 @@ Yield flow:
 1. Authorized yield source calls the accrual instruction.
 2. USDC enters the vault reserve.
 3. Protocol computes each tranche's waterfall entitlement.
-4. Senior receives target yield first.
-5. Mezzanine receives target yield second.
-6. Equity receives residual yield.
+4. Prime receives target yield first.
+5. Core receives target yield second.
+6. Alpha receives residual yield.
 7. NAV updates for every affected tranche.
 
 ## Credit Events
@@ -44,9 +44,9 @@ Credit event flow:
 
 1. Oracle or authorized admin submits a loss amount.
 2. Protocol records the credit event.
-3. Loss is applied to Equity first.
-4. Residual loss is applied to Mezzanine.
-5. Any remaining loss is applied to Senior.
+3. Loss is applied to Alpha first.
+4. Residual loss is applied to Core.
+5. Any remaining loss is applied to Prime.
 6. USDC moves from vault reserve to the loss sink.
 7. NAV updates to reflect the realized loss.
 

@@ -9,7 +9,7 @@ id: introduction
 
 PRISM stands for **Programmable Risk & Income Structured Markets**.
 
-The name describes the protocol's core purpose: PRISM takes a credit pool and refracts it into distinct risk and income layers, the same way a prism separates light into visible bands. Each layer has its own seniority, yield profile, loss exposure, token, and market price.
+The name describes the protocol's core purpose: PRISM takes a credit pool and refracts it into distinct risk and income layers, the same way a prism separates light into visible bands. Each layer has its own primeity, yield profile, loss exposure, token, and market price.
 
 PRISM Protocol is decentralized, non-custodial credit infrastructure for creating, structuring, trading, and managing credit risk on-chain.
 
@@ -29,13 +29,13 @@ Credit should be transparent, programmable, and liquid.
 
 ## Why The Name PRISM
 
-Credit is not one uniform exposure. A single pool can contain senior protection, mezzanine yield, equity upside, default risk, liquidity premiums, and market sentiment at the same time.
+Credit is not one uniform exposure. A single pool can contain prime protection, core yield, alpha upside, default risk, liquidity premiums, and market sentiment at the same time.
 
 PRISM makes those hidden layers explicit:
 
 - **Programmable:** credit logic is encoded into deterministic on-chain rules.
 - **Risk:** each tranche exposes a different position in the loss hierarchy.
-- **Income:** yield flows through a defined waterfall from Senior to Mezzanine to Equity.
+- **Income:** yield flows through a defined waterfall from Prime to Core to Alpha.
 - **Structured:** vaults use tranche-based subordination rather than a single blended pool.
 - **Markets:** tranche tokens can trade independently, allowing live price discovery.
 
@@ -43,7 +43,7 @@ That is why PRISM expands to **Programmable Risk & Income Structured Markets**.
 
 ## Why PRISM Exists
 
-Credit is one of the largest financial primitives in the world, but most credit exposure is hard to inspect, hard to transfer, and hard to price in real time. Traditional structured credit uses seniority and subordination, but those mechanics usually live behind private documents, manual administration, and opaque secondary markets.
+Credit is one of the largest financial primitives in the world, but most credit exposure is hard to inspect, hard to transfer, and hard to price in real time. Traditional structured credit uses primeity and subordination, but those mechanics usually live behind private documents, manual administration, and opaque secondary markets.
 
 PRISM brings those mechanics on-chain. Vault state, tranche accounting, NAV updates, waterfall distributions, credit events, token balances, and AMM prices are all visible to the user.
 
@@ -51,7 +51,7 @@ PRISM brings those mechanics on-chain. Vault state, tranche accounting, NAV upda
 
 PRISM enables a new category of on-chain financial products:
 
-- Structured credit vaults with explicit seniority.
+- Structured credit vaults with explicit primeity.
 - Tokenized credit positions that can be transferred or traded.
 - Live market pricing for tranche-specific risk.
 - Deterministic yield and loss accounting.
@@ -64,9 +64,9 @@ A PRISM vault is a credit pool split into three risk layers:
 
 | Tranche | Priority | Risk Role | Typical User |
 | --- | --- | --- | --- |
-| Senior | Paid first | Most protected | Conservative capital |
-| Mezzanine | Paid second | Intermediate exposure | Balanced capital |
-| Equity | Paid last | First-loss absorber | High-risk residual exposure |
+| Prime | Paid first | Most protected | Conservative capital |
+| Core | Paid second | Intermediate exposure | Balanced capital |
+| Alpha | Paid last | First-loss absorber | High-risk residual exposure |
 
 When yield enters the vault, it flows from the safest layer to the riskiest layer. When losses hit, they flow in the opposite direction.
 
@@ -76,9 +76,9 @@ The most important PRISM behavior is the loss cascade.
 
 When a credit event occurs:
 
-1. Equity absorbs losses first.
-2. Mezzanine absorbs residual losses after Equity is depleted.
-3. Senior absorbs losses only after subordinate tranches are depleted.
+1. Alpha absorbs losses first.
+2. Core absorbs residual losses after Alpha is depleted.
+3. Prime absorbs losses only after subordinate tranches are depleted.
 
 This is the core demonstration:
 

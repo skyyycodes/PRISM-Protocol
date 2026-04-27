@@ -99,7 +99,7 @@ The long-term vision:
 | **Most teams lose by forcing a token** | They add fake utility, confuse the story, invite regulatory questions. We do the opposite |
 | **Matches the core thesis** | The pitch is "credit infrastructure," not "token ecosystem." A token early dilutes that |
 | **Roadmap already supports it naturally** | Phase 1 = working system; Phase 2 = complete stack; Phase 3 = institutional. Token fits cleanly only at Phase 3 |
-| **Phase 3 token has clear utility** | Insurance backstop tranche below Equity — absorbs tail risk in exchange for protocol fees. Aligns with credit risk, not speculative |
+| **Phase 3 token has clear utility** | Insurance backstop tranche below Alpha — absorbs tail risk in exchange for protocol fees. Aligns with credit risk, not speculative |
 
 ### Pitch line (use exactly)
 

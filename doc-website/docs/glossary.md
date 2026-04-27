@@ -20,11 +20,11 @@ An event that reduces vault assets and triggers the loss cascade. Examples inclu
 
 ## Default Cascade
 
-The reverse-priority loss application that absorbs realized losses Equity → Mezzanine → Senior. Senior protection emerges from this ordering, not from any external guarantee.
+The reverse-priority loss application that absorbs realized losses Alpha → Core → Prime. Prime protection emerges from this ordering, not from any external guarantee.
 
-## Equity Tranche
+## Alpha Tranche
 
-The highest-risk tranche. Equity receives residual upside but absorbs losses first.
+The highest-risk tranche. Alpha receives residual upside but absorbs losses first.
 
 ## Fixed-Point (Q64.64)
 
@@ -38,9 +38,9 @@ An account that deposits both sides of an AMM pool (a tranche token and USDC) an
 
 A program-controlled token account that holds USDC moved out of the vault reserve when a credit event is realized. Maintains the reserve invariant by absorbing the cash that corresponds to the realized loss.
 
-## Mezzanine Tranche
+## Core Tranche
 
-The intermediate tranche. Mezzanine is paid after Senior and absorbs losses after Equity.
+The intermediate tranche. Core is paid after Prime and absorbs losses after Alpha.
 
 ## NAV
 
@@ -56,15 +56,15 @@ Program-derived address. A deterministic account address generated from program-
 
 ## pALPHA
 
-SPL token representing a claim on the Equity tranche.
+SPL token representing a claim on the Alpha tranche.
 
 ## pCORE
 
-SPL token representing a claim on the Mezzanine tranche.
+SPL token representing a claim on the Core tranche.
 
 ## pPRIME
 
-SPL token representing a claim on the Senior tranche.
+SPL token representing a claim on the Prime tranche.
 
 ## PRISM
 
@@ -79,14 +79,14 @@ The USDC token account held by a vault. Stores all deposited USDC and source fun
 The accounting rule that the vault USDC reserve must equal the sum of tranche assets at all times.
 
 ```text
-reserve = senior_assets + mezzanine_assets + equity_assets
+reserve = prime_assets + core_assets + alpha_assets
 ```
 
 Maintained by transferring loss USDC to the loss bucket whenever a credit event reduces tranche assets.
 
-## Senior Tranche
+## Prime Tranche
 
-The most protected tranche. Senior is paid first and absorbs losses last.
+The most protected tranche. Prime is paid first and absorbs losses last.
 
 ## Strategy Preset
 
@@ -94,7 +94,7 @@ An interface-level allocation template (Conservative, Balanced, Aggressive) that
 
 ## Subordination
 
-The hierarchy that determines which tranche absorbs losses first. Equity is most subordinated, Senior is least.
+The hierarchy that determines which tranche absorbs losses first. Alpha is most subordinated, Prime is least.
 
 ## Tranche
 
@@ -106,5 +106,5 @@ A single PRISM credit pool. Contains a USDC reserve, three tranches, optional lo
 
 ## Waterfall
 
-The deterministic payment order used to distribute incoming yield. Senior receives target yield first, then Mezzanine, then Equity receives the residual.
+The deterministic payment order used to distribute incoming yield. Prime receives target yield first, then Core, then Alpha receives the residual.
 

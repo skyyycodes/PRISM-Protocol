@@ -8,14 +8,14 @@ const metrics = [
     suffix: "", 
     prefix: "$",
     label: "Default loss simulated",
-    sublabel: "Equity first, then Mezz",
+    sublabel: "Alpha first, then Core",
   },
   { 
     value: 100, 
     suffix: " USDC", 
     prefix: "",
     label: "Coupon distributed",
-    sublabel: "Senior -> Mezz -> Equity",
+    sublabel: "Prime -> Core -> Alpha",
   },
   { 
     value: 30, 
@@ -328,9 +328,9 @@ export function MetricsSection({ id }: { id?: string }) {
         <div className={`mt-8 pt-5 border-t border-foreground/10 flex flex-wrap items-center gap-x-8 gap-y-3 text-xs lg:text-sm font-mono text-muted-foreground transition-all duration-1000 delay-500 ${
           isVisible ? "opacity-100" : "opacity-0"
         }`}>
-          <span>pSENIOR NAV $1.00411</span>
-          <span>pMEZZ NAV $0.6798 after default</span>
-          <span>pEQUITY wiped first</span>
+          <span>pPRIME NAV $1.00411</span>
+          <span>pCORE NAV $0.6798 after default</span>
+          <span>pALPHA wiped first</span>
           <span>Market price updates on AMM swaps</span>
           <span className="text-foreground">Losses do not disappear. They move.</span>
         </div>

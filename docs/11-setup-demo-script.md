@@ -18,7 +18,7 @@ After successful run with `vault_id = 0`:
 |---|---|
 | `GlobalConfig` PDA exists with admin = keys/admin.json pubkey | `solana account <config_pda>` |
 | `Vault[0]` PDA exists, state = Active, USDC reserve + loss bucket initialized | `solana account <vault_pda>` |
-| 3 Tranches initialized: Senior (5% APY), Mezz (12%), Equity (residual) | `program.account.tranche.fetch(...)` |
+| 3 Tranches initialized: Prime (5% APY), Core (12%), Alpha (residual) | `program.account.tranche.fetch(...)` |
 | 3 SPL mints exist (`pPRIME`, `pCORE`, `pALPHA`), authority = Tranche PDA | SPL token CLI: `spl-token display <mint>` |
 | 1 Loan PDA exists, borrower = keys/borrower.json | `program.account.loan.fetch(...)` |
 | LP wallets hold pTRANCHE balances per [12-reference-card.md §1.4](12-reference-card.md) | `spl-token balance --owner <lp_pubkey>` |
@@ -92,9 +92,9 @@ interface SetupContext {
   wallets: {
     admin: Keypair;
     borrower: Keypair;
-    lpSenior: Keypair;
-    lpMezz: Keypair;
-    lpEquity: Keypair;
+    lpPrime: Keypair;
+    lpCore: Keypair;
+    lpAlpha: Keypair;
     mm: Keypair;
   };
   vaultId: number;
@@ -102,12 +102,12 @@ interface SetupContext {
   pdas: {
     config: PublicKey;
     vault: PublicKey;
-    tranches: { senior: PublicKey; mezz: PublicKey; equity: PublicKey };
-    trancheMints: { senior: PublicKey; mezz: PublicKey; equity: PublicKey };
+    tranches: { prime: PublicKey; core: PublicKey; alpha: PublicKey };
+    trancheMints: { prime: PublicKey; core: PublicKey; alpha: PublicKey };
     loan: PublicKey;
     vaultUsdcReserve: PublicKey;
     lossBucket: PublicKey;
-    ammPools: { senior: PublicKey; mezz: PublicKey; equity: PublicKey };
+    ammPools: { prime: PublicKey; core: PublicKey; alpha: PublicKey };
   };
 }
 
@@ -124,23 +124,23 @@ async function loadContext(): Promise<SetupContext> {
   const wallets = {
     admin,
     borrower:  loadKeypair("keys/borrower.json"),
-    lpSenior:  loadKeypair("keys/lp_senior.json"),
-    lpMezz:    loadKeypair("keys/lp_mezz.json"),
-    lpEquity:  loadKeypair("keys/lp_equity.json"),
+    lpPrime:  loadKeypair("keys/lp_prime.json"),
+    lpCore:    loadKeypair("keys/lp_core.json"),
+    lpAlpha:  loadKeypair("keys/lp_alpha.json"),
     mm:        loadKeypair("keys/mm.json"),
   };
 
   // Derive all PDAs once
   const [config]   = getConfigPda();
   const [vault]    = getVaultPda(VAULT_ID);
-  const [trancheS] = getTranchePda(vault, TrancheKind.Senior);
+  const [trancheS] = getTranchePda(vault, TrancheKind.Prime);
   // ... (all PDAs derived per 12-reference-card.md §2.1)
 
   return {
     connection, provider, programs: { core, amm },
     wallets, vaultId: VAULT_ID,
     usdcMint: new PublicKey(process.env.NEXT_PUBLIC_USDC_MINT!),
-    pdas: { config, vault, tranches: { senior: trancheS, ... }, ... },
+    pdas: { config, vault, tranches: { prime: trancheS, ... }, ... },
   };
 }
 ```
@@ -179,9 +179,9 @@ async function ensureUsdcBalances(ctx: SetupContext) {
   const required = {
     admin:    7_000_000_000n,   // 7,000 USDC for AMM seed
     borrower: 10_000_000_000n,  // 10,000 USDC for yield
-    lpSenior:  5_000_000_000n,
-    lpMezz:    3_000_000_000n,
-    lpEquity:  2_000_000_000n,
+    lpPrime:  5_000_000_000n,
+    lpCore:    3_000_000_000n,
+    lpAlpha:  2_000_000_000n,
     mm:        2_500_000_000n,
   };
 
@@ -271,9 +271,9 @@ async function initializeVault(ctx: SetupContext) {
 ```typescript
 async function initializeTranches(ctx: SetupContext) {
   const params = [
-    { kind: TrancheKind.Senior, apy: 500, label: "senior" },
-    { kind: TrancheKind.Mezz,   apy: 1200, label: "mezz" },
-    { kind: TrancheKind.Equity, apy: 0,    label: "equity" },
+    { kind: TrancheKind.Prime, apy: 500, label: "prime" },
+    { kind: TrancheKind.Core,   apy: 1200, label: "core" },
+    { kind: TrancheKind.Alpha, apy: 0,    label: "alpha" },
   ];
 
   for (const p of params) {
@@ -347,14 +347,14 @@ async function initializeLoan(ctx: SetupContext) {
 async function runDeposits(ctx: SetupContext) {
   // Per 12-reference-card.md §1.4 — exact amounts in 6-decimal base units
   const deposits = [
-    { wallet: ctx.wallets.lpSenior, kind: TrancheKind.Senior, amount: 5_000_000_000n, label: "lp_senior" },
-    { wallet: ctx.wallets.lpMezz,   kind: TrancheKind.Mezz,   amount: 3_000_000_000n, label: "lp_mezz" },
-    { wallet: ctx.wallets.lpEquity, kind: TrancheKind.Equity, amount: 2_000_000_000n, label: "lp_equity" },
-    { wallet: ctx.wallets.mm,       kind: TrancheKind.Equity, amount: 2_000_000_000n, label: "mm_equity" },
-    { wallet: ctx.wallets.mm,       kind: TrancheKind.Mezz,   amount:   500_000_000n, label: "mm_mezz" },
-    { wallet: ctx.wallets.admin,    kind: TrancheKind.Senior, amount: 5_000_000_000n, label: "admin_senior" },
-    { wallet: ctx.wallets.admin,    kind: TrancheKind.Mezz,   amount: 1_000_000_000n, label: "admin_mezz" },
-    { wallet: ctx.wallets.admin,    kind: TrancheKind.Equity, amount: 1_000_000_000n, label: "admin_equity" },
+    { wallet: ctx.wallets.lpPrime, kind: TrancheKind.Prime, amount: 5_000_000_000n, label: "lp_prime" },
+    { wallet: ctx.wallets.lpCore,   kind: TrancheKind.Core,   amount: 3_000_000_000n, label: "lp_core" },
+    { wallet: ctx.wallets.lpAlpha, kind: TrancheKind.Alpha, amount: 2_000_000_000n, label: "lp_alpha" },
+    { wallet: ctx.wallets.mm,       kind: TrancheKind.Alpha, amount: 2_000_000_000n, label: "mm_alpha" },
+    { wallet: ctx.wallets.mm,       kind: TrancheKind.Core,   amount:   500_000_000n, label: "mm_core" },
+    { wallet: ctx.wallets.admin,    kind: TrancheKind.Prime, amount: 5_000_000_000n, label: "admin_prime" },
+    { wallet: ctx.wallets.admin,    kind: TrancheKind.Core,   amount: 1_000_000_000n, label: "admin_core" },
+    { wallet: ctx.wallets.admin,    kind: TrancheKind.Alpha, amount: 1_000_000_000n, label: "admin_alpha" },
   ];
 
   for (const d of deposits) {
@@ -399,7 +399,7 @@ async function runDeposits(ctx: SetupContext) {
 
 ```typescript
 async function initializeAmmPools(ctx: SetupContext) {
-  for (const kind of [TrancheKind.Senior, TrancheKind.Mezz, TrancheKind.Equity]) {
+  for (const kind of [TrancheKind.Prime, TrancheKind.Core, TrancheKind.Alpha]) {
     const label = trancheKindToLabel(kind);
     const poolPda = ctx.pdas.ammPools[label];
     const existing = await ctx.programs.amm.account.ammPool.fetchNullable(poolPda);
@@ -438,9 +438,9 @@ async function initializeAmmPools(ctx: SetupContext) {
 async function seedAmmLiquidity(ctx: SetupContext) {
   // Per 12-reference-card.md §1.4
   const seeds = [
-    { kind: TrancheKind.Senior, tranche: 5_000_000_000n, quote: 5_000_000_000n },
-    { kind: TrancheKind.Mezz,   tranche: 1_000_000_000n, quote: 1_000_000_000n },
-    { kind: TrancheKind.Equity, tranche: 1_000_000_000n, quote: 1_000_000_000n },
+    { kind: TrancheKind.Prime, tranche: 5_000_000_000n, quote: 5_000_000_000n },
+    { kind: TrancheKind.Core,   tranche: 1_000_000_000n, quote: 1_000_000_000n },
+    { kind: TrancheKind.Alpha, tranche: 1_000_000_000n, quote: 1_000_000_000n },
   ];
 
   for (const s of seeds) {
@@ -487,9 +487,9 @@ async function simulateYieldEvent(ctx: SetupContext) {
       authority: ctx.wallets.admin.publicKey,
       config: ctx.pdas.config,
       vault: ctx.pdas.vault,
-      trancheSenior: ctx.pdas.tranches.senior,
-      trancheMezz:   ctx.pdas.tranches.mezz,
-      trancheEquity: ctx.pdas.tranches.equity,
+      tranchePrime: ctx.pdas.tranches.prime,
+      trancheCore:   ctx.pdas.tranches.core,
+      trancheAlpha: ctx.pdas.tranches.alpha,
       borrowerUsdcAta: await getAssociatedTokenAddress(ctx.usdcMint, ctx.wallets.borrower.publicKey),
       borrowerAuthority: ctx.wallets.borrower.publicKey,
       vaultUsdcReserve: ctx.pdas.vaultUsdcReserve,
@@ -503,10 +503,10 @@ async function simulateYieldEvent(ctx: SetupContext) {
 }
 ```
 
-**Note on 30-day "elapsed":** the handler computes `senior_target = total_assets × apy_bps × elapsed / SECONDS_PER_YEAR / BPS_DENOMINATOR`. With `elapsed = 30 days × 86400 s = 2,592,000 s`:
-- senior_target = 10K × 500 × 2,592,000 / (31,536,000 × 10,000) = 41.10 USDC ✓
-- mezz_target = 4.5K × 1,200 × 2,592,000 / (31,536,000 × 10,000) = 44.38 USDC ✓
-- equity_take = 100 - 41.10 - 44.38 = 14.52 USDC ✓
+**Note on 30-day "elapsed":** the handler computes `prime_target = total_assets × apy_bps × elapsed / SECONDS_PER_YEAR / BPS_DENOMINATOR`. With `elapsed = 30 days × 86400 s = 2,592,000 s`:
+- prime_target = 10K × 500 × 2,592,000 / (31,536,000 × 10,000) = 41.10 USDC ✓
+- core_target = 4.5K × 1,200 × 2,592,000 / (31,536,000 × 10,000) = 44.38 USDC ✓
+- alpha_take = 100 - 41.10 - 44.38 = 14.52 USDC ✓
 
 For real elapsed time on devnet, we'd need 30 days. **For demo recording**, set `vault.last_yield_timestamp = (now - 30 days)` directly via a setup-only `seed_demo_state` admin instruction, OR fudge the `elapsed` calculation in `accrue_yield` to accept an explicit `elapsed_seconds` parameter (admin-only path). My pick: add an explicit parameter — simpler, and clearly demo-only.
 
@@ -524,9 +524,9 @@ For real elapsed time on devnet, we'd need 30 days. **For demo recording**, set 
 ```typescript
 async function printSummary(ctx: SetupContext) {
   const tranches = await Promise.all([
-    ctx.programs.core.account.tranche.fetch(ctx.pdas.tranches.senior),
-    ctx.programs.core.account.tranche.fetch(ctx.pdas.tranches.mezz),
-    ctx.programs.core.account.tranche.fetch(ctx.pdas.tranches.equity),
+    ctx.programs.core.account.tranche.fetch(ctx.pdas.tranches.prime),
+    ctx.programs.core.account.tranche.fetch(ctx.pdas.tranches.core),
+    ctx.programs.core.account.tranche.fetch(ctx.pdas.tranches.alpha),
   ]);
 
   console.log(`
@@ -534,19 +534,19 @@ async function printSummary(ctx: SetupContext) {
   PRISM Demo Setup — Vault ${ctx.vaultId} ready
 ═══════════════════════════════════════════════════════════
 
-  Senior (NAV ${formatNav(tranches[0].navPerShareQ)}):
+  Prime (NAV ${formatNav(tranches[0].navPerShareQ)}):
     total_assets: ${formatUsdc(tranches[0].totalAssets)}
     total_supply: ${formatUsdc(tranches[0].totalSupply)} pPRIME
 
-  Mezz   (NAV ${formatNav(tranches[1].navPerShareQ)}):
+  Core   (NAV ${formatNav(tranches[1].navPerShareQ)}):
     total_assets: ${formatUsdc(tranches[1].totalAssets)}
     total_supply: ${formatUsdc(tranches[1].totalSupply)} pCORE
 
-  Equity (NAV ${formatNav(tranches[2].navPerShareQ)}):
+  Alpha (NAV ${formatNav(tranches[2].navPerShareQ)}):
     total_assets: ${formatUsdc(tranches[2].totalAssets)}
     total_supply: ${formatUsdc(tranches[2].totalSupply)} pALPHA
 
-  AMM pools seeded:    Senior 5K+5K, Mezz 1K+1K, Equity 1K+1K
+  AMM pools seeded:    Prime 5K+5K, Core 1K+1K, Alpha 1K+1K
   MM Trade #2 inv:     2K pALPHA + 0.5K pCORE
   Yield event:         ${SKIP_YIELD ? "skipped" : "100 USDC accrued"}
 
@@ -586,8 +586,8 @@ function formatNav(navQ: BN | bigint): string {
   return (Number(integer) + decimal).toFixed(5);
 }
 
-function trancheKindToLabel(kind: TrancheKind): "senior" | "mezz" | "equity" {
-  return kind === TrancheKind.Senior ? "senior" : kind === TrancheKind.Mezz ? "mezz" : "equity";
+function trancheKindToLabel(kind: TrancheKind): "prime" | "core" | "alpha" {
+  return kind === TrancheKind.Prime ? "prime" : kind === TrancheKind.Core ? "core" : "alpha";
 }
 ```
 
@@ -600,31 +600,31 @@ Run `yarn setup` on a fresh devnet deploy. You should see:
 ```
 [step 1/12] initialize_global_config done
 [step 2/12] initialize_vault done
-[step 3/12] initialize_tranche senior done
-[step 3/12] initialize_tranche mezz done
-[step 3/12] initialize_tranche equity done
+[step 3/12] initialize_tranche prime done
+[step 3/12] initialize_tranche core done
+[step 3/12] initialize_tranche alpha done
 [step 4/12] initialize_loan done
-[deposit] lp_senior: 5000.00 done
-[deposit] lp_mezz: 3000.00 done
-[deposit] lp_equity: 2000.00 done
-[deposit] mm_equity: 2000.00 done
-[deposit] mm_mezz: 500.00 done
-[deposit] admin_senior: 5000.00 done
-[deposit] admin_mezz: 1000.00 done
-[deposit] admin_equity: 1000.00 done
-[step 8/12] initialize_pool senior done
-[step 8/12] initialize_pool mezz done
-[step 8/12] initialize_pool equity done
-[step 9/12] add_liquidity senior: 5000.00 / 5000.00 done
-[step 9/12] add_liquidity mezz: 1000.00 / 1000.00 done
-[step 9/12] add_liquidity equity: 1000.00 / 1000.00 done
+[deposit] lp_prime: 5000.00 done
+[deposit] lp_core: 3000.00 done
+[deposit] lp_alpha: 2000.00 done
+[deposit] mm_alpha: 2000.00 done
+[deposit] mm_core: 500.00 done
+[deposit] admin_prime: 5000.00 done
+[deposit] admin_core: 1000.00 done
+[deposit] admin_alpha: 1000.00 done
+[step 8/12] initialize_pool prime done
+[step 8/12] initialize_pool core done
+[step 8/12] initialize_pool alpha done
+[step 9/12] add_liquidity prime: 5000.00 / 5000.00 done
+[step 9/12] add_liquidity core: 1000.00 / 1000.00 done
+[step 9/12] add_liquidity alpha: 1000.00 / 1000.00 done
 [step 10/12] simulated yield event: 100 USDC done
 
 ═══════════════════════════════════════════════════════════
   PRISM Demo Setup — Vault 0 ready
 ═══════════════════════════════════════════════════════════
 
-  Senior (NAV 1.00411):
+  Prime (NAV 1.00411):
     total_assets: 10041.10
     total_supply: 10000.00 pPRIME
   ...
