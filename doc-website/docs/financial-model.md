@@ -62,7 +62,7 @@ To maintain this invariant:
 - Deposits transfer USDC into the reserve and increase tranche assets.
 - Yield transfers USDC into the reserve and increases tranche assets.
 - Withdrawals transfer USDC out of the reserve and decrease tranche assets.
-- Losses transfer USDC out of the reserve to a loss sink and decrease tranche assets.
+- Losses transfer USDC out of the reserve to a dedicated loss bucket account and decrease tranche assets.
 
 ## NAV and Market Price
 

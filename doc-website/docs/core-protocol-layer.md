@@ -28,9 +28,9 @@ Each vault is partitioned into three tranches:
 
 | Tranche | Description | Waterfall Position | Loss Position |
 | --- | --- | --- | --- |
-| Senior | First-loss protected exposure | Paid first | Absorbs last |
+| Senior | Loss-protected exposure (junior tranches absorb first) | Paid first | Absorbs last |
 | Mezzanine | Intermediate risk exposure | Paid second | Absorbs second |
-| Equity | Residual upside exposure | Paid last | Absorbs first |
+| Equity | Residual upside exposure (first-loss capital) | Paid last | Absorbs first |
 
 Each tranche maintains:
 

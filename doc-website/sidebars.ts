@@ -43,6 +43,7 @@ const sidebars: SidebarsConfig = {
       collapsed: true,
       items: [
         'roadmap',
+        'faq',
         'glossary',
       ],
     },

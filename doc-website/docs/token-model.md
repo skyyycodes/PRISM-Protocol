@@ -6,7 +6,29 @@ id: token-model
 
 # Token Model
 
-Each PRISM tranche is represented by a fungible SPL token.
+PRISM tokenizes **risk exposure**, not individual loans, and does not introduce a protocol or governance token. The only tokens the protocol issues are tranche tokens and AMM liquidity-provider tokens.
+
+## What PRISM Tokenizes (And What It Doesn't)
+
+A credit protocol can tokenize at three different layers. PRISM intentionally chooses one and rejects the other two.
+
+| Token category | What it represents | PRISM uses it? |
+| --- | --- | --- |
+| **Per-loan token** | One token per individual loan, often as an NFT | ❌ No |
+| **Tranche token** | Fungible claim on a risk class within a credit pool | ✅ Yes — `pSENIOR`, `pMEZZ`, `pEQUITY` |
+| **Protocol / governance token** | Separate token for governance, incentives, or fee capture | ❌ No |
+
+### Why Tranche Tokens, Not Per-Loan Tokens
+
+A per-loan token model creates one fragmented market per loan. Each token has a separate buyer, separate due-diligence requirement, and thin standalone liquidity.
+
+A tranche token model creates three deep markets per vault, each representing a slice of risk across whatever loans the vault holds. Risk is diversified at the pool level. Liquidity is concentrated at the tranche level.
+
+Tranche tokenization is the same pattern that traditional structured credit (CDOs, CLOs) uses to make pooled credit exposure tradable.
+
+### Why No Protocol Token
+
+PRISM's purpose is to make credit risk programmable, transparent, and tradable. Introducing a separate governance or fee-capture token early would distract from that core thesis and add regulatory ambiguity without functional benefit. The protocol remains tokenless until a clear utility — most likely an insurance backstop tranche — emerges in a later phase.
 
 ## Tranche Tokens
 
