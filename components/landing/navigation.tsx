@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { DOCS_URL } from "@/lib/site-links";
+import { WaitlistDialog } from "@/components/landing/waitlist-dialog";
 
 const navLinks = [
   { name: "Tranches",      href: "#features"      },
@@ -87,12 +88,14 @@ export function Navigation() {
             <a href={DOCS_URL} className={`transition-all duration-500 ${isScrolled ? "text-xs text-foreground/70 hover:text-foreground" : "text-sm text-white/70 hover:text-white"}`}>
               View docs
             </a>
-            <Button
-              size="sm"
-              className={`rounded-full transition-all duration-500 ${isScrolled ? "bg-foreground hover:bg-foreground/90 text-background px-4 h-8 text-xs" : "bg-white hover:bg-white/90 text-black px-6"}`}
-            >
-              Launch app
-            </Button>
+            <WaitlistDialog>
+              <Button
+                size="sm"
+                className={`rounded-full transition-all duration-500 ${isScrolled ? "bg-foreground hover:bg-foreground/90 text-background px-4 h-8 text-xs" : "bg-white hover:bg-white/90 text-black px-6"}`}
+              >
+                Join Waitlist
+              </Button>
+            </WaitlistDialog>
           </div>
 
           {/* Mobile Menu Button */}
@@ -156,12 +159,14 @@ export function Navigation() {
             >
               <a href={DOCS_URL}>View docs</a>
             </Button>
-            <Button
-              className="flex-1 bg-foreground text-background rounded-full h-14 text-base"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Launch app
-            </Button>
+            <WaitlistDialog>
+              <Button
+                className="flex-1 bg-foreground text-background rounded-full h-14 text-base"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Join Waitlist
+              </Button>
+            </WaitlistDialog>
           </div>
         </div>
       </div>
