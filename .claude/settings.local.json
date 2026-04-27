@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(solana-keygen new *)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(Get-Command *)"
+    ]
+  }
+}
