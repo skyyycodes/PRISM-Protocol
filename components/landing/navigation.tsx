@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { DOCS_URL } from "@/lib/site-links";
@@ -46,7 +47,23 @@ export function Navigation() {
           }`}
         >
           {/* Logo */}
-          <a href="#" className="flex items-center gap-2 group">
+          <a href="#" className="flex items-center gap-3 group">
+            <span
+              className={`relative shrink-0 overflow-hidden transition-all duration-500 ${
+                isScrolled ? "h-8 w-8" : "h-11 w-11"
+              }`}
+            >
+              <Image
+                src="/logos/prism.png"
+                alt="PRISM logo"
+                width={240}
+                height={160}
+                priority
+                className={`absolute left-1/2 top-[54%] max-w-none -translate-x-1/2 -translate-y-1/2 object-contain transition-all duration-500 ${
+                  isScrolled ? "h-28 w-[10.5rem]" : "h-36 w-[13.5rem]"
+                }`}
+              />
+            </span>
             <span className={`font-display tracking-tight transition-all duration-500 ${isScrolled ? "text-xl text-foreground" : "text-2xl text-white"}`}>PRISM</span>
             <span className={`font-mono transition-all duration-500 ${isScrolled ? "text-[10px] mt-0.5 text-muted-foreground" : "text-xs mt-1 text-white/60"}`}>PROTOCOL</span>
           </a>

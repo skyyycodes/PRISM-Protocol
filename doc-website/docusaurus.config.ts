@@ -5,7 +5,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'PRISM Protocol Docs',
   tagline: 'Programmable Risk & Income Structured Markets on Solana',
-  favicon: 'img/prism-logo.svg',
+  favicon: 'img/favicon.ico',
 
   future: {
     v4: true,
@@ -49,6 +49,12 @@ const config: Config = {
     },
     navbar: {
       title: 'PRISM Protocol Docs',
+      logo: {
+        alt: 'PRISM logo',
+        src: 'img/prism-icon-64x64.png',
+        width: 48,
+        height: 48,
+      },
       items: [
         {
           type: 'docSidebar',
