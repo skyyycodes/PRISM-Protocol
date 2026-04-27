@@ -23,7 +23,7 @@ This section does double duty: on-chain instruction specs (used by section 5) AN
        │   All 3 NAVs tick UP
        │
 0:50 ──┼── Trade #1 (15s) — establish baseline
-       │   Swap pSENIOR ↔ USDC at near-NAV
+       │   Swap pPRIME ↔ USDC at near-NAV
        │   "The market prices tranches near their underlying value"
        │
 1:05 ──┼── ★ DEFAULT MOMENT ★ (40s)  ← longest segment, do not rush
@@ -34,13 +34,13 @@ This section does double duty: on-chain instruction specs (used by section 5) AN
        │
 1:45 ──┼── Trade #2 (20s) — market reacts to risk
        │   Click "Run Market Reaction" — 5 Equity sells, 2 Mezz sells animate
-       │   pEQUITY price walks 1.00 → 0.51 → 0.31 → 0.21 → 0.15 → 0.11
-       │   pMEZZ:   1.00 → 0.64 → 0.44
-       │   Then user sells 50 pSENIOR → 0.98 (stability)
+       │   pALPHA price walks 1.00 → 0.51 → 0.31 → 0.21 → 0.15 → 0.11
+       │   pCORE:   1.00 → 0.64 → 0.44
+       │   Then user sells 50 pPRIME → 0.98 (stability)
        │
 2:05 ──┼── Withdraw (20s) — final proof
-       │   Senior holder exits 5,000 pSENIOR → $5,020.55 (+0.41%)
-       │   Equity holder exits 2,000 pEQUITY → $0.00 (100% loss)
+       │   Senior holder exits 5,000 pPRIME → $5,020.55 (+0.41%)
+       │   Equity holder exits 2,000 pALPHA → $0.00 (100% loss)
        │
 2:25 ──┴── Closing pitch line (10s)
        │   "Today, credit markets are opaque and illiquid.
@@ -92,9 +92,9 @@ User              PRISM Program           SPL Token             Vault USDC Reser
   │                    │  (NAV starts at 1.0) │                          │
   │                    │                      │                          │
   │                    │  mint_to(user,       │                          │
-  │                    │     1000 pSENIOR)    │                          │
+  │                    │     1000 pPRIME)    │                          │
   │                    │─────────────────────►│                          │
-  │   1000 pSENIOR  ◄──│                      │                          │
+  │   1000 pPRIME  ◄──│                      │                          │
   │                    │                      │                          │
   │                    │  emit DepositEvent   │                          │
 ```
@@ -105,13 +105,13 @@ User              PRISM Program           SPL Token             Vault USDC Reser
 |---|---|---|
 | User USDC ATA | 1000 | 0 |
 | Vault USDC reserve | X | X + 1000 |
-| User pSENIOR ATA | 0 | 1000 / NAV |
+| User pPRIME ATA | 0 | 1000 / NAV |
 | Tranche[Senior].total_assets | A | A + 1000 |
 | Tranche[Senior].total_supply | S | S + 1000/NAV |
 | Tranche[Senior].nav_per_share_q | unchanged | unchanged |
 
 **Dashboard render**
-- User wallet card: pSENIOR balance ticks up
+- User wallet card: pPRIME balance ticks up
 - Senior tranche bar: total_assets bar grows; NAV stays flat
 - Event ticker: `Deposit · 1,000 USDC → Senior · @user1`
 
@@ -184,7 +184,7 @@ equity_take   = 100 - 41.1 - 44.4      = ~14.5
 
 ## 4.4 Flow C — Trade #1: baseline market  *(15s)*
 
-**Trigger:** User clicks "Swap 50 pSENIOR → USDC" on the AMM panel.
+**Trigger:** User clicks "Swap 50 pPRIME → USDC" on the AMM panel.
 
 **Instruction:** `prism_amm::swap(pool, amount_in, min_amount_out)`
 
@@ -194,7 +194,7 @@ amount_out = (amount_in × r_quote × (10000 - fee_bps))
            ÷ (10000 × r_tranche + amount_in × (10000 - fee_bps))
 ```
 
-**Pool seed:** Senior pool = 5,000 pSENIOR + 5,000 USDC (deep, stable per §8.5).
+**Pool seed:** Senior pool = 5,000 pPRIME + 5,000 USDC (deep, stable per §8.5).
 
 **Sequence**
 
@@ -203,7 +203,7 @@ User              PRISM-AMM Program     AmmPool                Tranche/USDC Vaul
   │                    │                   │                       │
   │ swap(50, min=49)   │                   │                       │
   │───────────────────►│                   │                       │
-  │                    │ pull 50 pSENIOR   │                       │
+  │                    │ pull 50 pPRIME   │                       │
   │                    │──────────────────►│                       │
   │                    │ compute x*y=k     │                       │
   │                    │ pool: 5,050 + 4,950.5 │                   │
@@ -216,11 +216,11 @@ User              PRISM-AMM Program     AmmPool                Tranche/USDC Vaul
 ```
 
 **Dashboard render**
-- AMM price chart: pSENIOR/USDC market price ≈ **0.980**
+- AMM price chart: pPRIME/USDC market price ≈ **0.980**
 - **Annotation: "Market: 0.980 · NAV: 1.00411 · Discount: 2.4%"**
 - Pool reserves bar updates
 
-**Pitch line:** *"The market is pricing pSENIOR at a slight discount to NAV — that's risk premium emerging organically. No oracle needed."*
+**Pitch line:** *"The market is pricing pPRIME at a slight discount to NAV — that's risk premium emerging organically. No oracle needed."*
 
 ---
 
@@ -362,22 +362,22 @@ This pause is critical. The PnL panel does the work — judges read three number
 
 **Instruction:** Repeated calls to `prism_amm::swap(pool, amount_in, min_amount_out)`.
 
-**The core insight:** the AMM is constant-product and *does not know* about the default. Pool reserves pre-default still quote near-pre-default prices. **What changes the market price is arbitrage** — a trader who knows pEQUITY is now worth zero will dump it into the pool to capture the spread, collapsing pool price toward NAV. Constant-product math means a *single* trade can't crash price by 95% — but a sequence of trades visibly walks price down. That walk is the demo moment.
+**The core insight:** the AMM is constant-product and *does not know* about the default. Pool reserves pre-default still quote near-pre-default prices. **What changes the market price is arbitrage** — a trader who knows pALPHA is now worth zero will dump it into the pool to capture the spread, collapsing pool price toward NAV. Constant-product math means a *single* trade can't crash price by 95% — but a sequence of trades visibly walks price down. That walk is the demo moment.
 
 **Pool seeds (per §8.5):**
-- pEQUITY pool: **1,000 + 1,000** (thin — allows visible price discovery)
-- pMEZZ pool: **1,000 + 1,000** (same)
-- pSENIOR pool: **5,000 + 5,000** (deep — Senior should feel stable)
+- pALPHA pool: **1,000 + 1,000** (thin — allows visible price discovery)
+- pCORE pool: **1,000 + 1,000** (same)
+- pPRIME pool: **5,000 + 5,000** (deep — Senior should feel stable)
 
 **MM pre-funded inventory (per §8.5):**
-- 2,000 pEQUITY (from a 2,000 USDC Equity deposit at setup)
-- 500 pMEZZ (from a 500 USDC Mezz deposit at setup)
+- 2,000 pALPHA (from a 2,000 USDC Equity deposit at setup)
+- 500 pCORE (from a 500 USDC Mezz deposit at setup)
 
 ### Trade sequence (locked)
 
-#### Equity arbitrage — 5 sequential MM sells of 400 pEQUITY each
+#### Equity arbitrage — 5 sequential MM sells of 400 pALPHA each
 
-| # | pEQUITY in | Pool pEQUITY after | Pool USDC after | USDC out to MM | New pool price |
+| # | pALPHA in | Pool pALPHA after | Pool USDC after | USDC out to MM | New pool price |
 |---|---|---|---|---|---|
 | start | — | 1,000 | 1,000 | — | 1.000 |
 | 1 | 400 | 1,400 | 714.3 | 285.7 | **0.510** |
@@ -386,21 +386,21 @@ This pause is critical. The PnL panel does the work — judges read three number
 | 4 | 400 | 2,600 | 384.6 | 69.9 | **0.148** |
 | 5 | 400 | 3,000 | 333.3 | 51.3 | **0.111** |
 
-After 5 trades, pEQUITY market price = **~0.11** (NAV = 0.00). MM ends up with ~666 USDC for dumping 2,000 pEQUITY.
+After 5 trades, pALPHA market price = **~0.11** (NAV = 0.00). MM ends up with ~666 USDC for dumping 2,000 pALPHA.
 
-#### Mezz arbitrage — 2 sequential MM sells of 250 pMEZZ each
+#### Mezz arbitrage — 2 sequential MM sells of 250 pCORE each
 
-| # | pMEZZ in | Pool pMEZZ after | Pool USDC after | USDC out to MM | New pool price |
+| # | pCORE in | Pool pCORE after | Pool USDC after | USDC out to MM | New pool price |
 |---|---|---|---|---|---|
 | start | — | 1,000 | 1,000 | — | 1.000 |
 | 1 | 250 | 1,250 | 800.0 | 200.0 | **0.640** |
 | 2 | 250 | 1,500 | 666.7 | 133.3 | **0.444** |
 
-After 2 trades, pMEZZ market price = **~0.44** (NAV = 0.6798). Slight overshoot to discount territory — realistic arb behavior.
+After 2 trades, pCORE market price = **~0.44** (NAV = 0.6798). Slight overshoot to discount territory — realistic arb behavior.
 
-#### Senior swap — 1 user sell of 50 pSENIOR
+#### Senior swap — 1 user sell of 50 pPRIME
 
-| # | pSENIOR in | Pool pSENIOR after | Pool USDC after | USDC out to user | New pool price |
+| # | pPRIME in | Pool pPRIME after | Pool USDC after | USDC out to user | New pool price |
 |---|---|---|---|---|---|
 | start | — | 5,000 | 5,000 | — | 1.000 |
 | 1 | 50 | 5,050 | 4,950.5 | 49.5 | **0.980** |
@@ -410,13 +410,13 @@ Senior price barely moves (NAV = 1.00411, market = 0.980 = ~2% discount). Stabil
 ### Sequence (one of the 5 Equity sells)
 
 ```
-MarketMaker     PRISM-AMM Program     pEQUITY Pool         Dashboard
+MarketMaker     PRISM-AMM Program     pALPHA Pool         Dashboard
     │                │                     │                   │
     │ swap(400       │                     │                   │
-    │  pEQUITY,      │                     │                   │
+    │  pALPHA,      │                     │                   │
     │  min=...)      │                     │                   │
     │───────────────►│                     │                   │
-    │                │ pull 400 pEQUITY    │                   │
+    │                │ pull 400 pALPHA    │                   │
     │                │────────────────────►│                   │
     │                │ compute x*y=k       │                   │
     │                │ pool: 1,400+714.3   │                   │
@@ -426,7 +426,7 @@ MarketMaker     PRISM-AMM Program     pEQUITY Pool         Dashboard
     │                │ emit SwapEvent      │                   │
     │                │────────────────────────────────────────►│
     │                │                     │  AMM price chart  │
-    │                │                     │  pEQUITY: 0.510   │
+    │                │                     │  pALPHA: 0.510   │
 ```
 
 The same sequence repeats 4 more times under one "Run Market Reaction" admin button — the chart shows price walking down step-by-step.
@@ -436,20 +436,20 @@ The same sequence repeats 4 more times under one "Run Market Reaction" admin but
 ```
 Before Trade #2 (post-default, pre-arb)
   AMM price chart:
-    pSENIOR: 1.000   (NAV 1.00411 — discount ~0.4%)
-    pMEZZ:   1.000   (NAV 0.6798  — premium ~47%)  ← arb gap
-    pEQUITY: 1.000   (NAV 0.00    — premium ∞)     ← massive arb gap
+    pPRIME: 1.000   (NAV 1.00411 — discount ~0.4%)
+    pCORE:   1.000   (NAV 0.6798  — premium ~47%)  ← arb gap
+    pALPHA: 1.000   (NAV 0.00    — premium ∞)     ← massive arb gap
 
 During "Run Market Reaction" — Equity (5 sells, animated):
-    pEQUITY: 1.000 → 0.510 → 0.309 → 0.207 → 0.148 → 0.111
+    pALPHA: 1.000 → 0.510 → 0.309 → 0.207 → 0.148 → 0.111
     (each step pulses red on chart; new low printed each click)
 
 During "Run Market Reaction" — Mezz (2 sells, animated):
-    pMEZZ:   1.000 → 0.640 → 0.444
+    pCORE:   1.000 → 0.640 → 0.444
     (smaller drops; still visible cascade)
 
 After user Senior swap:
-    pSENIOR: 1.000 → 0.980
+    pPRIME: 1.000 → 0.980
     (barely moves; bar pulses GREEN — stability!)
 ```
 
@@ -457,11 +457,11 @@ After user Senior swap:
 
 > *"Now watch how the market reprices this risk in real time."*
 > [click "Run Market Reaction"]
-> *"pEQUITY just lost half its value. Then half again. And again."*
+> *"pALPHA just lost half its value. Then half again. And again."*
 > [pause as chart steps down 5 times]
-> *"This is panic selling — arbitrageurs collapsing pEQUITY toward its true NAV of zero."*
+> *"This is panic selling — arbitrageurs collapsing pALPHA toward its true NAV of zero."*
 > [Mezz cascade plays]
-> *"pMEZZ reprices toward its NAV of ~0.68 — partially hit but not destroyed."*
+> *"pCORE reprices toward its NAV of ~0.68 — partially hit but not destroyed."*
 > [Senior swap]
 > *"And Senior? Holds steady at NAV. The market understands risk in real time."*
 
@@ -484,8 +484,8 @@ payout_usdc = share_amount × current_nav_per_share_q (in Q64.64 → u64)
 
 | Case | Tranche | Shares | NAV | Payout |
 |---|---|---|---|---|
-| Senior holder exits | pSENIOR | 5,000 | 1.00411 | **5,020.55 USDC** ← profit on 5,000 deposit |
-| Equity holder exits | pEQUITY | 2,000 | 0.0000 | **0.00 USDC** ← total loss on 2,000 deposit |
+| Senior holder exits | pPRIME | 5,000 | 1.00411 | **5,020.55 USDC** ← profit on 5,000 deposit |
+| Equity holder exits | pALPHA | 2,000 | 0.0000 | **0.00 USDC** ← total loss on 2,000 deposit |
 
 **Sequence** (one withdrawal — same flow runs twice with different tranches)
 

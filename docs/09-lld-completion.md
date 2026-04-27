@@ -1464,7 +1464,7 @@ import CountUp from "react-countup";
 
 ### Trade #2 staggered swap visualization
 
-For the 5-step pEQUITY price walk, animate the price chart point-by-point:
+For the 5-step pALPHA price walk, animate the price chart point-by-point:
 
 ```tsx
 // Each swap completes → chart appends a new data point with a slight pulse

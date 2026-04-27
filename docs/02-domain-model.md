@@ -7,7 +7,7 @@
 
 ## Mental model
 
-State on Solana lives in **accounts**, not contract storage slots. Every entity here is either a PDA owned by the PRISM program, or an SPL token account owned by SPL Token Program. Users do *not* get a custom Position account per tranche — they hold pSENIOR / pMEZZ / pEQUITY in their associated token accounts. This collapses the "position" concept into a tradeable token from day one.
+State on Solana lives in **accounts**, not contract storage slots. Every entity here is either a PDA owned by the PRISM program, or an SPL token account owned by SPL Token Program. Users do *not* get a custom Position account per tranche — they hold pPRIME / pCORE / pALPHA in their associated token accounts. This collapses the "position" concept into a tradeable token from day one.
 
 ---
 
@@ -21,7 +21,7 @@ State on Solana lives in **accounts**, not contract storage slots. Every entity 
 | **Loan** | PDA | PRISM program | Underlying credit asset. Principal, APR, maturity, repayment state |
 | **CreditEvent** | PDA (sequenced) | PRISM program | Append-style log of defaults / partial losses / recoveries |
 | **AmmPool** (×3) | PDA | PRISM AMM program | Constant-product AMM, one per tranche token vs USDC. **Separate program.** |
-| **Tranche Mint** (×3) | SPL Mint | SPL Token Program | The pSENIOR / pMEZZ / pEQUITY mints. PRISM holds mint authority |
+| **Tranche Mint** (×3) | SPL Mint | SPL Token Program | The pPRIME / pCORE / pALPHA mints. PRISM holds mint authority |
 | **User Position** | SPL Token Account | SPL Token Program | Just a token balance. No custom Position account. |
 | **Vault USDC reserve** | SPL Token Account | SPL Token Program | Where deposited USDC sits. Authority is the Vault PDA |
 
@@ -77,7 +77,7 @@ nav_per_share = total_tranche_assets / total_supply
 pub struct Tranche {
     pub vault: Pubkey,
     pub kind: TrancheKind,                  // Senior | Mezz | Equity
-    pub mint: Pubkey,                       // pSENIOR / pMEZZ / pEQUITY
+    pub mint: Pubkey,                       // pPRIME / pCORE / pALPHA
     pub target_apy_bps: u16,                // Senior: 500 (5%), Mezz: 1200, Equity: residual
     pub total_assets: u64,                  // USDC backing this tranche, 1e6 base units
     pub total_supply: u64,                  // pTRANCHE tokens outstanding
@@ -179,7 +179,7 @@ pub enum CreditEventType {
 
 ```rust
 pub struct AmmPool {
-    pub tranche_mint: Pubkey,               // pSENIOR / pMEZZ / pEQUITY
+    pub tranche_mint: Pubkey,               // pPRIME / pCORE / pALPHA
     pub quote_mint: Pubkey,                 // USDC
     pub tranche_reserve: Pubkey,            // token account
     pub quote_reserve: Pubkey,              // token account

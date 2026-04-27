@@ -69,7 +69,7 @@ So the natural Cloak fit isn't the waterfall — it's elsewhere.
 - **Fix:** if `total_supply == 0`, mint shares 1:1 with USDC at NAV = 1.0. Standard ERC-4626 pattern.
 
 **(b) Total wipeout: `total_assets == 0` after default but `total_supply > 0`**
-- All Equity holders still hold pEQUITY tokens; NAV = 0; their tokens are worthless but exist.
+- All Equity holders still hold pALPHA tokens; NAV = 0; their tokens are worthless but exist.
 - If they call `withdraw`, payout = N × 0 = 0. Tokens burn for nothing. **OK — this is the dramatic demo moment** ("Equity holder withdraws → gets $0").
 - After all equity tokens burn, both `total_assets` and `total_supply` = 0. Tranche is "reset."
 
@@ -147,11 +147,11 @@ Total devnet USDC needed across demo wallets: ~30,000 (Circle faucet over 1–2 
 
 ### 8.7 Trade #2 mechanics — who is the "market maker"?
 
-**What's hand-waved:** §4.6 says "MM sells pEQUITY into pool" but doesn't say who that is.
+**What's hand-waved:** §4.6 says "MM sells pALPHA into pool" but doesn't say who that is.
 
-**Recommended:** add a hidden admin button **"Run Market Reaction"** that, in one transaction, signs an MM swap of (a) some pEQUITY → USDC and (b) some pMEZZ → USDC. Demo presenter clicks this button; AMM prices reprice visibly. Cleaner than coordinating multiple wallets live.
+**Recommended:** add a hidden admin button **"Run Market Reaction"** that, in one transaction, signs an MM swap of (a) some pALPHA → USDC and (b) some pCORE → USDC. Demo presenter clicks this button; AMM prices reprice visibly. Cleaner than coordinating multiple wallets live.
 
-Pre-fund an "MM" wallet at setup with pEQUITY and pMEZZ tokens.
+Pre-fund an "MM" wallet at setup with pALPHA and pCORE tokens.
 
 ✅ **STATUS: Locking.**
 
@@ -208,7 +208,7 @@ Pre-fund the borrower wallet with $10K of devnet USDC at setup so `accrue_yield`
 | `lp_senior` | Demo Senior depositor | SOL + $5K USDC |
 | `lp_mezz` | Demo Mezz depositor | SOL + $3K USDC |
 | `lp_equity` | Demo Equity depositor | SOL + $2K USDC |
-| `mm` | Market maker for Trade #2 | pEQUITY + pMEZZ (minted at setup via admin transfer or initial deposit) |
+| `mm` | Market maker for Trade #2 | pALPHA + pCORE (minted at setup via admin transfer or initial deposit) |
 
 That's actually 6 wallets. Generate via Solana CLI; commit a setup script that funds them all.
 
@@ -254,27 +254,27 @@ If something breaks during recording, **don't restart from scratch.** Re-record 
 
 ### 8.21 — Trade #2 demo physics (CRITICAL)
 
-**The bug:** §4.6 claims pEQUITY market price collapses from ~1.00 → ~0.05 when MM dumps tokens after default. **Constant-product math doesn't support that** with the planned pool sizes (5K + 5K) and MM holdings (500 pEQUITY). One dump moves price from 1.00 → ~0.83. Visually unimpressive vs the storyboard.
+**The bug:** §4.6 claims pALPHA market price collapses from ~1.00 → ~0.05 when MM dumps tokens after default. **Constant-product math doesn't support that** with the planned pool sizes (5K + 5K) and MM holdings (500 pALPHA). One dump moves price from 1.00 → ~0.83. Visually unimpressive vs the storyboard.
 
-**Cause:** constant-product fundamentally caps single-trade price impact relative to pool reserves. To get to 0.05, MM would need to dump ~95K pEQUITY.
+**Cause:** constant-product fundamentally caps single-trade price impact relative to pool reserves. To get to 0.05, MM would need to dump ~95K pALPHA.
 
 **Recommended: Option A — sequential MM sells, scripted as a single admin "Run Market Reaction" button.**
 
-- Pre-fund MM with 1,000 pEQUITY (from a 1,000 USDC Equity deposit at setup) + 500 pMEZZ
-- "Run Market Reaction" button signs **5 sequential `swap(200 pEQUITY → USDC)` transactions**
+- Pre-fund MM with 1,000 pALPHA (from a 1,000 USDC Equity deposit at setup) + 500 pCORE
+- "Run Market Reaction" button signs **5 sequential `swap(200 pALPHA → USDC)` transactions**
 - Each iteration causes a visible price step on the dashboard chart — judges see arb dynamics walking down
-- After 5 sells, pEQUITY pool price ≈ 0.17 — not literally 0.05 but a clear collapse
-- Same pattern for pMEZZ (3 sells of ~165 each)
+- After 5 sells, pALPHA pool price ≈ 0.17 — not literally 0.05 but a clear collapse
+- Same pattern for pCORE (3 sells of ~165 each)
 
 **Refinement (per Apr 25 review):** thinner pools + larger MM inventory for a more dramatic but still-honest collapse.
 
 **Locked spec:**
 - Pool sizes: **Senior 5K+5K** (stable), **Mezz 1K+1K** (thin), **Equity 1K+1K** (thin)
-- MM inventory: **2,000 pEQUITY + 500 pMEZZ** (mid-range of 2–3K)
+- MM inventory: **2,000 pALPHA + 500 pCORE** (mid-range of 2–3K)
 - Trade #2 sequence:
-  - 5 sells of 400 pEQUITY → pool price walks 1.00 → 0.51 → 0.31 → 0.21 → 0.15 → **0.11**
-  - 2 sells of 250 pMEZZ → 1.00 → 0.64 → **0.44**
-  - 1 user sell of 50 pSENIOR → 1.00 → **0.98** (stability proven)
+  - 5 sells of 400 pALPHA → pool price walks 1.00 → 0.51 → 0.31 → 0.21 → 0.15 → **0.11**
+  - 2 sells of 250 pCORE → 1.00 → 0.64 → **0.44**
+  - 1 user sell of 50 pPRIME → 1.00 → **0.98** (stability proven)
 - Demo framing: *"Watch how the market reprices this risk in real time."* Feels like panic selling / liquidation.
 
 ✅ **STATUS: LOCKED (Apr 25, 2026) — Option A with thinner pools + larger MM.**
@@ -326,9 +326,9 @@ Idempotent guards: each step checks if account exists before init. Re-running is
 
 ### 8.25 — MM wallet pre-funding amount
 
-- 1,000 USDC into Equity tranche at setup → 1,000 pEQUITY (base unit math: 1,000,000,000 minor units)
-- 500 USDC into Mezz tranche at setup → 500 pMEZZ
-- 0 in Senior (we don't dump pSENIOR — Senior price stability is the contrast story)
+- 1,000 USDC into Equity tranche at setup → 1,000 pALPHA (base unit math: 1,000,000,000 minor units)
+- 500 USDC into Mezz tranche at setup → 500 pCORE
+- 0 in Senior (we don't dump pPRIME — Senior price stability is the contrast story)
 
 This means total Equity tranche size at demo start = `2,000 (lp_equity) + 1,000 (mm) = 3,000 USDC`. Total Mezz = `3,000 + 500 = 3,500 USDC`. Adjust §8.5 demo numbers accordingly.
 
@@ -383,7 +383,7 @@ Tier 1 sign-off complete.
 
 | # | Question | Locked decision |
 |---|---|---|
-| 8.21 | Trade #2 demo physics | ✅ Sequential MM sells with thinner pools (Mezz/Equity 1K+1K, Senior 5K+5K) + larger MM (2K pEQUITY + 500 pMEZZ). 5 sells of 400 pEQUITY → price collapses 1.0 → 0.11 |
+| 8.21 | Trade #2 demo physics | ✅ Sequential MM sells with thinner pools (Mezz/Equity 1K+1K, Senior 5K+5K) + larger MM (2K pALPHA + 500 pCORE). 5 sells of 400 pALPHA → price collapses 1.0 → 0.11 |
 | 8.22 | Demo state reset for re-recording | ✅ Sequential `vault_id` parameter. First record = vault 0, retry = vault 1, tests = vault 99 |
 
 Items 8.23–8.28 locked as recommended.

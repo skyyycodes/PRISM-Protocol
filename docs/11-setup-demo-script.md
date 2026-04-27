@@ -19,11 +19,11 @@ After successful run with `vault_id = 0`:
 | `GlobalConfig` PDA exists with admin = keys/admin.json pubkey | `solana account <config_pda>` |
 | `Vault[0]` PDA exists, state = Active, USDC reserve + loss bucket initialized | `solana account <vault_pda>` |
 | 3 Tranches initialized: Senior (5% APY), Mezz (12%), Equity (residual) | `program.account.tranche.fetch(...)` |
-| 3 SPL mints exist (`pSENIOR`, `pMEZZ`, `pEQUITY`), authority = Tranche PDA | SPL token CLI: `spl-token display <mint>` |
+| 3 SPL mints exist (`pPRIME`, `pCORE`, `pALPHA`), authority = Tranche PDA | SPL token CLI: `spl-token display <mint>` |
 | 1 Loan PDA exists, borrower = keys/borrower.json | `program.account.loan.fetch(...)` |
 | LP wallets hold pTRANCHE balances per [12-reference-card.md §1.4](12-reference-card.md) | `spl-token balance --owner <lp_pubkey>` |
-| MM wallet holds 2,000 pEQUITY + 500 pMEZZ for Trade #2 | Same |
-| Admin wallet holds 5,000 pSENIOR + 1,000 pMEZZ + 1,000 pEQUITY (for AMM seed) | Same |
+| MM wallet holds 2,000 pALPHA + 500 pCORE for Trade #2 | Same |
+| Admin wallet holds 5,000 pPRIME + 1,000 pCORE + 1,000 pALPHA (for AMM seed) | Same |
 | 3 AMM pools initialized with seeded liquidity per [12-reference-card.md §1.4](12-reference-card.md) | `program.account.ammPool.fetch(...)` |
 | Vault has accrued 1 yield event of 100 USDC over 30 days (simulated via timestamp manipulation OR pre-cooked state) | NAV bars show post-yield values matching [04-data-flows.md §4.3](04-data-flows.md) |
 
@@ -536,18 +536,18 @@ async function printSummary(ctx: SetupContext) {
 
   Senior (NAV ${formatNav(tranches[0].navPerShareQ)}):
     total_assets: ${formatUsdc(tranches[0].totalAssets)}
-    total_supply: ${formatUsdc(tranches[0].totalSupply)} pSENIOR
+    total_supply: ${formatUsdc(tranches[0].totalSupply)} pPRIME
 
   Mezz   (NAV ${formatNav(tranches[1].navPerShareQ)}):
     total_assets: ${formatUsdc(tranches[1].totalAssets)}
-    total_supply: ${formatUsdc(tranches[1].totalSupply)} pMEZZ
+    total_supply: ${formatUsdc(tranches[1].totalSupply)} pCORE
 
   Equity (NAV ${formatNav(tranches[2].navPerShareQ)}):
     total_assets: ${formatUsdc(tranches[2].totalAssets)}
-    total_supply: ${formatUsdc(tranches[2].totalSupply)} pEQUITY
+    total_supply: ${formatUsdc(tranches[2].totalSupply)} pALPHA
 
   AMM pools seeded:    Senior 5K+5K, Mezz 1K+1K, Equity 1K+1K
-  MM Trade #2 inv:     2K pEQUITY + 0.5K pMEZZ
+  MM Trade #2 inv:     2K pALPHA + 0.5K pCORE
   Yield event:         ${SKIP_YIELD ? "skipped" : "100 USDC accrued"}
 
   → Visit http://localhost:3000/dashboard
@@ -626,7 +626,7 @@ Run `yarn setup` on a fresh devnet deploy. You should see:
 
   Senior (NAV 1.00411):
     total_assets: 10041.10
-    total_supply: 10000.00 pSENIOR
+    total_supply: 10000.00 pPRIME
   ...
 ```
 

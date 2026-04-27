@@ -35,9 +35,9 @@ pub const ORACLE_STALENESS_LIMIT_SECS: i64 = 300;  // 5 minutes
 | Token | Decimals | 1.0 in base units |
 |---|---|---|
 | USDC (Circle devnet) | 6 | 1_000_000 |
-| pSENIOR | 6 | 1_000_000 |
-| pMEZZ | 6 | 1_000_000 |
-| pEQUITY | 6 | 1_000_000 |
+| pPRIME | 6 | 1_000_000 |
+| pCORE | 6 | 1_000_000 |
+| pALPHA | 6 | 1_000_000 |
 | LP-SENIOR | 6 | 1_000_000 |
 | LP-MEZZ | 6 | 1_000_000 |
 | LP-EQUITY | 6 | 1_000_000 |
@@ -80,15 +80,15 @@ All tokens use 6 decimals to match USDC base units. NAV math at 1.0 → 1 USDC b
 
 | Pool | Tranche side | USDC side | Why differentiated |
 |---|---:|---:|---|
-| pSENIOR/USDC | 5,000 | 5,000 | Deep — Senior swap should feel stable |
-| pMEZZ/USDC | 1,000 | 1,000 | Thin — allows Trade #2 repricing |
-| pEQUITY/USDC | 1,000 | 1,000 | Thin — same reason |
+| pPRIME/USDC | 5,000 | 5,000 | Deep — Senior swap should feel stable |
+| pCORE/USDC | 1,000 | 1,000 | Thin — allows Trade #2 repricing |
+| pALPHA/USDC | 1,000 | 1,000 | Thin — same reason |
 
 **MM Trade #2 inventory** (used by `Run Market Reaction` button):
-- 2,000 pEQUITY → 5 sequential sells of 400 each → final pool price ~0.11
-- 500 pMEZZ → 2 sequential sells of 250 each → final pool price ~0.44
+- 2,000 pALPHA → 5 sequential sells of 400 each → final pool price ~0.11
+- 500 pCORE → 2 sequential sells of 250 each → final pool price ~0.44
 
-**Trade #1** (single user swap): 50 pSENIOR → ~49.5 USDC (price 0.980, ~2% discount to NAV 1.00411).
+**Trade #1** (single user swap): 50 pPRIME → ~49.5 USDC (price 0.980, ~2% discount to NAV 1.00411).
 
 ### 1.5 Total devnet USDC needed
 
@@ -338,7 +338,7 @@ All wallets stored as JSON keypair files in `keys/`. Committed to repo (devnet o
 | `keys/lp_senior.json` | `User A` | Senior LP for the demo PnL panel | 0.1 SOL | 5,000 USDC |
 | `keys/lp_mezz.json` | `User B` | Mezz LP | 0.1 SOL | 3,000 USDC |
 | `keys/lp_equity.json` | `User C` | Equity LP | 0.1 SOL | 2,000 USDC |
-| `keys/mm.json` | `Market Maker` | Holds 2,000 pEQUITY + 500 pMEZZ for Trade #2 dumps | 0.1 SOL | 2,500 USDC |
+| `keys/mm.json` | `Market Maker` | Holds 2,000 pALPHA + 500 pCORE for Trade #2 dumps | 0.1 SOL | 2,500 USDC |
 
 **Total funding:** ~3 SOL + ~30,000 USDC, all on devnet.
 
@@ -361,17 +361,17 @@ Vocabulary that appears across the docs. If two words could be confused, both ar
 | **Loss bucket** | A PDA-controlled token account holding USDC moved out of the vault on default. Maintains the cash invariant: `vault_reserve.amount == sum(tranche.total_assets)` |
 | **Closed-loop demo** | The MVP demo skips real loan disbursement. USDC stays in the vault; default just moves loss USDC to the loss bucket. See [§8.1](08-open-questions.md) |
 | **Pull pattern** (yield) | `accrue_yield` instruction transfers USDC from borrower's ATA into vault reserve in one tx, then runs waterfall. Visible borrower → vault flow |
-| **Run Market Reaction** | A demo button that signs 5 sequential MM swaps of pEQUITY + 2 of pMEZZ to crash AMM prices toward NAV after default |
+| **Run Market Reaction** | A demo button that signs 5 sequential MM swaps of pALPHA + 2 of pCORE to crash AMM prices toward NAV after default |
 | **Hot path** | The 4 instructions that *must* work for the demo: `deposit`, `accrue_yield`, `trigger_credit_event`, `swap`. Tier 1 priority |
 | **Tier 1 / 2 / 3** | Priority ordering for the build. Tier 1 = hot path. Tier 2 = AMM + dashboard. Tier 3 = polish + integrations. See [§6.2](06-mvp-build-plan.md) |
-| **MM** | Market Maker — a pre-funded wallet that dumps pEQUITY/pMEZZ into AMM pools after default to simulate arbitrage repricing |
+| **MM** | Market Maker — a pre-funded wallet that dumps pALPHA/pCORE into AMM pools after default to simulate arbitrage repricing |
 | **Vault state** | `Active` (normal ops), `Defaulted` (after a Default credit event), `Resolved` (after Recovery — Phase 2 only) |
 | **Loan state** | `Originated` → `Active` (after disburse) → `Repaying` / `Defaulted` / `Resolved`. In closed-loop demo, loan stays at `Originated` |
 | **CreditEvent type** | `Default`, `PartialLoss`, or `Recovery`. Demo only uses `Default` |
 | **Severity bps** | 0–10000 indicating fraction of principal lost. 10000 = 100% loss. Stored on CreditEvent for analytics |
 | **dWallet** | Ika's distributed signing wallet — Phase 2 borrower model for cross-chain collateral. Not in MVP |
 | **Side track** | A sponsor-run prize track at Frontier hackathon. We submit to Encrypt+Ika (primary), Cloak, Dune SIM, Dodo Payments. See [01-sidetrack-strategy.md](01-sidetrack-strategy.md) |
-| **`pSENIOR` / `pMEZZ` / `pEQUITY`** | The three SPL tokens minted by `prism_core` representing tranche positions. Mint authority = Tranche PDA |
+| **`pPRIME` / `pCORE` / `pALPHA`** | The three SPL tokens minted by `prism_core` representing tranche positions. Mint authority = Tranche PDA |
 | **Loss bucket PDA seed** | `["loss_bucket", vault]` — careful, **don't confuse with** `["reserve", vault]` (vault USDC reserve where deposits sit) |
 | **`vault_id`** | `u32` parameterizing each vault. Demo uses `vault_id = 0`. Re-recordings use `vault_id = 1, 2, ...` per [§8.22](08-open-questions.md) |
 | **Constant-product** | AMM formula `x * y = k`. Used by `prism_amm::swap`. Fee taken from input before applying |

@@ -162,7 +162,7 @@ Show the 5-domain architecture from §3.1. Clean blocks, no logos.
 **On-chain (Anchor)**
 - 1 PRISM core program: GlobalConfig + Vault + Tranche × 3 + Loan + CreditEvent + waterfall + default math
 - 1 PRISM-AMM program: AmmPool × 3 + constant-product swaps
-- 3 SPL mints under PRISM authority (pSENIOR, pMEZZ, pEQUITY)
+- 3 SPL mints under PRISM authority (pPRIME, pCORE, pALPHA)
 
 **Off-chain**
 - Next.js + Solana Wallet Adapter dashboard
@@ -192,7 +192,7 @@ Every demo click is also a walk through the architecture. This coherence is rare
 |---|---|---|---|
 | Tranche Vault | L2 Structured Credit | B. Core | Deposit into 3 risk classes, get 3 different SPL tokens |
 | Live Yield Source | L1 Origination + waterfall | A + B | USDC flows in, cascades down through Senior → Mezz → Equity |
-| Secondary Market | L6 Secondary Markets | C. Risk | Swap pSENIOR ↔ USDC; price discovers premium/discount |
+| Secondary Market | L6 Secondary Markets | C. Risk | Swap pPRIME ↔ USDC; price discovers premium/discount |
 | Default + Loss Sim | L11 Default Resolution | B. Core | Click "Trigger Default" → Equity NAV → 0, Mezz partial, Senior holds |
 | Visual Dashboard | L14 Analytics | E. Surface | Real-time NAV bars, event log, tranche performance |
 | (Bonus) Strategy Presets | L15 Strategy Auto | E. Surface | 3 buttons — Safe / Balanced / Aggressive |

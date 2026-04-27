@@ -54,15 +54,15 @@ NAV = total_assets / total_supply
 
 Program-derived address. A deterministic account address generated from program-defined seeds and signed only by the owning program. PRISM uses PDAs to hold authority over vault reserves, tranche mints, AMM pools, and LP mints.
 
-## pEQUITY
+## pALPHA
 
 SPL token representing a claim on the Equity tranche.
 
-## pMEZZ
+## pCORE
 
 SPL token representing a claim on the Mezzanine tranche.
 
-## pSENIOR
+## pPRIME
 
 SPL token representing a claim on the Senior tranche.
 

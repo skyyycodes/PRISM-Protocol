@@ -15,7 +15,7 @@ A credit protocol can tokenize at three different layers. PRISM intentionally ch
 | Token category | What it represents | PRISM uses it? |
 | --- | --- | --- |
 | **Per-loan token** | One token per individual loan, often as an NFT | ❌ No |
-| **Tranche token** | Fungible claim on a risk class within a credit pool | ✅ Yes — `pSENIOR`, `pMEZZ`, `pEQUITY` |
+| **Tranche token** | Fungible claim on a risk class within a credit pool | ✅ Yes — `pPRIME`, `pCORE`, `pALPHA` |
 | **Protocol / governance token** | Separate token for governance, incentives, or fee capture | ❌ No |
 
 ### Why Tranche Tokens, Not Per-Loan Tokens
@@ -34,9 +34,9 @@ PRISM's purpose is to make credit risk programmable, transparent, and tradable. 
 
 | Token | Tranche | Meaning |
 | --- | --- | --- |
-| `pSENIOR` | Senior | Claim on Senior tranche NAV |
-| `pMEZZ` | Mezzanine | Claim on Mezzanine tranche NAV |
-| `pEQUITY` | Equity | Claim on Equity tranche NAV |
+| `pPRIME` | Senior | Claim on Senior tranche NAV |
+| `pCORE` | Mezzanine | Claim on Mezzanine tranche NAV |
+| `pALPHA` | Equity | Claim on Equity tranche NAV |
 
 ## Lifecycle
 
@@ -68,5 +68,5 @@ Redemption value is based on current NAV, not original deposit amount.
 redemption_value = token_amount * tranche_NAV
 ```
 
-If a user buys pMEZZ on the AMM at a discount to NAV, the vault still uses NAV for withdrawal. If a user buys above NAV, the vault still uses NAV. The protocol does not remember trade price.
+If a user buys pCORE on the AMM at a discount to NAV, the vault still uses NAV for withdrawal. If a user buys above NAV, the vault still uses NAV. The protocol does not remember trade price.
 

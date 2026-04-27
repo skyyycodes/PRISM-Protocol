@@ -61,7 +61,7 @@ The four ⚪ roadmap layers from §3.2 get filled in, mostly through deeper part
 | Layer | Status now | Phase 2 plan |
 |---|---|---|
 | **L4 Hedging (CDS market)** | ⚪ Designed | Build a separate `prism_hedge` Anchor program: pTRANCHE-token-staked credit protection sellers, payout on CreditEvent. Pricing via constant-product or Dutch auction |
-| **L5 Margin** (pTRANCHE-as-collateral) | ⚪ Designed | Deep integration with **Kamino** — pSENIOR is a yield-bearing collateral asset for borrowing on Kamino |
+| **L5 Margin** (pTRANCHE-as-collateral) | ⚪ Designed | Deep integration with **Kamino** — pPRIME is a yield-bearing collateral asset for borrowing on Kamino |
 | **L7 Cross-Chain** (real Ika wiring) | 🟦 Designed | Borrowers post BTC / ETH via **Ika dWallets**. PRISM vault underwrites loans secured by real cross-chain collateral |
 | **L9 Compliance / Legal** | ⚪ Designed | Launch a permissioned vault using **NeosLegal** wrappers. KYC'd LPs, real RWA originators |
 | **L10 Credit Identity** | 🟦 Designed | Full **Encrypt FHE** integration: confidential borrower credit scores stored encrypted, decryptable only by authorized risk committee |

@@ -69,7 +69,7 @@ Open http://localhost:3000/dashboard. Verify:
 - [ ] Trade page loads with AMM pool data
 - [ ] Admin page shows Trigger Default + Run Market Reaction buttons
 - [ ] Click "Trigger Default" → cascade animation plays for ~8 seconds → Before/After panel slides in → User PnL panel appears
-- [ ] Click "Run Market Reaction" → 5 Equity sells walk pEQUITY price 1.00 → ~0.11; 2 Mezz sells walk pMEZZ → ~0.44
+- [ ] Click "Run Market Reaction" → 5 Equity sells walk pALPHA price 1.00 → ~0.11; 2 Mezz sells walk pCORE → ~0.44
 
 If any check fails, **fix tonight, not tomorrow**.
 
@@ -159,7 +159,7 @@ Each phase below has the **action** (what you do on screen) and the **say** (voi
 - Navigate back to `/dashboard`.
 
 **Say:**
-> *"A user can deposit USDC into any tranche — or use a strategy preset. This is the 'Balanced' allocation: 50% Senior, 30% Mezzanine, 20% Equity. Their position is now three SPL tokens — pSENIOR, pMEZZ, pEQUITY — that represent their share of each tranche."*
+> *"A user can deposit USDC into any tranche — or use a strategy preset. This is the 'Balanced' allocation: 50% Senior, 30% Mezzanine, 20% Equity. Their position is now three SPL tokens — pPRIME, pCORE, pALPHA — that represent their share of each tranche."*
 
 ### Phase 3 — Yield Accrual (0:30 → 0:50)
 
@@ -180,11 +180,11 @@ Each phase below has the **action** (what you do on screen) and the **say** (voi
 **Action:**
 - Switch Phantom to `lp_senior`.
 - Navigate to `/trade`.
-- Select "pSENIOR → USDC", enter `50`, click "Swap" → confirm.
+- Select "pPRIME → USDC", enter `50`, click "Swap" → confirm.
 - Price chart updates: 1.000 → 0.980. Annotation: "Market: 0.980 · NAV: 1.00411 · Discount: 2.4%".
 
 **Say:**
-> *"Tranche tokens trade on a constant-product AMM. Selling 50 pSENIOR returns 49.5 USDC — that's a 2.4% discount to the underlying NAV. The market is pricing risk premium organically."*
+> *"Tranche tokens trade on a constant-product AMM. Selling 50 pPRIME returns 49.5 USDC — that's a 2.4% discount to the underlying NAV. The market is pricing risk premium organically."*
 
 ### Phase 5 — DEFAULT MOMENT (1:05 → 1:45) ★ THE 40-SECOND HERO
 
@@ -219,18 +219,18 @@ Each phase below has the **action** (what you do on screen) and the **say** (voi
 - Still on `/admin` as `admin` wallet.
 - Click "Run Market Reaction" → confirm.
 - The button signs 7 sequential AMM swaps over ~12 seconds:
-  - 5 × 400 pEQUITY sells: pEQUITY price walks 1.00 → 0.51 → 0.31 → 0.21 → 0.15 → 0.11
-  - 2 × 250 pMEZZ sells: pMEZZ price walks 1.00 → 0.64 → 0.44
+  - 5 × 400 pALPHA sells: pALPHA price walks 1.00 → 0.51 → 0.31 → 0.21 → 0.15 → 0.11
+  - 2 × 250 pCORE sells: pCORE price walks 1.00 → 0.64 → 0.44
 - Then switch Phantom to `lp_senior`.
-- Navigate to `/trade`. Sell 50 pSENIOR → ~49 USDC. Senior pool price barely moves (~0.98).
+- Navigate to `/trade`. Sell 50 pPRIME → ~49 USDC. Senior pool price barely moves (~0.98).
 
 **Say:**
 > *"Now watch how the market reprices this risk in real time."*
-> [click Run Market Reaction, watch pEQUITY chart cascade]
+> [click Run Market Reaction, watch pALPHA chart cascade]
 > *"Equity collapses — five trades, one after another, walking price toward NAV."*
 > [Mezz cascade plays]
 > *"Mezz reprices too, but only by a third — matching its actual loss."*
-> [switch wallet, swap pSENIOR]
+> [switch wallet, swap pPRIME]
 > *"And Senior? Senior holds. The market understands risk in real time."*
 
 ### Phase 7 — Withdraw (2:05 → 2:25)

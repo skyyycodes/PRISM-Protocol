@@ -8,7 +8,7 @@
 
 **PRISM Protocol** is a Solana-based on-chain credit market submitted to the **Solana Frontier Hackathon** (Colosseum). Deadline: **May 11, 2026**.
 
-A user deposits USDC into one of three risk tranches (`Senior` / `Mezz` / `Equity`). A simulated borrower pays yield, which gets distributed via a waterfall (Senior first, then Mezz, then Equity). When a credit event triggers, losses cascade in reverse priority (Equity wiped first, then Mezz, then Senior). Tranche tokens (`pSENIOR`, `pMEZZ`, `pEQUITY`) trade on a constant-product AMM — letting markets price credit risk live.
+A user deposits USDC into one of three risk tranches (`Senior` / `Mezz` / `Equity`). A simulated borrower pays yield, which gets distributed via a waterfall (Senior first, then Mezz, then Equity). When a credit event triggers, losses cascade in reverse priority (Equity wiped first, then Mezz, then Senior). Tranche tokens (`pPRIME`, `pCORE`, `pALPHA`) trade on a constant-product AMM — letting markets price credit risk live.
 
 **Pitch line:** *"PRISM Protocol turns credit into programmable, tradable risk layers — with live loss simulation and real-time market pricing."*
 

@@ -18,9 +18,9 @@ See [Token Model](./token-model.md) for the full breakdown.
 
 ### Is there a PRISM governance or protocol token?
 
-No. PRISM remains tokenless until a clear utility — most likely an insurance backstop tranche — emerges in a later phase. The only tokens the protocol issues are the three tranche tokens (`pSENIOR`, `pMEZZ`, `pEQUITY`) and AMM liquidity-provider tokens.
+No. PRISM remains tokenless until a clear utility — most likely an insurance backstop tranche — emerges in a later phase. The only tokens the protocol issues are the three tranche tokens (`pPRIME`, `pCORE`, `pALPHA`) and AMM liquidity-provider tokens.
 
-### What happens if I buy `pMEZZ` on the AMM at a price different from NAV?
+### What happens if I buy `pCORE` on the AMM at a price different from NAV?
 
 The vault redeems tranche tokens at NAV regardless of what you paid for them on the secondary market. If you bought at a discount, withdrawal pays NAV (which may be more than your entry price). If you bought at a premium, withdrawal still pays NAV (which may be less than your entry price). The protocol does not remember trade history.
 
@@ -32,7 +32,7 @@ This is why NAV vs market price divergence is informative — it expresses what 
 
 NAV is intrinsic accounting: assets divided by supply, recomputed every time yield arrives or a loss is applied. Market price is what AMM traders are willing to pay right now. NAV is set by the protocol. Market price is set by sentiment.
 
-Divergence between the two tells you something. A persistent discount on `pMEZZ` after a partial default may signal that traders expect more losses. A persistent premium on `pSENIOR` may signal flight to safety from junior tranches.
+Divergence between the two tells you something. A persistent discount on `pCORE` after a partial default may signal that traders expect more losses. A persistent premium on `pPRIME` may signal flight to safety from junior tranches.
 
 See [Risk & Market Layer](./risk-market-layer.md).
 

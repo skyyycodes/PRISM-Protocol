@@ -70,7 +70,7 @@ Users may trade tranche tokens on AMM pools.
 
 Trading flow:
 
-1. User selects a market, such as `pMEZZ / USDC`.
+1. User selects a market, such as `pCORE / USDC`.
 2. AMM calculates output using constant-product pricing.
 3. User receives output asset.
 4. Pool reserves update.
