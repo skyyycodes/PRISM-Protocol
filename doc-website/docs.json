@@ -23,6 +23,10 @@
   "navbar": {
     "links": [
       {
+        "label": "Blog",
+        "href": "/blog"
+      },
+      {
         "label": "Website",
         "href": "https://prism-protocol.finance"
       }
@@ -75,6 +79,7 @@
       {
         "group": "Project",
         "pages": [
+          "blog",
           "roadmap",
           "faq",
           "glossary"
