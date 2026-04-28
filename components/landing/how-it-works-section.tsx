@@ -21,7 +21,7 @@ const steps = [
     description: "The borrower pays a coupon. The waterfall distributes it: Prime first up to its target APY, then Core, then Alpha. Your tranche's NAV updates on every event.",
     code: `// Yield event distributes via waterfall
 // Prime → 5% APY  (target)
-// Core  → 12% APY (target)
+// Core   → 12% APY (target)
 // Alpha → residual returns`,
   },
   {

@@ -129,11 +129,11 @@ User              PRISM Program           SPL Token             Vault USDC Reser
 Given:
   Y = yield_in (USDC arriving from "borrower")
   prime_target = prime.total_assets × prime.target_apy_bps × elapsed / (365d × 10000)
-  core_target  = core.total_assets   × core.target_apy_bps   × elapsed / (365d × 10000)
+  core_target   = core.total_assets   × core.target_apy_bps   × elapsed / (365d × 10000)
 
 Distribution:
   prime_take = min(prime_target, Y); Y -= prime_take
-  core_take  = min(core_target,   Y); Y -= core_take
+  core_take   = min(core_target,   Y); Y -= core_take
   alpha_take = Y                      // residual = excess returns to Alpha
 ```
 
@@ -164,7 +164,7 @@ Tranche sizes per §8.5: Prime 10,000 @ 5%, Core 4,500 @ 12%, Alpha 5,000 (resid
 
 ```
 prime_target = 10,000 × 0.05 × 30/365 = ~41.1
-core_target  =  4,500 × 0.12 × 30/365 = ~44.4
+core_target   =  4,500 × 0.12 × 30/365 = ~44.4
 alpha_take   = 100 - 41.1 - 44.4      = ~14.5
 ```
 
@@ -300,7 +300,7 @@ CreditEvent PDA created:
 ```
 Frame 0 (post-yield steady state)
   [████████████ Prime 1.00411]
-  [████████████ Core  1.00987]
+  [████████████ Core   1.00987]
   [████████████ Alpha 1.00290]
 
 Frame 1 — DEFAULT badge flashes red
@@ -308,17 +308,17 @@ Frame 1 — DEFAULT badge flashes red
 
 Frame 2 — Alpha drains to zero (animated)
   [████████████ Prime 1.00411]
-  [████████████ Core  1.00987]
+  [████████████ Core   1.00987]
   [▏           Alpha 0.00000]   ← wiped
 
 Frame 3 — Core drops ~32%
   [████████████ Prime 1.00411]
-  [████████     Core  0.6798]   ← partial hit
+  [████████     Core   0.6798]   ← partial hit
   [▏           Alpha 0.00000]
 
 Frame 4 — Prime pulses green ("PROTECTED")
   [████████████ Prime 1.00411 ✓ PROTECTED]
-  [████████     Core  0.6798]
+  [████████     Core   0.6798]
   [▏           Alpha 0.00000]
 
 Frame 5 — BEFORE / AFTER snapshot panel slides in
@@ -327,7 +327,7 @@ Frame 5 — BEFORE / AFTER snapshot panel slides in
   ├─────────────────────────┼─────────────────────────┤
   │  Prime NAV   1.00411   │  Prime NAV   1.00411   │  ← unchanged
   │  Core   NAV   1.00987   │  Core   NAV   0.6798    │  ← -32%
-  │  Alpha  NAV   1.00290   │  Alpha  NAV   0.0000    │  ← wiped
+  │  Alpha NAV   1.00290   │  Alpha NAV   0.0000    │  ← wiped
   └─────────────────────────┴─────────────────────────┘
 
 Frame 6 — USER PnL VIEW (LIVE) — the moment that hits home
@@ -336,7 +336,7 @@ Frame 6 — USER PnL VIEW (LIVE) — the moment that hits home
   ├─────────────────────────────────────────────────────┤
   │   User A   (Prime, $5K deposit)   +$20.55  +0.41%  │  green
   │   User B   (Core,   $3K deposit)   -$960.60  -32%   │  amber
-  │   User C   (Alpha,  $2K deposit)   -$2,000   -100%  │  red
+  │   User C   (Alpha, $2K deposit)   -$2,000   -100%  │  red
   ├─────────────────────────────────────────────────────┤
   │   TOTAL LP IMPACT                  -$2,940   -29%   │
   └─────────────────────────────────────────────────────┘

@@ -4,6 +4,7 @@
 **Decision date:** Apr 25, 2026 (~16 days remaining)
 **Strategy:** One codebase, multiple prize pools. Each side track must extend a hero feature already being built — no track adds new product surface.
 
+
 ---
 
 ## TL;DR

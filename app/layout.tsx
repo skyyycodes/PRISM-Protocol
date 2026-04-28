@@ -24,6 +24,14 @@ export const metadata: Metadata = {
   title: 'PRISM Protocol — Programmable Credit on Solana',
   description: 'Tranche credit risk into Prime, Core, and Alpha. Trade tranche tokens on a live AMM. Watch losses cascade in real time.',
   generator: 'v0.app',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '64x64' },
+      { url: '/icon-light-64x64.png', media: '(prefers-color-scheme: light)', sizes: '64x64', type: 'image/png' },
+      { url: '/icon-dark-64x64.png', media: '(prefers-color-scheme: dark)', sizes: '64x64', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
 }
 
 export default function RootLayout({

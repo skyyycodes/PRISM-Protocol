@@ -2,7 +2,7 @@
 
 import { ArrowUpRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { DOCS_URL } from "@/lib/site-links";
+import { DOCS_URL, TWITTER_URL } from "@/lib/site-links";
 
 const footerLinks = {
   Product: [
@@ -30,7 +30,7 @@ const footerLinks = {
 };
 
 const socialLinks = [
-  { name: "Twitter", href: "#" },
+  { name: "Twitter", href: TWITTER_URL },
   { name: "GitHub", href: "#" },
   { name: "LinkedIn", href: "#" },
 ];
