@@ -12,9 +12,9 @@ Each PRISM tranche is represented by a fungible SPL token.
 
 | Token | Tranche | Meaning |
 | --- | --- | --- |
-| `pSENIOR` | Senior | Claim on Senior tranche NAV |
-| `pMEZZ` | Mezzanine | Claim on Mezzanine tranche NAV |
-| `pEQUITY` | Equity | Claim on Equity tranche NAV |
+| `pPRIME` | Prime | Claim on Prime tranche NAV |
+| `pCORE` | Core | Claim on Core tranche NAV |
+| `pALPHA` | Alpha | Claim on Alpha tranche NAV |
 
 ## Lifecycle
 
@@ -46,5 +46,5 @@ Redemption value is based on current NAV, not original deposit amount.
 redemption_value = token_amount * tranche_NAV
 ```
 
-If a user buys pMEZZ on the AMM at a discount to NAV, the vault still uses NAV for withdrawal. If a user buys above NAV, the vault still uses NAV. The protocol does not remember trade price.
+If a user buys pCORE on the AMM at a discount to NAV, the vault still uses NAV for withdrawal. If a user buys above NAV, the vault still uses NAV. The protocol does not remember trade price.
 

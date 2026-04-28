@@ -15,7 +15,7 @@ Phase 1 establishes the core protocol primitive.
 Scope:
 
 - Core structured credit engine.
-- Senior, Mezzanine, and Equity tranches.
+- Prime, Core, and Alpha tranches.
 - NAV accounting.
 - Yield waterfall.
 - Default handling.

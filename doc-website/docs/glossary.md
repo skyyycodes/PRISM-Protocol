@@ -14,13 +14,13 @@ Automated market maker. PRISM uses constant-product AMMs to trade tranche tokens
 
 An event that reduces vault assets and triggers the loss cascade.
 
-## Equity Tranche
+## Alpha Tranche
 
-The highest-risk tranche. Equity receives residual upside but absorbs losses first.
+The highest-risk tranche. Alpha receives residual upside but absorbs losses first.
 
-## Mezzanine Tranche
+## Core Tranche
 
-The intermediate tranche. Mezzanine is paid after Senior and absorbs losses after Equity.
+The intermediate tranche. Core is paid after Prime and absorbs losses after Alpha.
 
 ## NAV
 
@@ -30,21 +30,21 @@ Net asset value per share.
 NAV = total_assets / total_supply
 ```
 
-## pEQUITY
+## pALPHA
 
-SPL token representing a claim on the Equity tranche.
+SPL token representing a claim on the Alpha tranche.
 
-## pMEZZ
+## pCORE
 
-SPL token representing a claim on the Mezzanine tranche.
+SPL token representing a claim on the Core tranche.
 
-## pSENIOR
+## pPRIME
 
-SPL token representing a claim on the Senior tranche.
+SPL token representing a claim on the Prime tranche.
 
-## Senior Tranche
+## Prime Tranche
 
-The most protected tranche. Senior is paid first and absorbs losses last.
+The most protected tranche. Prime is paid first and absorbs losses last.
 
 ## Subordination
 

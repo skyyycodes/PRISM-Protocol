@@ -33,8 +33,8 @@ The rules should be visible before users interact with the system.
 
 Users should understand:
 
-- Senior tranches are protected, not risk-free.
-- Equity tranches carry first-loss risk.
+- Prime tranches are protected, not risk-free.
+- Alpha tranches carry first-loss risk.
 - Market price can diverge from NAV.
 - AMM trades are subject to slippage.
 - Credit events can reduce redemption value.

@@ -31,9 +31,9 @@ Example presets:
 
 | Strategy | Allocation Bias | User Intent |
 | --- | --- | --- |
-| Conservative | Senior-heavy | Lower-risk exposure |
-| Balanced | Senior + Mezzanine | Mixed yield and protection |
-| Aggressive | Equity-heavy | Higher-risk residual upside |
+| Conservative | Prime-heavy | Lower-risk exposure |
+| Balanced | Prime + Core | Mixed yield and protection |
+| Aggressive | Alpha-heavy | Higher-risk residual upside |
 
 These presets are interface-level tools. They do not change the underlying protocol rules.
 

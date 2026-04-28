@@ -44,7 +44,7 @@ Traders may buy or sell based on:
 - Current NAV.
 - Expected future yield.
 - Expected future defaults.
-- Relative safety of tranche seniority.
+- Relative safety of tranche primeity.
 - Liquidity and slippage.
 
 ## Market Reaction After Default
@@ -53,9 +53,9 @@ After a default, NAV changes first through deterministic accounting. Then trader
 
 Example:
 
-1. Equity is wiped.
-2. Mezzanine NAV falls.
-3. Senior NAV may remain protected.
+1. Alpha is wiped.
+2. Core NAV falls.
+3. Prime NAV may remain protected.
 4. AMM traders sell junior tranches.
 5. Market prices move below or above NAV depending on expectations.
 

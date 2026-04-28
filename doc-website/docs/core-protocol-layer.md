@@ -28,9 +28,9 @@ Each vault is partitioned into three tranches:
 
 | Tranche | Description | Waterfall Position | Loss Position |
 | --- | --- | --- | --- |
-| Senior | First-loss protected exposure | Paid first | Absorbs last |
-| Mezzanine | Intermediate risk exposure | Paid second | Absorbs second |
-| Equity | Residual upside exposure | Paid last | Absorbs first |
+| Prime | First-loss protected exposure | Paid first | Absorbs last |
+| Core | Intermediate risk exposure | Paid second | Absorbs second |
+| Alpha | Residual upside exposure | Paid last | Absorbs first |
 
 Each tranche maintains:
 
@@ -54,28 +54,28 @@ Deposits mint shares based on current NAV. Withdrawals burn shares and redeem US
 
 Incoming yield is allocated in priority order:
 
-1. Senior tranche.
-2. Mezzanine tranche.
-3. Equity tranche.
+1. Prime tranche.
+2. Core tranche.
+3. Alpha tranche.
 
-Senior and Mezzanine target rates define how much yield those tranches are entitled to before residual yield reaches Equity. Equity receives the remaining upside after higher-priority claims are satisfied.
+Prime and Core target rates define how much yield those tranches are entitled to before residual yield reaches Alpha. Alpha receives the remaining upside after higher-priority claims are satisfied.
 
 ## Default Resolution
 
 Losses are applied in reverse priority:
 
-1. Equity absorbs losses first.
-2. Mezzanine absorbs residual losses.
-3. Senior absorbs losses only after subordinate tranches are depleted.
+1. Alpha absorbs losses first.
+2. Core absorbs residual losses.
+3. Prime absorbs losses only after subordinate tranches are depleted.
 
-This makes subordination explicit. Senior protection is not magic; it exists because junior capital is placed below Senior in the loss stack.
+This makes subordination explicit. Prime protection is not magic; it exists because junior capital is placed below Prime in the loss stack.
 
 ## Reserve Invariant
 
 The core accounting invariant is:
 
 ```text
-vault_usdc_reserve = senior_assets + mezzanine_assets + equity_assets
+vault_usdc_reserve = prime_assets + core_assets + alpha_assets
 ```
 
 When yield enters, both the reserve and tranche assets increase. When a loss is realized, USDC leaves the vault and tranche assets decrease through the cascade.

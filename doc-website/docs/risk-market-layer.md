@@ -18,9 +18,9 @@ Supported markets:
 
 | Market | Purpose |
 | --- | --- |
-| `pSENIOR / USDC` | Low-risk tranche liquidity |
-| `pMEZZ / USDC` | Intermediate-risk tranche liquidity |
-| `pEQUITY / USDC` | Residual-risk tranche liquidity |
+| `pPRIME / USDC` | Low-risk tranche liquidity |
+| `pCORE / USDC` | Intermediate-risk tranche liquidity |
+| `pALPHA / USDC` | Residual-risk tranche liquidity |
 
 These markets allow users to exit or reposition without waiting for vault withdrawal flows.
 
@@ -45,7 +45,7 @@ The protocol separates:
 
 This enables real-time risk interpretation.
 
-For example, if pEQUITY still has positive NAV but trades at a heavy discount, the market is expressing concern about future losses or insufficient yield.
+For example, if pALPHA still has positive NAV but trades at a heavy discount, the market is expressing concern about future losses or insufficient yield.
 
 ## Why This Matters
 

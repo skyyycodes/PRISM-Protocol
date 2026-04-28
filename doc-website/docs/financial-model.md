@@ -31,9 +31,9 @@ Yield is introduced through authorized accounts and allocated by the waterfall.
 
 Example yield order:
 
-1. Senior receives yield up to its target.
-2. Mezzanine receives yield up to its target.
-3. Equity receives residual yield.
+1. Prime receives yield up to its target.
+2. Core receives yield up to its target.
+3. Alpha receives residual yield.
 
 This lets PRISM express different risk-return profiles inside the same vault.
 
@@ -43,18 +43,18 @@ Losses are applied directly to tranche assets and reflected in NAV.
 
 Loss order:
 
-1. Equity.
-2. Mezzanine.
-3. Senior.
+1. Alpha.
+2. Core.
+3. Prime.
 
-If Equity has 5,014.50 USDC of assets and the vault realizes a 6,500 USDC loss, Equity is wiped first and the remaining 1,485.50 USDC loss is applied to Mezzanine.
+If Alpha has 5,014.50 USDC of assets and the vault realizes a 6,500 USDC loss, Alpha is wiped first and the remaining 1,485.50 USDC loss is applied to Core.
 
 ## Accounting Integrity
 
 The vault's USDC reserve must equal the sum of all tranche assets:
 
 ```text
-reserve = senior_assets + mezzanine_assets + equity_assets
+reserve = prime_assets + core_assets + alpha_assets
 ```
 
 To maintain this invariant:
