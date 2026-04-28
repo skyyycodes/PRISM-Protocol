@@ -47,21 +47,17 @@ nav-logo {
 
 #navbar .navbar-link a[href="https://prism-protocol.finance"] {
   align-items: center;
-  background: linear-gradient(135deg, #eca8d6 0%, #b673f8 100%);
-  border-radius: 9999px;
-  box-shadow: 0 10px 26px rgba(182, 115, 248, 0.28);
+  background: #b673f8;
+  border-radius: 8px;
   color: white !important;
   display: inline-flex !important;
   font-size: 0.95rem;
-  font-weight: 700;
-  gap: 0.75rem;
-  height: 2.55rem;
+  font-weight: 600;
+  gap: 0.6rem;
+  height: 2.3rem;
   line-height: 1;
-  padding: 0 1.35rem;
-  transition:
-    box-shadow 180ms ease,
-    transform 180ms ease,
-    filter 180ms ease;
+  padding: 0 0.95rem;
+  transition: background-color 180ms ease;
 }
 
 #navbar .navbar-link a[href="https://prism-protocol.finance"]::after {
@@ -69,15 +65,13 @@ nav-logo {
   border-top: 2px solid currentColor;
   content: "";
   display: inline-block;
-  height: 0.45rem;
+  height: 0.4rem;
   transform: rotate(45deg);
-  width: 0.45rem;
+  width: 0.4rem;
 }
 
 #navbar .navbar-link a[href="https://prism-protocol.finance"]:hover {
-  box-shadow: 0 14px 34px rgba(182, 115, 248, 0.36);
-  filter: brightness(1.04);
-  transform: translateY(-1px);
+  background: #a25ee8;
 }
 
 @media (max-width: 640px) {
@@ -91,7 +85,7 @@ nav-logo {
   }
 
   #navbar .navbar-link a[href="https://prism-protocol.finance"] {
-    height: 2.3rem;
-    padding: 0 1rem;
+    height: 2.1rem;
+    padding: 0 0.8rem;
   }
 }
