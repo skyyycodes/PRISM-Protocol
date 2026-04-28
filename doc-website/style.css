@@ -47,7 +47,7 @@ nav-logo {
 
 #navbar .navbar-link a[href="https://prism-protocol.finance"] {
   align-items: center;
-  background: #b673f8;
+  background: rgb(var(--primary-light) / var(--tw-text-opacity, 1));
   border-radius: 8px;
   color: white !important;
   display: inline-flex !important;
