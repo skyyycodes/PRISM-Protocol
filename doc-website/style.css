@@ -1,0 +1,39 @@
+.nav-logo,
+nav-logo {
+  height: 2.75rem !important;
+  max-height: none !important;
+  width: auto !important;
+}
+
+#navbar a[href="/"]:has(.nav-logo) {
+  display: flex !important;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: max-content;
+}
+
+#navbar a[href="/"]:has(.nav-logo)::after {
+  content: "Prism Protocol Docs";
+  color: rgb(17 24 39);
+  display: inline-block;
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.dark #navbar a[href="/"]:has(.nav-logo)::after {
+  color: rgb(245 245 246);
+}
+
+@media (max-width: 640px) {
+  .nav-logo,
+  nav-logo {
+    height: 2.35rem !important;
+  }
+
+  #navbar a[href="/"]:has(.nav-logo)::after {
+    font-size: 0.9rem;
+  }
+}

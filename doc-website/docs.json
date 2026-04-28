@@ -1,0 +1,91 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "PRISM Protocol Docs",
+  "description": "Programmable Risk & Income Structured Markets on Solana",
+  "logo": {
+    "light": "/images/prism.png",
+    "dark": "/images/prism.png",
+    "href": "/"
+  },
+  "favicon": "/images/favicon.ico",
+  "colors": {
+    "primary": "#ECA8D6",
+    "light": "#ECA8D6",
+    "dark": "#B673F8"
+  },
+  "appearance": {
+    "default": "dark"
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Website",
+        "href": "https://prism-protocol.finance"
+      }
+    ]
+  },
+  "contextual": {
+    "options": [
+      "assistant",
+      "copy",
+      "view"
+    ],
+    "display": "header"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get Started",
+        "pages": [
+          "index"
+        ]
+      },
+      {
+        "group": "Architecture",
+        "pages": [
+          "system-architecture",
+          "sourcing-layer",
+          "core-protocol-layer",
+          "risk-market-layer",
+          "integrity-layer",
+          "surface-layer"
+        ]
+      },
+      {
+        "group": "Financial Model",
+        "pages": [
+          "financial-model",
+          "token-model",
+          "market-design",
+          "edge-case-handling"
+        ]
+      },
+      {
+        "group": "Protocol Operations",
+        "pages": [
+          "core-operations",
+          "security-controls",
+          "compliance-posture"
+        ]
+      },
+      {
+        "group": "Project",
+        "pages": [
+          "roadmap",
+          "faq",
+          "glossary"
+        ]
+      }
+    ]
+  },
+  "seo": {
+    "indexing": "navigable"
+  },
+  "search": {
+    "prompt": "Search PRISM docs..."
+  }
+}

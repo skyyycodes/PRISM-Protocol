@@ -1,24 +1,24 @@
 # PRISM Protocol Docs Website
 
 This folder contains the standalone PRISM Protocol documentation website. It is
-built with [Docusaurus](https://docusaurus.io/) and uses the official PRISM docs
-content in `docs/`.
+built with [Mintlify](https://www.mintlify.com/) and uses local MDX files as the
+source of truth.
 
-## What to Copy
+## Structure
 
-The UI lives mainly in these files:
+- `docs.json` - Mintlify site settings, branding, navigation, and footer links
+- `*.mdx` - public protocol documentation pages
+- `images/` - logo and favicon assets
 
-- `docusaurus.config.ts` - site title, navbar, footer, docs routing, Prism theme
-- `src/css/custom.css` - dark theme colors, typography, navbar/footer styling
-- `src/pages/index.tsx` and `src/pages/index.module.css` - optional landing page
-- `static/img/` - logo, favicon, and image assets
-- `sidebars.ts` - docs sidebar structure
-
-The `docs/` directory contains the public protocol documentation: architecture,
+The MDX pages contain the public protocol documentation: architecture,
 financial model, operations, market design, controls, compliance posture, and
 roadmap.
 
 ## Installation
+
+Mintlify currently rejects Node 25+. Use Node 22, or another supported LTS
+version, before running the docs locally. Version-manager hints are included in
+`.nvmrc` and `.node-version`.
 
 ```bash
 npm install
@@ -27,15 +27,16 @@ npm install
 ## Local Development
 
 ```bash
-npm run start
+npm run dev
 ```
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
+This starts Mintlify's local preview. Use `npm run dev -- --no-open` if you do
+not want the browser to open automatically.
 
-## Build
+## Validate
 
 ```bash
-npm run build
+npm run validate
 ```
 
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
+This checks that the Mintlify docs configuration and content can be built.

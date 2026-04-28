@@ -5,8 +5,9 @@
 /build
 
 # Generated files
-.docusaurus
-.cache-loader
+.mintlify/*
+!.mintlify/Assistant.md
+*.zip
 
 # Misc
 .DS_Store
