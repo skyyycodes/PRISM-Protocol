@@ -18,17 +18,17 @@ This is the honest "what we hand-waved" list. Going through it before Day 1 prev
 
 **(b) Do we actually disburse the loan?**
 - `disburse_loan` moves USDC from vault → borrower. If we run it, the vault balance drops to ~0 (USDC went out as principal). If we skip it, the loan is fictional and the vault keeps deposits.
-- The demo should *visually* show "USDC deposited → USDC went to borrower → yield comes back" for narrative completeness. But that means at default, the principal is gone and the vault doesn't have USDC to pay Senior holders out.
+- The demo should *visually* show "USDC deposited → USDC went to borrower → yield comes back" for narrative completeness. But that means at default, the principal is gone and the vault doesn't have USDC to pay Prime holders out.
 
 **(c) The cash-accounting mismatch on default**
-- After `trigger_credit_event(loss = 2500)`, our accounting says `total_assets` dropped by 2500. But the *actual* USDC didn't move from the vault reserve — only the accounting did. So if a Senior holder withdraws, they pull from a reserve that has *more USDC than total tranche assets sum*. That's wrong.
+- After `trigger_credit_event(loss = 2500)`, our accounting says `total_assets` dropped by 2500. But the *actual* USDC didn't move from the vault reserve — only the accounting did. So if a Prime holder withdraws, they pull from a reserve that has *more USDC than total tranche assets sum*. That's wrong.
 
 **Recommended resolution (pick one):**
 
 | Option | Mechanics | Demo realism | Implementation cost |
 |---|---|---|---|
 | **A. Closed-loop demo (no real disbursement)** | Skip `disburse_loan`. USDC stays in vault. On `accrue_yield`, admin pre-funds a separate borrower wallet from the faucet; pull pulls into vault. On default, also burn the loss USDC (transfer to a `loss_bucket` PDA or admin) so vault reserve = sum of tranche assets always. | Looks real. Accounting is honest. | Low. Add 1 line to `trigger_credit_event` to transfer loss USDC out |
-| **B. Full lifecycle demo (disburse for real)** | Run `disburse_loan` after deposits. Vault reserve drops. Borrower then repays principal + yield via `accrue_yield`. On default, principal is gone — Senior gets paid from whatever yield arrived before the default. | Most realistic. | High. Need to coordinate disburse → yield → default timing precisely. Risk: Senior holders can't withdraw if vault is empty post-disburse |
+| **B. Full lifecycle demo (disburse for real)** | Run `disburse_loan` after deposits. Vault reserve drops. Borrower then repays principal + yield via `accrue_yield`. On default, principal is gone — Prime holders can't withdraw if vault is empty post-disburse | Most realistic. | High. Need to coordinate disburse → yield → default timing precisely. Risk: Prime holders can't withdraw if vault is empty post-disburse |
 | **C. Fictional accounting demo (skip real USDC)** | Use a fake "USDC" mint we control. `accrue_yield` mints from thin air. On default, admin burns from the reserve. | Less impressive — judges might notice fake USDC | Lowest |
 
 **My pick: Option A.** Closed-loop demo with explicit loss-burn on default. The vault always has a USDC balance equal to the sum of tranche assets — no mismatch. The "borrower" role is just a separate admin-controlled wallet that the faucet pre-funds. Demo looks real, math is honest.
@@ -69,12 +69,12 @@ So the natural Cloak fit isn't the waterfall — it's elsewhere.
 - **Fix:** if `total_supply == 0`, mint shares 1:1 with USDC at NAV = 1.0. Standard ERC-4626 pattern.
 
 **(b) Total wipeout: `total_assets == 0` after default but `total_supply > 0`**
-- All Equity holders still hold pEQUITY tokens; NAV = 0; their tokens are worthless but exist.
-- If they call `withdraw`, payout = N × 0 = 0. Tokens burn for nothing. **OK — this is the dramatic demo moment** ("Equity holder withdraws → gets $0").
-- After all equity tokens burn, both `total_assets` and `total_supply` = 0. Tranche is "reset."
+- All Alpha holders still hold pALPHA tokens; NAV = 0; their tokens are worthless but exist.
+- If they call `withdraw`, payout = N × 0 = 0. Tokens burn for nothing. **OK — this is the dramatic demo moment** ("Alpha holder withdraws → gets $0").
+- After all alpha tokens burn, both `total_assets` and `total_supply` = 0. Tranche is "reset."
 
 **(c) Deposit into a wiped tranche**
-- If Equity is at NAV = 0 and total_supply > 0, a new depositor would mint at `usdc_in / 0` = ∞ shares.
+- If Alpha is at NAV = 0 and total_supply > 0, a new depositor would mint at `usdc_in / 0` = ∞ shares.
 - **Fix:** explicit guard — if `nav_per_share == 0`, block deposits to that tranche. Require either (i) all existing tokens to burn first (resetting the tranche) or (ii) a Recovery event to lift NAV back above zero.
 - Demo doesn't show this case, but design must handle it cleanly.
 
@@ -89,14 +89,14 @@ So the natural Cloak fit isn't the waterfall — it's elsewhere.
 
 ### 8.4 `subordination_floor_bps` — unused field, remove or use?
 
-**What's hand-waved:** the Tranche struct has `subordination_floor_bps` (e.g., Senior 5000, Mezz 2000, Equity 0) — but the cascade in §4.5 doesn't use it. It just walks Equity → Mezz → Senior consuming `total_assets`.
+**What's hand-waved:** the Tranche struct has `subordination_floor_bps` (e.g., Prime 5000, Core 2000, Alpha 0) — but the cascade in §4.5 doesn't use it. It just walks Alpha → Core → Prime consuming `total_assets`.
 
 **Two paths:**
 
 | Option | Description |
 |---|---|
 | **A. Remove the field** | Cascade is purely "lose your principal first, then move up." Simpler model. Standard waterfall |
-| **B. Use the field** | Subordination floor caps how much each tranche can absorb before passing to the next. E.g., Mezz absorbs at most 30% of vault loss, even if Mezz still has assets left. More flexible / configurable |
+| **B. Use the field** | Subordination floor caps how much each tranche can absorb before passing to the next. E.g., Core absorbs at most 30% of vault loss, even if Core still has assets left. More flexible / configurable |
 
 **My pick: Option A — remove.** The simple waterfall is what the demo shows and what the dashboard storyboard (§4.5) animates. Adding floors complicates the math without changing the demo. If we want flexibility later, add it in Phase 2.
 
@@ -112,23 +112,23 @@ So the natural Cloak fit isn't the waterfall — it's elsewhere.
 
 | Quantity | Value | Source |
 |---|---|---|
-| LP Senior deposit | 5,000 USDC | demo wallet `lp_senior` |
-| LP Mezz deposit | 3,000 USDC | demo wallet `lp_mezz` |
-| LP Equity deposit | 2,000 USDC | demo wallet `lp_equity` |
-| MM Equity deposit | 2,000 USDC | demo wallet `mm` (for Trade #2 inventory) |
-| MM Mezz deposit | 500 USDC | demo wallet `mm` |
-| Admin Senior AMM seed | 5,000 USDC | for AMM bootstrap |
-| Admin Mezz AMM seed | 1,000 USDC | for AMM bootstrap |
-| Admin Equity AMM seed | 1,000 USDC | for AMM bootstrap |
-| **Senior tranche total** | **10,000 USDC** | 5K LP + 5K admin |
-| **Mezz tranche total** | **4,500 USDC** | 3K LP + 0.5K MM + 1K admin |
-| **Equity tranche total** | **5,000 USDC** | 2K LP + 2K MM + 1K admin |
+| LP Prime deposit | 5,000 USDC | demo wallet `lp_prime` |
+| LP Core deposit | 3,000 USDC | demo wallet `lp_core` |
+| LP Alpha deposit | 2,000 USDC | demo wallet `lp_alpha` |
+| MM Alpha deposit | 2,000 USDC | demo wallet `mm` (for Trade #2 inventory) |
+| MM Core deposit | 500 USDC | demo wallet `mm` |
+| Admin Prime AMM seed | 5,000 USDC | for AMM bootstrap |
+| Admin Core AMM seed | 1,000 USDC | for AMM bootstrap |
+| Admin Alpha AMM seed | 1,000 USDC | for AMM bootstrap |
+| **Prime tranche total** | **10,000 USDC** | 5K LP + 5K admin |
+| **Core tranche total** | **4,500 USDC** | 3K LP + 0.5K MM + 1K admin |
+| **Alpha tranche total** | **5,000 USDC** | 2K LP + 2K MM + 1K admin |
 | **Vault total** | **19,500 USDC** | sum of three tranches |
-| Yield event | 100 USDC over 30 days | covers Senior 5% + Mezz 12% targets |
-| Default loss | 6,500 USDC | wipes Equity, hits Mezz ~32% |
-| Senior AMM pool | 5,000 + 5,000 | deep — Senior swap feels stable |
-| Mezz AMM pool | 1,000 + 1,000 | thin — allows visible repricing |
-| Equity AMM pool | 1,000 + 1,000 | thin — same |
+| Yield event | 100 USDC over 30 days | covers Prime 5% + Core 12% targets |
+| Default loss | 6,500 USDC | wipes Alpha, hits Core ~32% |
+| Prime AMM pool | 5,000 + 5,000 | deep — Prime swap feels stable |
+| Core AMM pool | 1,000 + 1,000 | thin — allows visible repricing |
+| Alpha AMM pool | 1,000 + 1,000 | thin — same |
 | Borrower wallet pre-fund | 10,000 USDC | source for `accrue_yield` |
 
 Total devnet USDC needed across demo wallets: ~30,000 (Circle faucet over 1–2 days).
@@ -147,11 +147,11 @@ Total devnet USDC needed across demo wallets: ~30,000 (Circle faucet over 1–2 
 
 ### 8.7 Trade #2 mechanics — who is the "market maker"?
 
-**What's hand-waved:** §4.6 says "MM sells pEQUITY into pool" but doesn't say who that is.
+**What's hand-waved:** §4.6 says "MM sells pALPHA into pool" but doesn't say who that is.
 
-**Recommended:** add a hidden admin button **"Run Market Reaction"** that, in one transaction, signs an MM swap of (a) some pEQUITY → USDC and (b) some pMEZZ → USDC. Demo presenter clicks this button; AMM prices reprice visibly. Cleaner than coordinating multiple wallets live.
+**Recommended:** add a hidden admin button **"Run Market Reaction"** that, in one transaction, signs an MM swap of (a) some pALPHA → USDC and (b) some pCORE → USDC. Demo presenter clicks this button; AMM prices reprice visibly. Cleaner than coordinating multiple wallets live.
 
-Pre-fund an "MM" wallet at setup with pEQUITY and pMEZZ tokens.
+Pre-fund an "MM" wallet at setup with pALPHA and pCORE tokens.
 
 ✅ **STATUS: Locking.**
 
@@ -205,10 +205,10 @@ Pre-fund the borrower wallet with $10K of devnet USDC at setup so `accrue_yield`
 |---|---|---|
 | `admin` | Init, admin actions, default trigger fallback | SOL + extra USDC |
 | `borrower` | Source of yield USDC | $10K USDC |
-| `lp_senior` | Demo Senior depositor | SOL + $5K USDC |
-| `lp_mezz` | Demo Mezz depositor | SOL + $3K USDC |
-| `lp_equity` | Demo Equity depositor | SOL + $2K USDC |
-| `mm` | Market maker for Trade #2 | pEQUITY + pMEZZ (minted at setup via admin transfer or initial deposit) |
+| `lp_prime` | Demo Prime depositor | SOL + $5K USDC |
+| `lp_core` | Demo Core depositor | SOL + $3K USDC |
+| `lp_alpha` | Demo Alpha depositor | SOL + $2K USDC |
+| `mm` | Market maker for Trade #2 | pALPHA + pCORE (minted at setup via admin transfer or initial deposit) |
 
 That's actually 6 wallets. Generate via Solana CLI; commit a setup script that funds them all.
 
@@ -254,27 +254,27 @@ If something breaks during recording, **don't restart from scratch.** Re-record 
 
 ### 8.21 — Trade #2 demo physics (CRITICAL)
 
-**The bug:** §4.6 claims pEQUITY market price collapses from ~1.00 → ~0.05 when MM dumps tokens after default. **Constant-product math doesn't support that** with the planned pool sizes (5K + 5K) and MM holdings (500 pEQUITY). One dump moves price from 1.00 → ~0.83. Visually unimpressive vs the storyboard.
+**The bug:** §4.6 claims pALPHA market price collapses from ~1.00 → ~0.05 when MM dumps tokens after default. **Constant-product math doesn't support that** with the planned pool sizes (5K + 5K) and MM holdings (500 pALPHA). One dump moves price from 1.00 → ~0.83. Visually unimpressive vs the storyboard.
 
-**Cause:** constant-product fundamentally caps single-trade price impact relative to pool reserves. To get to 0.05, MM would need to dump ~95K pEQUITY.
+**Cause:** constant-product fundamentally caps single-trade price impact relative to pool reserves. To get to 0.05, MM would need to dump ~95K pALPHA.
 
 **Recommended: Option A — sequential MM sells, scripted as a single admin "Run Market Reaction" button.**
 
-- Pre-fund MM with 1,000 pEQUITY (from a 1,000 USDC Equity deposit at setup) + 500 pMEZZ
-- "Run Market Reaction" button signs **5 sequential `swap(200 pEQUITY → USDC)` transactions**
+- Pre-fund MM with 1,000 pALPHA (from a 1,000 USDC Alpha deposit at setup) + 500 pCORE
+- "Run Market Reaction" button signs **5 sequential `swap(200 pALPHA → USDC)` transactions**
 - Each iteration causes a visible price step on the dashboard chart — judges see arb dynamics walking down
-- After 5 sells, pEQUITY pool price ≈ 0.17 — not literally 0.05 but a clear collapse
-- Same pattern for pMEZZ (3 sells of ~165 each)
+- After 5 sells, pALPHA pool price ≈ 0.17 — not literally 0.05 but a clear collapse
+- Same pattern for pCORE (3 sells of ~165 each)
 
 **Refinement (per Apr 25 review):** thinner pools + larger MM inventory for a more dramatic but still-honest collapse.
 
 **Locked spec:**
-- Pool sizes: **Senior 5K+5K** (stable), **Mezz 1K+1K** (thin), **Equity 1K+1K** (thin)
-- MM inventory: **2,000 pEQUITY + 500 pMEZZ** (mid-range of 2–3K)
+- Pool sizes: **Prime 5K+5K** (stable), **Core 1K+1K** (thin), **Alpha 1K+1K** (thin)
+- MM inventory: **2,000 pALPHA + 500 pCORE** (mid-range of 2–3K)
 - Trade #2 sequence:
-  - 5 sells of 400 pEQUITY → pool price walks 1.00 → 0.51 → 0.31 → 0.21 → 0.15 → **0.11**
-  - 2 sells of 250 pMEZZ → 1.00 → 0.64 → **0.44**
-  - 1 user sell of 50 pSENIOR → 1.00 → **0.98** (stability proven)
+  - 5 sells of 400 pALPHA → pool price walks 1.00 → 0.51 → 0.31 → 0.21 → 0.15 → **0.11**
+  - 2 sells of 250 pCORE → 1.00 → 0.64 → **0.44**
+  - 1 user sell of 50 pPRIME → 1.00 → **0.98** (stability proven)
 - Demo framing: *"Watch how the market reprices this risk in real time."* Feels like panic selling / liquidation.
 
 ✅ **STATUS: LOCKED (Apr 25, 2026) — Option A with thinner pools + larger MM.**
@@ -311,7 +311,7 @@ Single TypeScript script runs all 12 init transactions sequentially:
 6. `initialize_pool` × 3 (AMM)
 7. Pre-fund borrower wallet (USDC airdrop)
 8. LP wallets deposit (creates pTRANCHE balances)
-9. MM wallet deposits (1,000 USDC into Equity, 500 into Mezz)
+9. MM wallet deposits (1,000 USDC into Alpha, 500 into Core)
 10. Admin seeds AMM pools with pTRANCHE + USDC
 
 Idempotent guards: each step checks if account exists before init. Re-running is safe.
@@ -326,11 +326,11 @@ Idempotent guards: each step checks if account exists before init. Re-running is
 
 ### 8.25 — MM wallet pre-funding amount
 
-- 1,000 USDC into Equity tranche at setup → 1,000 pEQUITY (base unit math: 1,000,000,000 minor units)
-- 500 USDC into Mezz tranche at setup → 500 pMEZZ
-- 0 in Senior (we don't dump pSENIOR — Senior price stability is the contrast story)
+- 1,000 USDC into Alpha tranche at setup → 1,000 pALPHA (base unit math: 1,000,000,000 minor units)
+- 500 USDC into Core tranche at setup → 500 pCORE
+- 0 in Prime (we don't dump pPRIME — Prime price stability is the contrast story)
 
-This means total Equity tranche size at demo start = `2,000 (lp_equity) + 1,000 (mm) = 3,000 USDC`. Total Mezz = `3,000 + 500 = 3,500 USDC`. Adjust §8.5 demo numbers accordingly.
+This means total Alpha tranche size at demo start = `2,000 (lp_alpha) + 1,000 (mm) = 3,000 USDC`. Total Core = `3,000 + 500 = 3,500 USDC`. Adjust §8.5 demo numbers accordingly.
 
 ✅ **STATUS: Locking. Will update §8.5 numbers.**
 
@@ -383,7 +383,7 @@ Tier 1 sign-off complete.
 
 | # | Question | Locked decision |
 |---|---|---|
-| 8.21 | Trade #2 demo physics | ✅ Sequential MM sells with thinner pools (Mezz/Equity 1K+1K, Senior 5K+5K) + larger MM (2K pEQUITY + 500 pMEZZ). 5 sells of 400 pEQUITY → price collapses 1.0 → 0.11 |
+| 8.21 | Trade #2 demo physics | ✅ Sequential MM sells with thinner pools (Core/Alpha 1K+1K, Prime 5K+5K) + larger MM (2K pALPHA + 500 pCORE). 5 sells of 400 pALPHA → price collapses 1.0 → 0.11 |
 | 8.22 | Demo state reset for re-recording | ✅ Sequential `vault_id` parameter. First record = vault 0, retry = vault 1, tests = vault 99 |
 
 Items 8.23–8.28 locked as recommended.

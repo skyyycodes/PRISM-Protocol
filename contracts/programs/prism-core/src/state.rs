@@ -18,13 +18,15 @@ pub struct Vault {
     pub id: u32,
     pub usdc_mint: Pubkey,
     pub usdc_reserve: Pubkey,
+    pub loss_bucket: Pubkey,
     pub tranche_pdas: [Pubkey; 3],
     pub loan_pda: Pubkey,
     pub state: VaultState,
     pub total_deposits: u64,
     pub total_loaned: u64,
     pub last_yield_timestamp: i64,
-    pub credit_event_seq: u32,    pub bump: u8,
+    pub credit_event_seq: u32,
+    pub bump: u8,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, InitSpace)]
@@ -52,9 +54,9 @@ pub struct Tranche {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, InitSpace)]
 pub enum TrancheKind {
-    Senior,
-    Mezz,
-    Equity,
+    Prime,
+    Core,
+    Alpha,
 }
 
 #[account]
@@ -77,6 +79,7 @@ pub enum LoanState {
     Originated,
     Active,
     Repaying,
+    Repaid,
     Defaulted,
     Resolved,
 }

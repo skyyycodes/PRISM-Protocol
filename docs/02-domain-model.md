@@ -7,7 +7,7 @@
 
 ## Mental model
 
-State on Solana lives in **accounts**, not contract storage slots. Every entity here is either a PDA owned by the PRISM program, or an SPL token account owned by SPL Token Program. Users do *not* get a custom Position account per tranche — they hold pSENIOR / pMEZZ / pEQUITY in their associated token accounts. This collapses the "position" concept into a tradeable token from day one.
+State on Solana lives in **accounts**, not contract storage slots. Every entity here is either a PDA owned by the PRISM program, or an SPL token account owned by SPL Token Program. Users do *not* get a custom Position account per tranche — they hold pPRIME / pCORE / pALPHA in their associated token accounts. This collapses the "position" concept into a tradeable token from day one.
 
 ---
 
@@ -21,7 +21,7 @@ State on Solana lives in **accounts**, not contract storage slots. Every entity 
 | **Loan** | PDA | PRISM program | Underlying credit asset. Principal, APR, maturity, repayment state |
 | **CreditEvent** | PDA (sequenced) | PRISM program | Append-style log of defaults / partial losses / recoveries |
 | **AmmPool** (×3) | PDA | PRISM AMM program | Constant-product AMM, one per tranche token vs USDC. **Separate program.** |
-| **Tranche Mint** (×3) | SPL Mint | SPL Token Program | The pSENIOR / pMEZZ / pEQUITY mints. PRISM holds mint authority |
+| **Tranche Mint** (×3) | SPL Mint | SPL Token Program | The pPRIME / pCORE / pALPHA mints. PRISM holds mint authority |
 | **User Position** | SPL Token Account | SPL Token Program | Just a token balance. No custom Position account. |
 | **Vault USDC reserve** | SPL Token Account | SPL Token Program | Where deposited USDC sits. Authority is the Vault PDA |
 
@@ -32,7 +32,7 @@ State on Solana lives in **accounts**, not contract storage slots. Every entity 
 ```
 GlobalConfig:       ["config"]
 Vault:              ["vault", vault_id_le_bytes]
-Tranche:            ["tranche", vault, kind_byte]            // kind: 0=Senior 1=Mezz 2=Equity
+Tranche:            ["tranche", vault, kind_byte]            // kind: 0=Prime 1=Core 2=Alpha
 Loan:               ["loan", vault, loan_id_le_bytes]
 CreditEvent:        ["credit_event", vault, event_seq_le_bytes]
 AmmPool:            ["amm", tranche_mint]
@@ -63,7 +63,7 @@ nav_per_share = total_tranche_assets / total_supply
 **Why this wins:**
 - Waterfall is just math on tranche NAVs — no per-user PnL bookkeeping
 - Tranche token = position. Secondary market is trivially possible — *the position itself is the trading instrument*
-- Demo dramatic moment: three NAV bars on the dashboard. Default hits. Equity drops to 0. Mezz drops partially. Senior barely moves.
+- Demo dramatic moment: three NAV bars on the dashboard. Default hits. Alpha drops to 0. Core drops partially. Prime barely moves.
 
 **Pitch line this enables:** *"We turned credit into tokens that markets can price."*
 
@@ -76,9 +76,9 @@ nav_per_share = total_tranche_assets / total_supply
 ```rust
 pub struct Tranche {
     pub vault: Pubkey,
-    pub kind: TrancheKind,                  // Senior | Mezz | Equity
-    pub mint: Pubkey,                       // pSENIOR / pMEZZ / pEQUITY
-    pub target_apy_bps: u16,                // Senior: 500 (5%), Mezz: 1200, Equity: residual
+    pub kind: TrancheKind,                  // Prime | Core | Alpha
+    pub mint: Pubkey,                       // pPRIME / pCORE / pALPHA
+    pub target_apy_bps: u16,                // Prime: 500 (5%), Core: 1200, Alpha: residual
     pub total_assets: u64,                  // USDC backing this tranche, 1e6 base units
     pub total_supply: u64,                  // pTRANCHE tokens outstanding
     pub nav_per_share_q: u128,              // Q64.64 fixed point for precision
@@ -90,9 +90,9 @@ pub struct Tranche {
 
 #[repr(u8)]
 pub enum TrancheKind {
-    Senior = 0,
-    Mezz   = 1,
-    Equity = 2,
+    Prime = 0,
+    Core   = 1,
+    Alpha = 2,
 }
 ```
 
@@ -105,7 +105,7 @@ pub struct Vault {
     pub id: u32,
     pub usdc_mint: Pubkey,
     pub usdc_reserve: Pubkey,               // the actual USDC token account
-    pub tranche_pdas: [Pubkey; 3],          // [Senior, Mezz, Equity]
+    pub tranche_pdas: [Pubkey; 3],          // [Prime, Core, Alpha]
     pub loan_pda: Pubkey,                   // single loan for demo
     pub state: VaultState,                  // Active | Defaulted | Resolved
     pub total_deposits: u64,
@@ -179,7 +179,7 @@ pub enum CreditEventType {
 
 ```rust
 pub struct AmmPool {
-    pub tranche_mint: Pubkey,               // pSENIOR / pMEZZ / pEQUITY
+    pub tranche_mint: Pubkey,               // pPRIME / pCORE / pALPHA
     pub quote_mint: Pubkey,                 // USDC
     pub tranche_reserve: Pubkey,            // token account
     pub quote_reserve: Pubkey,              // token account
@@ -213,11 +213,11 @@ Pure constant-product (`x * y = k`). Does not know about NAV. The premium / disc
 1. Borrower (admin proxy in v1) deposits yield into Vault USDC reserve
 2. PRISM splits yield via waterfall:
      remaining = yield_amount
-     senior_take = min(senior.target_apy_share_for_period, remaining)
-     remaining -= senior_take
-     mezz_take = min(mezz.target_apy_share_for_period, remaining)
-     remaining -= mezz_take
-     equity_take = remaining   // residual = excess returns flow to Equity
+     prime_take = min(prime.target_apy_share_for_period, remaining)
+     remaining -= prime_take
+     core_take = min(core.target_apy_share_for_period, remaining)
+     remaining -= core_take
+     alpha_take = remaining   // residual = excess returns flow to Alpha
 3. Each tranche: total_assets += its take → nav_per_share recomputed
 4. Tranche.last_nav_update_ts = now
 5. Vault.last_yield_timestamp = now
@@ -229,16 +229,16 @@ Pure constant-product (`x * y = k`). Does not know about NAV. The premium / disc
 ```
 1. Admin or Switchboard signs CreditEvent with loss_amount L and severity_bps
 2. PRISM applies loss in reverse-priority order:
-     equity_loss = min(L, equity.total_assets)
-     L -= equity_loss
-     equity.total_assets -= equity_loss   → equity NAV drops (potentially to 0)
+     alpha_loss = min(L, alpha.total_assets)
+     L -= alpha_loss
+     alpha.total_assets -= alpha_loss   → alpha NAV drops (potentially to 0)
 
-     mezz_loss = min(L, mezz.total_assets)
-     L -= mezz_loss
-     mezz.total_assets -= mezz_loss       → mezz NAV drops
+     core_loss = min(L, core.total_assets)
+     L -= core_loss
+     core.total_assets -= core_loss       → core NAV drops
 
-     senior_loss = L                       // only nonzero if Equity AND Mezz both fully wiped
-     senior.total_assets -= senior_loss
+     prime_loss = L                       // only nonzero if Alpha AND Core both fully wiped
+     prime.total_assets -= prime_loss
 3. PRISM transfers `loss_amount` USDC from Vault USDC reserve to LossBucket PDA
    Invariant maintained: `vault_usdc_reserve.amount == sum(tranche.total_assets)`
 4. PRISM creates a CreditEvent account (own PDA, seeded by seq)
@@ -267,7 +267,7 @@ This is the "credit risk traded as tokens" pitch moment.
 3. PRISM transfers `payout` USDC from Vault reserve to user
 4. Tranche.total_assets -= payout
 5. Tranche.total_supply -= N
-   If equity NAV = 0 (post-default), payout = 0 — burning equity tokens proves the cascade visibly.
+   If alpha NAV = 0 (post-default), payout = 0 — burning alpha tokens proves the cascade visibly.
 ```
 
 ---

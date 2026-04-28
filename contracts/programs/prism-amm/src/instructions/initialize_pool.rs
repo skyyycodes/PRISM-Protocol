@@ -9,8 +9,8 @@ pub struct InitializePool<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
 
-    pub tranche_mint: Account<'info, Mint>,
-    pub quote_mint: Account<'info, Mint>,
+    pub tranche_mint: Box<Account<'info, Mint>>,
+    pub quote_mint: Box<Account<'info, Mint>>,
 
     #[account(
         init,
@@ -19,7 +19,21 @@ pub struct InitializePool<'info> {
         seeds = [b"amm", tranche_mint.key().as_ref()],
         bump,
     )]
-    pub pool: Account<'info, AmmPool>,
+    pub pool: Box<Account<'info, AmmPool>>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct InitializePoolReserves<'info> {
+    #[account(mut)]
+    pub admin: Signer<'info>,
+
+    #[account(mut, seeds = [b"amm", pool.tranche_mint.as_ref()], bump = pool.bump)]
+    pub pool: Box<Account<'info, AmmPool>>,
+
+    pub tranche_mint: Box<Account<'info, Mint>>,
+    pub quote_mint: Box<Account<'info, Mint>>,
 
     #[account(
         init,
@@ -29,7 +43,7 @@ pub struct InitializePool<'info> {
         token::mint = tranche_mint,
         token::authority = pool,
     )]
-    pub tranche_reserve: Account<'info, TokenAccount>,
+    pub tranche_reserve: Box<Account<'info, TokenAccount>>,
 
     #[account(
         init,
@@ -39,7 +53,7 @@ pub struct InitializePool<'info> {
         token::mint = quote_mint,
         token::authority = pool,
     )]
-    pub quote_reserve: Account<'info, TokenAccount>,
+    pub quote_reserve: Box<Account<'info, TokenAccount>>,
 
     /// LP mint, authority = pool PDA
     #[account(
@@ -50,15 +64,25 @@ pub struct InitializePool<'info> {
         mint::decimals = 6,
         mint::authority = pool,
     )]
-    pub lp_mint: Account<'info, Mint>,
+    pub lp_mint: Box<Account<'info, Mint>>,
 
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
-    pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handler(_ctx: Context<InitializePool>, _fee_bps: u16) -> Result<()> {
-    // see 09-lld-completion.md §9.4 initialize_pool pseudocode
-    // Day 1: stub — implement Day 6
+pub fn handler(ctx: Context<InitializePool>, fee_bps: u16) -> Result<()> {
+    let pool = &mut ctx.accounts.pool;
+    pool.tranche_mint = ctx.accounts.tranche_mint.key();
+    pool.quote_mint = ctx.accounts.quote_mint.key();
+    pool.fee_bps = fee_bps;
+    pool.bump = ctx.bumps.pool;
+    Ok(())
+}
+
+pub fn reserves_handler(ctx: Context<InitializePoolReserves>) -> Result<()> {
+    let pool = &mut ctx.accounts.pool;
+    pool.tranche_reserve = ctx.accounts.tranche_reserve.key();
+    pool.quote_reserve = ctx.accounts.quote_reserve.key();
+    pool.lp_mint = ctx.accounts.lp_mint.key();
     Ok(())
 }

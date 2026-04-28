@@ -10,19 +10,33 @@ pub struct InitializeVault<'info> {
     pub admin: Signer<'info>,
 
     #[account(seeds = [b"config"], bump, has_one = admin @ PrismError::Unauthorized)]
-    pub config: Account<'info, GlobalConfig>,
+    pub config: Box<Account<'info, GlobalConfig>>,
 
     #[account(
         init,
         payer = admin,
         space = 8 + Vault::INIT_SPACE,
-        seeds = [b"vault", &vault_id.to_le_bytes()],
+        seeds = [b"vault".as_ref(), vault_id.to_le_bytes().as_ref()],
         bump,
     )]
-    pub vault: Account<'info, Vault>,
+    pub vault: Box<Account<'info, Vault>>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct InitializeVaultReserves<'info> {
+    #[account(mut)]
+    pub admin: Signer<'info>,
+
+    #[account(seeds = [b"config"], bump, has_one = admin @ PrismError::Unauthorized)]
+    pub config: Box<Account<'info, GlobalConfig>>,
+
+    #[account(mut, seeds = [b"vault", &vault.id.to_le_bytes()], bump = vault.bump)]
+    pub vault: Box<Account<'info, Vault>>,
 
     #[account(constraint = usdc_mint.key() == config.usdc_mint)]
-    pub usdc_mint: Account<'info, Mint>,
+    pub usdc_mint: Box<Account<'info, Mint>>,
 
     /// Vault USDC reserve token account, authority = vault PDA
     #[account(
@@ -33,7 +47,25 @@ pub struct InitializeVault<'info> {
         token::mint = usdc_mint,
         token::authority = vault,
     )]
-    pub vault_usdc_reserve: Account<'info, TokenAccount>,
+    pub vault_usdc_reserve: Box<Account<'info, TokenAccount>>,
+
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct InitializeVaultLossBucket<'info> {
+    #[account(mut)]
+    pub admin: Signer<'info>,
+
+    #[account(seeds = [b"config"], bump, has_one = admin @ PrismError::Unauthorized)]
+    pub config: Box<Account<'info, GlobalConfig>>,
+
+    #[account(mut, seeds = [b"vault", &vault.id.to_le_bytes()], bump = vault.bump)]
+    pub vault: Box<Account<'info, Vault>>,
+
+    #[account(constraint = usdc_mint.key() == config.usdc_mint)]
+    pub usdc_mint: Box<Account<'info, Mint>>,
 
     /// Loss bucket token account, authority = vault PDA
     #[account(
@@ -44,15 +76,38 @@ pub struct InitializeVault<'info> {
         token::mint = usdc_mint,
         token::authority = vault,
     )]
-    pub loss_bucket: Account<'info, TokenAccount>,
+    pub loss_bucket: Box<Account<'info, TokenAccount>>,
 
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
-    pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handler(_ctx: Context<InitializeVault>, _vault_id: u32) -> Result<()> {
-    // see 09-lld-completion.md §9.4 initialize_vault pseudocode
-    // Day 1: stub — implement Day 2
+pub fn initialize_vault_handler(ctx: Context<InitializeVault>, vault_id: u32) -> Result<()> {
+    let vault = &mut ctx.accounts.vault;
+    let clock = Clock::get()?;
+
+    vault.id = vault_id;
+    vault.usdc_mint = ctx.accounts.config.usdc_mint;
+    vault.tranche_pdas = [Pubkey::default(); 3];
+    vault.loan_pda = Pubkey::default();
+    vault.state = crate::state::VaultState::Active;
+    vault.total_deposits = 0;
+    vault.total_loaned = 0;
+    vault.last_yield_timestamp = clock.unix_timestamp;
+    vault.credit_event_seq = 0;
+    vault.bump = ctx.bumps.vault;
+
+    Ok(())
+}
+
+pub fn reserves_handler(ctx: Context<InitializeVaultReserves>) -> Result<()> {
+    let vault = &mut ctx.accounts.vault;
+    vault.usdc_reserve = ctx.accounts.vault_usdc_reserve.key();
+    Ok(())
+}
+
+pub fn loss_bucket_handler(ctx: Context<InitializeVaultLossBucket>) -> Result<()> {
+    let vault = &mut ctx.accounts.vault;
+    vault.loss_bucket = ctx.accounts.loss_bucket.key();
     Ok(())
 }

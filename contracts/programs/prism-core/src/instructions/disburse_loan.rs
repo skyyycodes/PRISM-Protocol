@@ -24,9 +24,34 @@ pub struct DisburseLoan<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-pub fn handler(_ctx: Context<DisburseLoan>) -> Result<()> {
-    // MVP note: not called in the closed-loop demo. Loan stays at Originated.
-    // see 09-lld-completion.md §9.4 disburse_loan pseudocode
-    // Day 1: stub — implement if needed
+pub fn disburse_loan_handler(ctx: Context<DisburseLoan>) -> Result<()> {
+    let vault = &mut ctx.accounts.vault;
+    let loan = &mut ctx.accounts.loan;
+
+    let principal = loan.principal;
+
+    // 1. Transfer principal from Vault Reserve to Borrower
+    let vault_id_bytes = vault.id.to_le_bytes();
+    let bump_bytes = [vault.bump];
+    let vault_seeds: &[&[u8]] = &[b"vault", &vault_id_bytes, &bump_bytes];
+    let signer = &[vault_seeds];
+
+    anchor_spl::token::transfer(
+        CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            anchor_spl::token::Transfer {
+                from: ctx.accounts.vault_usdc_reserve.to_account_info(),
+                to: ctx.accounts.borrower_usdc_ata.to_account_info(),
+                authority: vault.to_account_info(),
+            },
+            signer,
+        ),
+        principal,
+    )?;
+
+    // 2. Update state
+    loan.state = LoanState::Active;
+    vault.total_loaned += principal;
+
     Ok(())
 }

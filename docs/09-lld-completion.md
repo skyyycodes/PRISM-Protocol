@@ -571,7 +571,7 @@ pub struct RemoveLiquidity<'info> {
 ### `initialize_tranche(kind, target_apy_bps)`
 
 ```
-1. Validate kind ∈ {0=Senior, 1=Mezz, 2=Equity}
+1. Validate kind ∈ {0=Prime, 1=Core, 2=Alpha}
 2. Validate ctx.accounts.admin == config.admin
 3. Set tranche.vault = vault.key()
 4. Set tranche.kind = TrancheKind::from_u8(kind)
@@ -647,21 +647,21 @@ pub struct RemoveLiquidity<'info> {
 4. Validate yield_amount > 0
 5. elapsed = clock.unix_timestamp - vault.last_yield_timestamp
 6. Compute targets:
-     senior_target = mul_div(tranche_senior.total_assets, senior.target_apy_bps × elapsed, 365 × 86400 × 10000)
-     mezz_target   = mul_div(tranche_mezz.total_assets,   mezz.target_apy_bps × elapsed,   365 × 86400 × 10000)
+     prime_target = mul_div(tranche_prime.total_assets, prime.target_apy_bps × elapsed, 365 × 86400 × 10000)
+     core_target   = mul_div(tranche_core.total_assets,   core.target_apy_bps × elapsed,   365 × 86400 × 10000)
 7. Apply waterfall:
      remaining = yield_amount
-     senior_take = min(senior_target, remaining); remaining -= senior_take
-     mezz_take   = min(mezz_target,   remaining); remaining -= mezz_take
-     equity_take = remaining
+     prime_take = min(prime_target, remaining); remaining -= prime_take
+     core_take   = min(core_target,   remaining); remaining -= core_take
+     alpha_take = remaining
 8. CPI: token::transfer from borrower_usdc_ata to vault_usdc_reserve, amount = yield_amount, signer = borrower_authority
-9. For each tranche (senior, mezz, equity):
+9. For each tranche (prime, core, alpha):
      tranche.total_assets += take
      tranche.cumulative_yield += take
      tranche.nav_per_share_q = q::compute_nav_q(tranche.total_assets, tranche.total_supply)
      tranche.last_nav_update_ts = now
 10. vault.last_yield_timestamp = clock.unix_timestamp
-11. emit YieldDistributed { vault, total: yield_amount, senior_take, mezz_take, equity_take, ts }
+11. emit YieldDistributed { vault, total: yield_amount, prime_take, core_take, alpha_take, ts }
 ```
 
 ### `trigger_credit_event(event_type, loss_amount, severity_bps)`
@@ -675,23 +675,23 @@ pub struct RemoveLiquidity<'info> {
    a. Validate loss_amount <= sum(tranche.total_assets) (PrismError::LossExceedsTotalAssets)
    b. Apply cascade in reverse priority:
         L = loss_amount
-        equity_loss = min(L, tranche_equity.total_assets); L -= equity_loss
-        tranche_equity.total_assets -= equity_loss
-        tranche_equity.cumulative_loss += equity_loss
-        tranche_equity.nav_per_share_q = q::compute_nav_q(equity.total_assets, equity.total_supply)
-        tranche_equity.last_nav_update_ts = now
+        alpha_loss = min(L, tranche_alpha.total_assets); L -= alpha_loss
+        tranche_alpha.total_assets -= alpha_loss
+        tranche_alpha.cumulative_loss += alpha_loss
+        tranche_alpha.nav_per_share_q = q::compute_nav_q(alpha.total_assets, alpha.total_supply)
+        tranche_alpha.last_nav_update_ts = now
 
-        mezz_loss = min(L, tranche_mezz.total_assets); L -= mezz_loss
-        // ...same pattern for mezz...
+        core_loss = min(L, tranche_core.total_assets); L -= core_loss
+        // ...same pattern for core...
 
-        senior_loss = L  // > 0 only if equity AND mezz both wiped
-        // ...same pattern for senior...
+        prime_loss = L  // > 0 only if alpha AND core both wiped
+        // ...same pattern for prime...
 
    c. CPI: token::transfer from vault_usdc_reserve to loss_bucket, amount = loss_amount, signer = vault PDA
    d. If event_type == Default: vault.state = VaultState::Defaulted
 6. For Recovery event type (Phase 2 — out of scope for MVP):
    - Reverse pattern: transfer USDC from loss_bucket back to vault_usdc_reserve
-   - Re-credit tranches in priority order (Senior first up to original assets)
+   - Re-credit tranches in priority order (Prime first up to original assets)
 7. Init credit_event PDA with event_type, loss_amount, severity_bps, loan, triggered_by=authority, ts
 8. vault.credit_event_seq += 1
 9. emit LossApplied event for each affected tranche
@@ -849,9 +849,9 @@ pub struct WithdrawEvent {
 pub struct YieldDistributed {
     pub vault: Pubkey,
     pub total_yield: u64,
-    pub senior_take: u64,
-    pub mezz_take: u64,
-    pub equity_take: u64,
+    pub prime_take: u64,
+    pub core_take: u64,
+    pub alpha_take: u64,
     pub timestamp: i64,
 }
 
@@ -920,9 +920,9 @@ YIELD TESTS
 12. test_yield_with_authorized_oracle_succeeds
 
 DEFAULT CASCADE TESTS
-13. test_default_wipes_equity_only_small_loss
-14. test_default_cascades_equity_to_mezz_medium_loss (matches §4.5)
-15. test_default_cascades_to_senior_huge_loss
+13. test_default_wipes_alpha_only_small_loss
+14. test_default_cascades_alpha_to_core_medium_loss (matches §4.5)
+15. test_default_cascades_to_prime_huge_loss
 16. test_default_invariant_loss_bucket_amount_equals_loss_input
 17. test_default_invariant_reserve_equals_sum_tranche_assets_after
 18. test_partial_loss_event_works_with_severity_below_10000
@@ -930,7 +930,7 @@ DEFAULT CASCADE TESTS
 
 WITHDRAW TESTS
 20. test_withdraw_at_nav_returns_correct_usdc
-21. test_withdraw_post_default_equity_returns_zero
+21. test_withdraw_post_default_alpha_returns_zero
 22. test_withdraw_paused_fails
 ```
 
@@ -957,12 +957,12 @@ describe("prism-core", () => {
   it("test_first_deposit_at_nav_one_mints_one_to_one", async () => {
     const usdcAmount = new BN(1_000_000_000); // 1000 USDC
     await program.methods
-      .deposit(0, usdcAmount)  // 0 = Senior
+      .deposit(0, usdcAmount)  // 0 = Prime
       .accounts({ ... })
-      .signers([lpSenior])
+      .signers([lpPrime])
       .rpc();
 
-    const tranche = await program.account.tranche.fetch(seniorTranchePda);
+    const tranche = await program.account.tranche.fetch(primeTranchePda);
     expect(tranche.totalSupply.toNumber()).to.equal(usdcAmount.toNumber());
     expect(tranche.totalAssets.toNumber()).to.equal(usdcAmount.toNumber());
     // NAV remains at Q_ONE (representation of 1.0)
@@ -1117,20 +1117,20 @@ export function useStrategyPreset() {
 
   return useMutation({
     mutationFn: async (preset: "safe" | "balanced" | "aggressive") => {
-      const allocations = PRESETS[preset]; // e.g., { senior: 70, mezz: 20, equity: 10 }
+      const allocations = PRESETS[preset]; // e.g., { prime: 70, core: 20, alpha: 10 }
       const total = new BN(1000_000_000); // 1000 USDC
 
       const ixs = await Promise.all([
         program.methods
-          .deposit(TrancheKind.Senior, total.muln(allocations.senior).divn(100))
+          .deposit(TrancheKind.Prime, total.muln(allocations.prime).divn(100))
           .accounts({ /* ... */ })
           .instruction(),
         program.methods
-          .deposit(TrancheKind.Mezz, total.muln(allocations.mezz).divn(100))
+          .deposit(TrancheKind.Core, total.muln(allocations.core).divn(100))
           .accounts({ /* ... */ })
           .instruction(),
         program.methods
-          .deposit(TrancheKind.Equity, total.muln(allocations.equity).divn(100))
+          .deposit(TrancheKind.Alpha, total.muln(allocations.alpha).divn(100))
           .accounts({ /* ... */ })
           .instruction(),
       ]);
@@ -1325,22 +1325,22 @@ If `tranche_reserve.amount == 0 || quote_reserve.amount == 0` after a remove_liq
 ```typescript
 // lib/demo-wallets.ts
 export const DEMO_WALLETS = {
-  lp_senior: {
+  lp_prime: {
     pubkey: new PublicKey("..."),
     label: "User A",
-    tranche: TrancheKind.Senior,
+    tranche: TrancheKind.Prime,
     originalDeposit: 5_000_000_000, // 5,000 USDC in 6-decimal base units
   },
-  lp_mezz: {
+  lp_core: {
     pubkey: new PublicKey("..."),
     label: "User B",
-    tranche: TrancheKind.Mezz,
+    tranche: TrancheKind.Core,
     originalDeposit: 3_000_000_000,
   },
-  lp_equity: {
+  lp_alpha: {
     pubkey: new PublicKey("..."),
     label: "User C",
-    tranche: TrancheKind.Equity,
+    tranche: TrancheKind.Alpha,
     originalDeposit: 2_000_000_000,
   },
 } as const;
@@ -1352,9 +1352,9 @@ export const DEMO_WALLETS = {
 // hooks/useUserPnL.ts
 export function useUserPnL() {
   const tranches = {
-    senior: useTranche(TrancheKind.Senior),
-    mezz:   useTranche(TrancheKind.Mezz),
-    equity: useTranche(TrancheKind.Equity),
+    prime: useTranche(TrancheKind.Prime),
+    core:   useTranche(TrancheKind.Core),
+    alpha: useTranche(TrancheKind.Alpha),
   };
 
   return useMemo(() => {
@@ -1382,7 +1382,7 @@ export function useUserPnL() {
         color: pnlPct > 0 ? "green" : pnlPct < -10 ? "red" : "amber",
       };
     });
-  }, [tranches.senior.data, tranches.mezz.data, tranches.equity.data]);
+  }, [tranches.prime.data, tranches.core.data, tranches.alpha.data]);
 }
 ```
 
@@ -1464,7 +1464,7 @@ import CountUp from "react-countup";
 
 ### Trade #2 staggered swap visualization
 
-For the 5-step pEQUITY price walk, animate the price chart point-by-point:
+For the 5-step pALPHA price walk, animate the price chart point-by-point:
 
 ```tsx
 // Each swap completes → chart appends a new data point with a slight pulse
@@ -1479,7 +1479,7 @@ useEffect(() => {
 }, [newSwapEvent]);
 ```
 
-Total Trade #2 visual: ~12s for 5 Equity swaps at ~2s pacing each + 4s for 2 Mezz swaps + 2s for Senior = ~18s. Fits in the 20s segment.
+Total Trade #2 visual: ~12s for 5 Alpha swaps at ~2s pacing each + 4s for 2 Core swaps + 2s for Prime = ~18s. Fits in the 20s segment.
 
 ---
 

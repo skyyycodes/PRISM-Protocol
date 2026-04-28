@@ -26,9 +26,9 @@ pub struct WithdrawEvent {
 pub struct YieldDistributed {
     pub vault: Pubkey,
     pub total_yield: u64,
-    pub senior_take: u64,
-    pub mezz_take: u64,
-    pub equity_take: u64,
+    pub prime_take: u64,
+    pub core_take: u64,
+    pub alpha_take: u64,
     pub timestamp: i64,
 }
 

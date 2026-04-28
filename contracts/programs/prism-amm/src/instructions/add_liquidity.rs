@@ -14,20 +14,20 @@ pub struct AddLiquidity<'info> {
         seeds = [b"amm", pool.tranche_mint.as_ref()],
         bump = pool.bump,
     )]
-    pub pool: Account<'info, AmmPool>,
+    pub pool: Box<Account<'info, AmmPool>>,
 
     #[account(mut, constraint = tranche_reserve.key() == pool.tranche_reserve)]
-    pub tranche_reserve: Account<'info, TokenAccount>,
+    pub tranche_reserve: Box<Account<'info, TokenAccount>>,
     #[account(mut, constraint = quote_reserve.key() == pool.quote_reserve)]
-    pub quote_reserve: Account<'info, TokenAccount>,
+    pub quote_reserve: Box<Account<'info, TokenAccount>>,
 
     #[account(mut, constraint = lp_mint.key() == pool.lp_mint)]
-    pub lp_mint: Account<'info, Mint>,
+    pub lp_mint: Box<Account<'info, Mint>>,
 
     #[account(mut, token::mint = pool.tranche_mint, token::authority = lp)]
-    pub lp_tranche_ata: Account<'info, TokenAccount>,
+    pub lp_tranche_ata: Box<Account<'info, TokenAccount>>,
     #[account(mut, token::mint = pool.quote_mint, token::authority = lp)]
-    pub lp_quote_ata: Account<'info, TokenAccount>,
+    pub lp_quote_ata: Box<Account<'info, TokenAccount>>,
 
     #[account(
         init_if_needed,
@@ -35,7 +35,7 @@ pub struct AddLiquidity<'info> {
         associated_token::mint = lp_mint,
         associated_token::authority = lp,
     )]
-    pub lp_lp_ata: Account<'info, TokenAccount>,
+    pub lp_lp_ata: Box<Account<'info, TokenAccount>>,
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,

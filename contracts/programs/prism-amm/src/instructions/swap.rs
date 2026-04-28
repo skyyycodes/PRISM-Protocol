@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
-pub struct Swap<'info> {
+pub struct Swap {
     // Full context: see 09-lld-completion.md §9.4 swap pseudocode
     // Day 1: stub context — implement Day 6
 }

@@ -1,24 +1,24 @@
+[toolchain]
+
 [features]
-seeds = false
+resolution = true
 skip-lint = false
 
 [programs.devnet]
-prism_core = "11111111111111111111111111111111"
-prism_amm = "11111111111111111111111111111111"
-
-# Note: replace placeholder program IDs with actual ones after first `anchor build`.
-# Run: solana address -k target/deploy/prism_core-keypair.json
-
-[registry]
-url = "https://api.apr.dev"
+prism_amm = "9jzqUXjdq6F13Tu6kWYg5d7iuJNEaCuCebNpBxnijUG"
+prism_core = "Dg1PpRKjMJsGMFxPPHix65TGbma861JiervB7MtZeEQP"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "keys/admin.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 setup = "yarn run ts-node scripts/setup-demo.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+
+[hooks]
 
 [test]
 startup_wait = 5000
+shutdown_wait = 2000
+upgradeable = false

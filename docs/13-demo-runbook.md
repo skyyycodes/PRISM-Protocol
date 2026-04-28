@@ -29,7 +29,7 @@ anchor deploy --provider.cluster devnet
 ### 1.2 Wallet balances
 
 ```bash
-for wallet in admin borrower lp_senior lp_mezz lp_equity mm; do
+for wallet in admin borrower lp_prime lp_core lp_alpha mm; do
   echo "$wallet:"
   solana balance -k keys/$wallet.json --url devnet
 done
@@ -52,9 +52,9 @@ yarn setup --vault-id 1
 ```
 
 Verify summary print at the end matches [11-setup-demo-script.md §13](11-setup-demo-script.md). NAVs should read:
-- Senior: 1.00411
-- Mezz:   1.00987
-- Equity: 1.00290
+- Prime: 1.00411
+- Core:   1.00987
+- Alpha: 1.00290
 
 ### 1.4 Frontend smoke test
 
@@ -69,7 +69,7 @@ Open http://localhost:3000/dashboard. Verify:
 - [ ] Trade page loads with AMM pool data
 - [ ] Admin page shows Trigger Default + Run Market Reaction buttons
 - [ ] Click "Trigger Default" → cascade animation plays for ~8 seconds → Before/After panel slides in → User PnL panel appears
-- [ ] Click "Run Market Reaction" → 5 Equity sells walk pEQUITY price 1.00 → ~0.11; 2 Mezz sells walk pMEZZ → ~0.44
+- [ ] Click "Run Market Reaction" → 5 Alpha sells walk pALPHA price 1.00 → ~0.11; 2 Core sells walk pCORE → ~0.44
 
 If any check fails, **fix tonight, not tomorrow**.
 
@@ -92,7 +92,7 @@ Now vault 2 is the recording vault. NAVs back to post-yield state, ready for def
 - **Audio:** USB mic + headphones (no echo). Test with `arecord -d 5 test.wav && aplay test.wav` on Linux, or QuickTime audio test on macOS.
 - **Browser:** Chrome with only the demo tab open. No bookmarks bar. No extensions visible (or use Incognito with Phantom installed).
 - **Background music:** None. Voice + UI sounds only.
-- **Phantom:** logged in to `lp_senior` wallet first (it's the first to deposit in the demo). Have other demo wallet keys ready in a paste-able list for fast switching.
+- **Phantom:** logged in to `lp_prime` wallet first (it's the first to deposit in the demo). Have other demo wallet keys ready in a paste-able list for fast switching.
 
 Phantom wallet switching during the demo is tricky. Two options:
 - **(A) Import all 6 wallet keys into Phantom** ahead of time. Switch via Phantom's account dropdown during the demo.
@@ -147,19 +147,19 @@ Each phase below has the **action** (what you do on screen) and the **say** (voi
 - Cursor hover over the three NAV labels.
 
 **Say:**
-> *"This is PRISM — a credit vault on Solana with three risk tranches: Senior, Mezzanine, Equity. Each one has a different risk profile, and a different yield."*
+> *"This is PRISM — a credit vault on Solana with three risk tranches: Prime, Core, Alpha. Each one has a different risk profile, and a different yield."*
 
 ### Phase 2 — Deposit (0:10 → 0:30)
 
 **Action:**
-- Click "Connect Wallet" → select `lp_senior` from Phantom dropdown → connect.
+- Click "Connect Wallet" → select `lp_prime` from Phantom dropdown → connect.
 - Navigate to `/deposit`.
 - Click "Strategy preset: Balanced" → confirm in Phantom (one tx, three deposits batched).
 - Wait ~3 sec for confirmation toast.
 - Navigate back to `/dashboard`.
 
 **Say:**
-> *"A user can deposit USDC into any tranche — or use a strategy preset. This is the 'Balanced' allocation: 50% Senior, 30% Mezzanine, 20% Equity. Their position is now three SPL tokens — pSENIOR, pMEZZ, pEQUITY — that represent their share of each tranche."*
+> *"A user can deposit USDC into any tranche — or use a strategy preset. This is the 'Balanced' allocation: 50% Prime, 30% Core, 20% Alpha. Their position is now three SPL tokens — pPRIME, pCORE, pALPHA — that represent their share of each tranche."*
 
 ### Phase 3 — Yield Accrual (0:30 → 0:50)
 
@@ -173,18 +173,18 @@ Each phase below has the **action** (what you do on screen) and the **say** (voi
 **Say:**
 > *"The borrower pays a coupon — 100 USDC over 30 days. Watch the waterfall."*
 > [pause for animation]
-> *"Senior gets paid first up to its target rate. Mezz gets paid next. Equity takes whatever's left over — that's the residual."*
+> *"Prime gets paid first up to its target rate. Core gets paid next. Alpha takes whatever's left over — that's the residual."*
 
 ### Phase 4 — Trade #1 (0:50 → 1:05)
 
 **Action:**
-- Switch Phantom to `lp_senior`.
+- Switch Phantom to `lp_prime`.
 - Navigate to `/trade`.
-- Select "pSENIOR → USDC", enter `50`, click "Swap" → confirm.
+- Select "pPRIME → USDC", enter `50`, click "Swap" → confirm.
 - Price chart updates: 1.000 → 0.980. Annotation: "Market: 0.980 · NAV: 1.00411 · Discount: 2.4%".
 
 **Say:**
-> *"Tranche tokens trade on a constant-product AMM. Selling 50 pSENIOR returns 49.5 USDC — that's a 2.4% discount to the underlying NAV. The market is pricing risk premium organically."*
+> *"Tranche tokens trade on a constant-product AMM. Selling 50 pPRIME returns 49.5 USDC — that's a 2.4% discount to the underlying NAV. The market is pricing risk premium organically."*
 
 ### Phase 5 — DEFAULT MOMENT (1:05 → 1:45) ★ THE 40-SECOND HERO
 
@@ -196,16 +196,16 @@ Each phase below has the **action** (what you do on screen) and the **say** (voi
 - **Stop talking.** Watch the cascade animation play for ~8 seconds:
   - Frame 0: steady NAVs
   - Frame 1: red "DEFAULT" banner flashes
-  - Frame 2: Equity bar drains to zero (animated)
-  - Frame 3: Mezz bar drops ~32%
-  - Frame 4: Senior pulses green "PROTECTED"
+  - Frame 2: Alpha bar drains to zero (animated)
+  - Frame 3: Core bar drops ~32%
+  - Frame 4: Prime pulses green "PROTECTED"
   - Frame 5: Before/After panel slides in
   - Frame 6: User PnL panel appears with countup numbers
 
 **Say (during animation):**
-> *"Watch the Equity tranche."* [pause]
-> *"Then the Mezzanine."* [pause]
-> *"The Senior holders are protected — exactly as the contract promised."*
+> *"Watch the Alpha tranche."* [pause]
+> *"Then the Core."* [pause]
+> *"The Prime holders are protected — exactly as the contract promised."*
 
 [Cascade completes. PnL panel populates: User A +$20.55, User B -$960.60, User C -$2,000.]
 
@@ -219,31 +219,31 @@ Each phase below has the **action** (what you do on screen) and the **say** (voi
 - Still on `/admin` as `admin` wallet.
 - Click "Run Market Reaction" → confirm.
 - The button signs 7 sequential AMM swaps over ~12 seconds:
-  - 5 × 400 pEQUITY sells: pEQUITY price walks 1.00 → 0.51 → 0.31 → 0.21 → 0.15 → 0.11
-  - 2 × 250 pMEZZ sells: pMEZZ price walks 1.00 → 0.64 → 0.44
-- Then switch Phantom to `lp_senior`.
-- Navigate to `/trade`. Sell 50 pSENIOR → ~49 USDC. Senior pool price barely moves (~0.98).
+  - 5 × 400 pALPHA sells: pALPHA price walks 1.00 → 0.51 → 0.31 → 0.21 → 0.15 → 0.11
+  - 2 × 250 pCORE sells: pCORE price walks 1.00 → 0.64 → 0.44
+- Then switch Phantom to `lp_prime`.
+- Navigate to `/trade`. Sell 50 pPRIME → ~49 USDC. Prime pool price barely moves (~0.98).
 
 **Say:**
 > *"Now watch how the market reprices this risk in real time."*
-> [click Run Market Reaction, watch pEQUITY chart cascade]
-> *"Equity collapses — five trades, one after another, walking price toward NAV."*
-> [Mezz cascade plays]
-> *"Mezz reprices too, but only by a third — matching its actual loss."*
-> [switch wallet, swap pSENIOR]
-> *"And Senior? Senior holds. The market understands risk in real time."*
+> [click Run Market Reaction, watch pALPHA chart cascade]
+> *"Alpha collapses — five trades, one after another, walking price toward NAV."*
+> [Core cascade plays]
+> *"Core reprices too, but only by a third — matching its actual loss."*
+> [switch wallet, swap pPRIME]
+> *"And Prime? Prime holds. The market understands risk in real time."*
 
 ### Phase 7 — Withdraw (2:05 → 2:25)
 
 **Action:**
-- Stay on `lp_senior` wallet. Navigate to dashboard. Click "Withdraw" on Senior position.
+- Stay on `lp_prime` wallet. Navigate to dashboard. Click "Withdraw" on Prime position.
 - Confirm. Card shows "Withdrew $5,020.55 of $5,000 deposit · +0.41% yield".
-- Switch Phantom to `lp_equity`. Click "Withdraw" on Equity position.
+- Switch Phantom to `lp_alpha`. Click "Withdraw" on Alpha position.
 - Confirm. Card shows "Withdrew $0.00 of $2,000 deposit · 100% loss".
 - Both cards visible side-by-side.
 
 **Say:**
-> *"The Senior holder exits and walks away with their principal plus yield. The Equity holder exits and walks away with nothing."*
+> *"The Prime holder exits and walks away with their principal plus yield. The Alpha holder exits and walks away with nothing."*
 
 ### Phase 8 — Closing line (2:25 → 2:30) ★ EXACT
 

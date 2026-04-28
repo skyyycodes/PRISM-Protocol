@@ -8,7 +8,7 @@
 
 **PRISM Protocol** is a Solana-based on-chain credit market submitted to the **Solana Frontier Hackathon** (Colosseum). Deadline: **May 11, 2026**.
 
-A user deposits USDC into one of three risk tranches (`Senior` / `Mezz` / `Equity`). A simulated borrower pays yield, which gets distributed via a waterfall (Senior first, then Mezz, then Equity). When a credit event triggers, losses cascade in reverse priority (Equity wiped first, then Mezz, then Senior). Tranche tokens (`pSENIOR`, `pMEZZ`, `pEQUITY`) trade on a constant-product AMM — letting markets price credit risk live.
+A user deposits USDC into one of three risk tranches (`Prime` / `Core` / `Alpha`). A simulated borrower pays yield, which gets distributed via a waterfall (Prime first, then Core, then Alpha). When a credit event triggers, losses cascade in reverse priority (Alpha wiped first, then Core, then Prime). Tranche tokens (`pPRIME`, `pCORE`, `pALPHA`) trade on a constant-product AMM — letting markets price credit risk live.
 
 **Pitch line:** *"PRISM Protocol turns credit into programmable, tradable risk layers — with live loss simulation and real-time market pricing."*
 
@@ -69,7 +69,7 @@ These show up multiple times across the docs. They're called out here to prevent
 7. **NAV edge cases — three explicit handlers in `deposit`:**
    - If `total_supply == 0` → mint shares 1:1 (NAV starts at 1.0)
    - If wiped (NAV → 0 with supply > 0) → block deposits with `TrancheWipedNoDepositsAllowed`
-   - Total wipeout (Equity NAV = 0) on withdraw → returns 0 USDC. **This is the demo moment, not a bug.**
+   - Total wipeout (Alpha NAV = 0) on withdraw → returns 0 USDC. **This is the demo moment, not a bug.**
 
 ---
 

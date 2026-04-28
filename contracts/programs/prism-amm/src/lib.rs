@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("11111111111111111111111111111111");
+declare_id!("9jzqUXjdq6F13Tu6kWYg5d7iuJNEaCuCebNpBxnijUG");
 // Replace after first `anchor build` with the actual program ID from
 // target/deploy/prism_amm-keypair.json (run `solana address -k <path>`)
 
@@ -18,6 +18,10 @@ pub mod prism_amm {
 
     pub fn initialize_pool(ctx: Context<InitializePool>, fee_bps: u16) -> Result<()> {
         instructions::initialize_pool::handler(ctx, fee_bps)
+    }
+
+    pub fn initialize_pool_reserves(ctx: Context<InitializePoolReserves>) -> Result<()> {
+        instructions::initialize_pool::reserves_handler(ctx)
     }
 
     pub fn add_liquidity(

@@ -14,7 +14,7 @@
 
 ## What we're building
 
-A credit vault on Solana with three risk tranches (Senior / Mezzanine / Equity), a yield waterfall that distributes coupon income across them, a default cascade that absorbs losses bottom-up, an AMM for trading tranche tokens (`pSENIOR` / `pMEZZ` / `pEQUITY`), and a live dashboard showing all of it in real time.
+A credit vault on Solana with three risk tranches (Prime / Core / Alpha), a yield waterfall that distributes coupon income across them, a default cascade that absorbs losses bottom-up, an AMM for trading tranche tokens (`pPRIME` / `pCORE` / `pALPHA`), and a live dashboard showing all of it in real time.
 
 Five hero features for the demo:
 
@@ -104,7 +104,7 @@ Plus 6th feature: **Strategy presets** (Safe / Balanced / Aggressive) for one-cl
 **Code**
 - 2 Anchor programs deployed to devnet
 - 11 instructions in `prism_core`, 4 in `prism_amm`
-- 3 SPL mints (`pSENIOR`, `pMEZZ`, `pEQUITY`)
+- 3 SPL mints (`pPRIME`, `pCORE`, `pALPHA`)
 - Next.js dashboard with live NAV bars, swap UI, default trigger, strategy presets
 - 4 partner integrations: Switchboard, Cloak, Dune SIM, (stretch) Ika
 

@@ -3,7 +3,6 @@ use anchor_spl::token::{Token, TokenAccount};
 use crate::state::{GlobalConfig, Vault, Loan};
 
 #[derive(Accounts)]
-#[instruction(amount: u64)]
 pub struct RepayLoan<'info> {
     pub borrower: Signer<'info>,
 
@@ -25,8 +24,28 @@ pub struct RepayLoan<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-pub fn handler(_ctx: Context<RepayLoan>, _amount: u64) -> Result<()> {
-    // see 09-lld-completion.md §9.4 repay_loan handler pseudocode
-    // Day 1: stub — implement Day 3
+pub fn repay_loan_handler(ctx: Context<RepayLoan>, amount: u64) -> Result<()> {
+    let loan = &mut ctx.accounts.loan;
+
+    // 1. Physical Transfer: Borrower -> Vault Reserve
+    anchor_spl::token::transfer(
+        CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            anchor_spl::token::Transfer {
+                from: ctx.accounts.borrower_usdc_ata.to_account_info(),
+                to: ctx.accounts.vault_usdc_reserve.to_account_info(),
+                authority: ctx.accounts.borrower.to_account_info(),
+            },
+        ),
+        amount,
+    )?;
+
+    // 2. Update accounting
+    loan.total_repaid += amount;
+    
+    if loan.total_repaid >= loan.principal {
+        loan.state = crate::state::LoanState::Repaid;
+    }
+
     Ok(())
 }
