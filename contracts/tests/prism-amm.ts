@@ -1,5 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program, BN } from "@coral-xyz/anchor";
+import { PrismAmm } from "../target/types/prism_amm";
 import { 
   PublicKey, 
   SystemProgram, 
@@ -27,7 +28,7 @@ describe("prism-amm", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.PrismAmm as Program<any>;
+  const program = anchor.workspace.PrismAmm as Program<PrismAmm>;
   const connection = provider.connection;
 
   // Test state
@@ -100,7 +101,7 @@ describe("prism-amm", () => {
         quoteMint: usdcMint,
         pool: poolPda,
         systemProgram: SystemProgram.programId,
-      })
+      } as any)
       .rpc();
     console.log(`  ✔ Tx (Pool): ${tx1}`);
 
@@ -121,7 +122,7 @@ describe("prism-amm", () => {
         lpMint: lpMint,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
-      })
+      } as any)
       .rpc();
     console.log(`  ✔ Tx (Reserves): ${tx2}`);
 
@@ -173,7 +174,7 @@ describe("prism-amm", () => {
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
-      })
+      } as any)
       .rpc();
 
     const elapsed = Date.now() - start;
@@ -213,7 +214,7 @@ describe("prism-amm", () => {
         userTrancheAta: traderTrancheAta,
         userQuoteAta: traderQuoteAta,
         tokenProgram: TOKEN_PROGRAM_ID,
-      })
+      } as any)
       .rpc();
 
     const elapsed = Date.now() - start;
@@ -252,7 +253,7 @@ describe("prism-amm", () => {
         userTrancheAta: traderTrancheAta,
         userQuoteAta: traderQuoteAta,
         tokenProgram: TOKEN_PROGRAM_ID,
-      })
+      } as any)
       .rpc();
 
     const elapsed = Date.now() - start;
@@ -294,7 +295,7 @@ describe("prism-amm", () => {
         lpQuoteAta: lpQuoteAta,
         lpLpAta: lpLpAta,
         tokenProgram: TOKEN_PROGRAM_ID,
-      })
+      } as any)
       .rpc();
 
     const elapsed = Date.now() - start;
