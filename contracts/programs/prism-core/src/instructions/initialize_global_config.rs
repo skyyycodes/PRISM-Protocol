@@ -1,6 +1,6 @@
+use crate::state::GlobalConfig;
 use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
-use crate::state::GlobalConfig;
 
 #[derive(Accounts)]
 pub struct InitializeGlobalConfig<'info> {

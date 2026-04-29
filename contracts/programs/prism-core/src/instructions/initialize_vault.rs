@@ -1,7 +1,7 @@
+use crate::errors::PrismError;
+use crate::state::{GlobalConfig, Vault};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
-use crate::state::{GlobalConfig, Vault};
-use crate::errors::PrismError;
 
 #[derive(Accounts)]
 #[instruction(vault_id: u32)]

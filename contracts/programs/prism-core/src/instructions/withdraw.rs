@@ -1,7 +1,7 @@
+use crate::errors::PrismError;
+use crate::state::{GlobalConfig, Tranche, Vault, VaultState};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
-use crate::state::{GlobalConfig, Vault, Tranche, VaultState};
-use crate::errors::PrismError;
 
 #[derive(Accounts)]
 #[instruction(tranche_kind: u8, share_amount: u64)]
@@ -13,8 +13,8 @@ pub struct Withdraw<'info> {
     pub config: Box<Account<'info, GlobalConfig>>,
 
     #[account(
-        mut, 
-        seeds = [b"vault", &vault.id.to_le_bytes()], 
+        mut,
+        seeds = [b"vault", &vault.id.to_le_bytes()],
         bump = vault.bump,
         constraint = vault.state == VaultState::Active @ PrismError::VaultNotActive
     )]
@@ -96,9 +96,10 @@ pub fn withdraw_handler(
     // 4. Update the on-chain accounting.
     tranche.total_assets = tranche.total_assets.saturating_sub(payout);
     tranche.total_supply = tranche.total_supply.saturating_sub(share_amount);
-    
+
     // Refresh the NAV.
-    tranche.nav_per_share_q = crate::math::q::compute_nav_q(tranche.total_assets, tranche.total_supply);
+    tranche.nav_per_share_q =
+        crate::math::q::compute_nav_q(tranche.total_assets, tranche.total_supply);
     tranche.last_nav_update_ts = clock.unix_timestamp;
 
     vault.total_deposits = vault.total_deposits.saturating_sub(payout);

@@ -1,7 +1,7 @@
+use crate::errors::PrismError;
+use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount};
-use crate::state::*;
-use crate::errors::PrismError;
 
 #[derive(Accounts)]
 pub struct TriggerCreditEvent<'info> {
@@ -71,7 +71,8 @@ pub fn trigger_credit_event_handler(
     // 1. Authorization check
     let authority = ctx.accounts.authority.key();
     require!(
-        authority == ctx.accounts.config.admin || ctx.accounts.config.oracle_allowlist.contains(&authority),
+        authority == ctx.accounts.config.admin
+            || ctx.accounts.config.oracle_allowlist.contains(&authority),
         PrismError::Unauthorized
     );
 
@@ -133,9 +134,18 @@ pub fn trigger_credit_event_handler(
     )?;
 
     // 5. Update NAV for all tranches
-    ctx.accounts.tranche_alpha.nav_per_share_q = crate::math::q::compute_nav_q(ctx.accounts.tranche_alpha.total_assets, ctx.accounts.tranche_alpha.total_supply);
-    ctx.accounts.tranche_core.nav_per_share_q = crate::math::q::compute_nav_q(ctx.accounts.tranche_core.total_assets, ctx.accounts.tranche_core.total_supply);
-    ctx.accounts.tranche_prime.nav_per_share_q = crate::math::q::compute_nav_q(ctx.accounts.tranche_prime.total_assets, ctx.accounts.tranche_prime.total_supply);
+    ctx.accounts.tranche_alpha.nav_per_share_q = crate::math::q::compute_nav_q(
+        ctx.accounts.tranche_alpha.total_assets,
+        ctx.accounts.tranche_alpha.total_supply,
+    );
+    ctx.accounts.tranche_core.nav_per_share_q = crate::math::q::compute_nav_q(
+        ctx.accounts.tranche_core.total_assets,
+        ctx.accounts.tranche_core.total_supply,
+    );
+    ctx.accounts.tranche_prime.nav_per_share_q = crate::math::q::compute_nav_q(
+        ctx.accounts.tranche_prime.total_assets,
+        ctx.accounts.tranche_prime.total_supply,
+    );
 
     // 6. Update Vault state
     if event_type == CreditEventType::Default as u8 {

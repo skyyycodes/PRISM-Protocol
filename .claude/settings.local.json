@@ -3,7 +3,10 @@
     "allow": [
       "Bash(solana-keygen new *)",
       "PowerShell(Get-ChildItem *)",
-      "PowerShell(Get-Command *)"
+      "PowerShell(Get-Command *)",
+      "Bash(solana --version)",
+      "Bash(cargo-build-sbf --version)",
+      "Bash(pnpm add *)"
     ]
   }
 }

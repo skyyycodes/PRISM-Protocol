@@ -1,5 +1,5 @@
+use crate::state::{GlobalConfig, Loan, Vault};
 use anchor_lang::prelude::*;
-use crate::state::{GlobalConfig, Vault, Loan};
 
 #[derive(Accounts)]
 #[instruction(loan_id: u32, principal: u64, apr_bps: u16, maturity_ts: i64, borrower: Pubkey)]
@@ -47,7 +47,10 @@ pub fn initialize_loan_handler(
 
     let clock = Clock::get()?;
 
-    require!(apr_bps <= 10_000, crate::errors::PrismError::InvalidSeverity);
+    require!(
+        apr_bps <= 10_000,
+        crate::errors::PrismError::InvalidSeverity
+    );
     require!(
         maturity_ts > clock.unix_timestamp,
         crate::errors::PrismError::LoanInWrongState

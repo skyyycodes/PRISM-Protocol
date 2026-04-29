@@ -1,5 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program, BN } from "@coral-xyz/anchor";
+import { PrismAmm } from "../target/types/prism_amm";
 import { 
   PublicKey, 
   SystemProgram, 
@@ -27,7 +28,7 @@ describe("prism-amm", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.PrismAmm as Program<any>;
+  const program = anchor.workspace.PrismAmm as Program<PrismAmm>;
   const connection = provider.connection;
 
   // Test state
@@ -100,7 +101,7 @@ describe("prism-amm", () => {
         quoteMint: usdcMint,
         pool: poolPda,
         systemProgram: SystemProgram.programId,
-      })
+      } as any)
       .rpc();
     console.log(`  ✔ Tx (Pool): ${tx1}`);
 
@@ -121,7 +122,7 @@ describe("prism-amm", () => {
         lpMint: lpMint,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
-      })
+      } as any)
       .rpc();
     console.log(`  ✔ Tx (Reserves): ${tx2}`);
 
@@ -173,7 +174,7 @@ describe("prism-amm", () => {
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
-      })
+      } as any)
       .rpc();
 
     const elapsed = Date.now() - start;
@@ -204,7 +205,7 @@ describe("prism-amm", () => {
     console.log(`  💰 Admin Balance Before: 11 tokens, 10 USDC`);
 
     const tx = await program.methods
-      .swap(new BN(0), amountIn, new BN(0)) // Direction 0: Tranche to Quote
+      .swap(amountIn, new BN(0), 0) // Direction 0: Tranche to Quote
       .accounts({
         user: admin.publicKey,
         pool: poolPda,
@@ -213,7 +214,7 @@ describe("prism-amm", () => {
         userTrancheAta: traderTrancheAta,
         userQuoteAta: traderQuoteAta,
         tokenProgram: TOKEN_PROGRAM_ID,
-      })
+      } as any)
       .rpc();
 
     const elapsed = Date.now() - start;
@@ -243,7 +244,7 @@ describe("prism-amm", () => {
     console.log(`  💰 Admin Balance Before: 10 tokens, ~11.97 USDC`);
 
     const tx = await program.methods
-      .swap(new BN(1), amountIn, new BN(0)) // Direction 1: Quote to Tranche
+      .swap(amountIn, new BN(0), 1) // Direction 1: Quote to Tranche
       .accounts({
         user: admin.publicKey,
         pool: poolPda,
@@ -252,7 +253,7 @@ describe("prism-amm", () => {
         userTrancheAta: traderTrancheAta,
         userQuoteAta: traderQuoteAta,
         tokenProgram: TOKEN_PROGRAM_ID,
-      })
+      } as any)
       .rpc();
 
     const elapsed = Date.now() - start;
@@ -294,7 +295,7 @@ describe("prism-amm", () => {
         lpQuoteAta: lpQuoteAta,
         lpLpAta: lpLpAta,
         tokenProgram: TOKEN_PROGRAM_ID,
-      })
+      } as any)
       .rpc();
 
     const elapsed = Date.now() - start;

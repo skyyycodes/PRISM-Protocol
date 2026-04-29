@@ -18,8 +18,11 @@ import {
 } from "lucide-react";
 import { FilterSection } from "./filter-section";
 import { SidebarRange } from "./sidebar-range";
+import { useSimulationActions } from "@/hooks/useSimulationActions";
 
 export function AppSidebar() {
+  const { runAction, actions } = useSimulationActions();
+
   return (
     <aside
       aria-label="Filters"
@@ -152,13 +155,28 @@ export function AppSidebar() {
 
         <FilterSection title="Admin" icon={Wrench}>
           <div className="space-y-2 text-xs">
-            <button className="w-full rounded-md border border-white/10 px-3 py-1.5 text-left text-white/70 transition-colors hover:bg-white/10 hover:text-white">
+            <button
+              type="button"
+              disabled={!actions.yield}
+              onClick={() => runAction("yield")}
+              className="w-full rounded-md border border-white/10 px-3 py-1.5 text-left text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            >
               Trigger Yield
             </button>
-            <button className="w-full rounded-md border border-white/10 px-3 py-1.5 text-left text-white/70 transition-colors hover:bg-white/10 hover:text-white">
+            <button
+              type="button"
+              disabled={!actions.default}
+              onClick={() => runAction("default")}
+              className="w-full rounded-md border border-white/10 px-3 py-1.5 text-left text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            >
               Trigger Default
             </button>
-            <button className="w-full rounded-md border border-white/10 px-3 py-1.5 text-left text-white/70 transition-colors hover:bg-white/10 hover:text-white">
+            <button
+              type="button"
+              disabled={!actions.market}
+              onClick={() => runAction("market")}
+              className="w-full rounded-md border border-white/10 px-3 py-1.5 text-left text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            >
               Run Market Reaction
             </button>
           </div>

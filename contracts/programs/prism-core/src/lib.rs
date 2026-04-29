@@ -1,13 +1,13 @@
 use anchor_lang::prelude::*;
 
-declare_id!("Dg1PpRKjMJsGMFxPPHix65TGbma861JiervB7MtZeEQP");
+declare_id!("4UwFjEnF8onQNzNSmrG3tqNe9fBbcucCz4Emg6ket6gR");
 
 pub mod errors;
-pub mod state;
 pub mod events;
-pub mod pda;
-pub mod math;
 pub mod instructions;
+pub mod math;
+pub mod pda;
+pub mod state;
 
 use instructions::*;
 
@@ -20,7 +20,11 @@ pub mod prism_core {
         default_yield_rate_bps: u16,
         oracle_allowlist: Vec<Pubkey>,
     ) -> Result<()> {
-        instructions::initialize_global_config_handler(ctx, default_yield_rate_bps, oracle_allowlist)
+        instructions::initialize_global_config_handler(
+            ctx,
+            default_yield_rate_bps,
+            oracle_allowlist,
+        )
     }
 
     pub fn initialize_vault(ctx: Context<InitializeVault>, vault_id: u32) -> Result<()> {
@@ -51,7 +55,14 @@ pub mod prism_core {
         maturity_ts: i64,
         borrower: Pubkey,
     ) -> Result<()> {
-        instructions::initialize_loan_handler(ctx, loan_id, principal, apr_bps, maturity_ts, borrower)
+        instructions::initialize_loan_handler(
+            ctx,
+            loan_id,
+            principal,
+            apr_bps,
+            maturity_ts,
+            borrower,
+        )
     }
 
     pub fn deposit(ctx: Context<Deposit>, tranche_kind: u8, usdc_amount: u64) -> Result<()> {

@@ -1,14 +1,14 @@
 use anchor_lang::prelude::*;
 
-declare_id!("9jzqUXjdq6F13Tu6kWYg5d7iuJNEaCuCebNpBxnijUG");
+declare_id!("7H5nPYgcKtZef1BZjFx3F3cYEbzgLp3cCKBpesGMvfd2");
 // Replace after first `anchor build` with the actual program ID from
 // target/deploy/prism_amm-keypair.json (run `solana address -k <path>`)
 
 pub mod errors;
-pub mod state;
 pub mod events;
-pub mod pda;
 pub mod instructions;
+pub mod pda;
+pub mod state;
 
 use instructions::*;
 
