@@ -204,7 +204,7 @@ describe("prism-amm", () => {
     console.log(`  💰 Admin Balance Before: 11 tokens, 10 USDC`);
 
     const tx = await program.methods
-      .swap(new BN(0), amountIn, new BN(0)) // Direction 0: Tranche to Quote
+      .swap(amountIn, new BN(0), 0) // Direction 0: Tranche to Quote
       .accounts({
         user: admin.publicKey,
         pool: poolPda,
@@ -243,7 +243,7 @@ describe("prism-amm", () => {
     console.log(`  💰 Admin Balance Before: 10 tokens, ~11.97 USDC`);
 
     const tx = await program.methods
-      .swap(new BN(1), amountIn, new BN(0)) // Direction 1: Quote to Tranche
+      .swap(amountIn, new BN(0), 1) // Direction 1: Quote to Tranche
       .accounts({
         user: admin.publicKey,
         pool: poolPda,

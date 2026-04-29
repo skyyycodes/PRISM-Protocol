@@ -15,7 +15,10 @@ const NETWORK = WalletAdapterNetwork.Devnet;
 
 export function SolanaWalletProvider({ children }: { children: ReactNode }) {
   const endpoint = useMemo(
-    () => process.env.NEXT_PUBLIC_RPC_ENDPOINT ?? clusterApiUrl(NETWORK),
+    () =>
+      process.env.NEXT_PUBLIC_RPC_ENDPOINT ??
+      process.env.NEXT_PUBLIC_RPC_URL ??
+      clusterApiUrl(NETWORK),
     [],
   );
 

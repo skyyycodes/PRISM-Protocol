@@ -1,8 +1,8 @@
+use crate::errors::PrismError;
+use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{Mint, Token, TokenAccount};
-use crate::state::*;
-use crate::errors::PrismError;
 
 #[derive(Accounts)]
 #[instruction(tranche_kind: u8, usdc_amount: u64)]
@@ -14,8 +14,8 @@ pub struct Deposit<'info> {
     pub config: Box<Account<'info, GlobalConfig>>,
 
     #[account(
-        mut, 
-        seeds = [b"vault", &vault.id.to_le_bytes()], 
+        mut,
+        seeds = [b"vault", &vault.id.to_le_bytes()],
         bump = vault.bump,
         constraint = vault.state == VaultState::Active @ PrismError::VaultNotActive
     )]
@@ -58,11 +58,7 @@ pub struct Deposit<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn deposit_handler(
-    ctx: Context<Deposit>,
-    tranche_kind: u8,
-    usdc_amount: u64,
-) -> Result<()> {
+pub fn deposit_handler(ctx: Context<Deposit>, tranche_kind: u8, usdc_amount: u64) -> Result<()> {
     let vault = &mut ctx.accounts.vault;
     let tranche = &mut ctx.accounts.tranche;
     let clock = Clock::get()?;
@@ -70,11 +66,8 @@ pub fn deposit_handler(
     // 1. Calculate how many shares (pTokens) the user should get.
     // If this is the first deposit, shares = usdc_amount.
     // Otherwise, shares = usdc_amount / nav_per_share.
-    let shares = crate::math::q::deposit_shares(
-        usdc_amount,
-        tranche.nav_per_share_q,
-        tranche.total_supply,
-    )?;
+    let shares =
+        crate::math::q::deposit_shares(usdc_amount, tranche.nav_per_share_q, tranche.total_supply)?;
 
     // 2. Transfer USDC from user wallet to the Vault Reserve.
     anchor_spl::token::transfer(
@@ -116,9 +109,10 @@ pub fn deposit_handler(
     // 4. Update the on-chain accounting.
     tranche.total_assets += usdc_amount;
     tranche.total_supply += shares;
-    
+
     // Refresh the NAV.
-    tranche.nav_per_share_q = crate::math::q::compute_nav_q(tranche.total_assets, tranche.total_supply);
+    tranche.nav_per_share_q =
+        crate::math::q::compute_nav_q(tranche.total_assets, tranche.total_supply);
     tranche.last_nav_update_ts = clock.unix_timestamp;
 
     vault.total_deposits += usdc_amount;

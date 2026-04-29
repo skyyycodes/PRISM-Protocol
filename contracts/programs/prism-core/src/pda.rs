@@ -1,5 +1,5 @@
-use anchor_lang::prelude::*;
 use crate::ID;
+use anchor_lang::prelude::*;
 
 pub fn config_pda() -> (Pubkey, u8) {
     Pubkey::find_program_address(&[b"config"], &ID)

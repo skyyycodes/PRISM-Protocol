@@ -1,8 +1,8 @@
+use crate::errors::PrismError;
 /// Q64.64 fixed-point representation: u128 where the high 64 bits are the
 /// integer part and the low 64 bits are the fractional part.
 /// Range: [0, 2^64) with 2^-64 precision.
 use anchor_lang::prelude::*;
-use crate::errors::PrismError;
 
 pub const Q64_SHIFT: u32 = 64;
 pub const Q64_ONE: u128 = 1u128 << Q64_SHIFT;

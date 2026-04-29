@@ -1,5 +1,5 @@
-use anchor_lang::prelude::*;
 use crate::ID;
+use anchor_lang::prelude::*;
 
 pub fn pool_pda(tranche_mint: &Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(&[b"amm", tranche_mint.as_ref()], &ID)

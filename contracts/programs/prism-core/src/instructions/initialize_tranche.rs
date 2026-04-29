@@ -1,6 +1,6 @@
+use crate::state::{GlobalConfig, Tranche, Vault};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token};
-use crate::state::{GlobalConfig, Vault, Tranche};
 
 #[derive(Accounts)]
 #[instruction(kind: u8, target_apy_bps: u16)]

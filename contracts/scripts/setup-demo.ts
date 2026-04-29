@@ -88,9 +88,9 @@ async function loadContext(): Promise<SetupContext> {
   const wallets = {
     admin,
     borrower:  loadKeypair("keys/borrower.json"),
-    lpPrime:   loadKeypair("keys/lp_prime.json"),
-    lpCore:    loadKeypair("keys/lp_core.json"),
-    lpAlpha:   loadKeypair("keys/lp_alpha.json"),
+    lpPrime:   loadKeypair("keys/lpPrime.json"),
+    lpCore:    loadKeypair("keys/lpCore.json"),
+    lpAlpha:   loadKeypair("keys/lpAlpha.json"),
     mm:        loadKeypair("keys/mm.json"),
   };
 
@@ -435,7 +435,7 @@ async function seedAmmLiquidity(ctx: SetupContext) {
     const [pool] = getPoolPda(trancheMint, ctx.programs.amm.programId);
     const [quoteReserve] = getPoolQuoteReservePda(trancheMint, ctx.programs.amm.programId);
     const [lpMint] = getLpMintPda(trancheMint, ctx.programs.amm.programId);
-    const userLpAta = await getAssociatedTokenAddress(lpMint, ctx.wallets.admin.publicKey);
+    const lpLpAta = await getAssociatedTokenAddress(lpMint, ctx.wallets.admin.publicKey);
 
     await ctx.programs.amm.methods
       .addLiquidity(
@@ -451,9 +451,9 @@ async function seedAmmLiquidity(ctx: SetupContext) {
         trancheReserve: trancheReservePda,
         quoteReserve,
         lpMint,
-        userTrancheAta: await getAssociatedTokenAddress(trancheMint, ctx.wallets.admin.publicKey),
-        userQuoteAta: await getAssociatedTokenAddress(ctx.usdcMint, ctx.wallets.admin.publicKey),
-        userLpAta,
+        lpTrancheAta: await getAssociatedTokenAddress(trancheMint, ctx.wallets.admin.publicKey),
+        lpQuoteAta: await getAssociatedTokenAddress(ctx.usdcMint, ctx.wallets.admin.publicKey),
+        lpLpAta,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
@@ -477,6 +477,7 @@ async function simulateYieldEvent(ctx: SetupContext) {
       tranchePrime: ctx.pdas.tranches.prime,
       trancheCore:  ctx.pdas.tranches.core,
       trancheAlpha: ctx.pdas.tranches.alpha,
+      borrower: ctx.wallets.borrower.publicKey,
       borrowerUsdcAta: await getAssociatedTokenAddress(ctx.usdcMint, ctx.wallets.borrower.publicKey),
       vaultUsdcReserve: ctx.pdas.vaultUsdcReserve,
       tokenProgram: TOKEN_PROGRAM_ID,

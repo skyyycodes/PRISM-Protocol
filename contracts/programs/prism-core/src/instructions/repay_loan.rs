@@ -1,6 +1,6 @@
+use crate::state::{GlobalConfig, Loan, Vault};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount};
-use crate::state::{GlobalConfig, Vault, Loan};
 
 #[derive(Accounts)]
 pub struct RepayLoan<'info> {
@@ -42,7 +42,7 @@ pub fn repay_loan_handler(ctx: Context<RepayLoan>, amount: u64) -> Result<()> {
 
     // 2. Update accounting
     loan.total_repaid += amount;
-    
+
     if loan.total_repaid >= loan.principal {
         loan.state = crate::state::LoanState::Repaid;
     }

@@ -2,11 +2,11 @@ import type { ReactNode } from "react";
 import { AppHeader } from "@/components/app-shell/app-header";
 import { AppSidebar } from "@/components/app-shell/app-sidebar";
 import { DevBadge } from "@/components/app-shell/dev-badge";
-import { SolanaWalletProvider } from "@/components/providers/solana-wallet-provider";
+import { AppProviders } from "@/components/providers/app-providers";
 
 export default function AppShellLayout({ children }: { children: ReactNode }) {
   return (
-    <SolanaWalletProvider>
+    <AppProviders>
     <div className="relative h-screen min-h-[640px] overflow-hidden bg-black text-white">
       <div
         aria-hidden
@@ -37,6 +37,6 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
 
       <DevBadge />
     </div>
-    </SolanaWalletProvider>
+    </AppProviders>
   );
 }

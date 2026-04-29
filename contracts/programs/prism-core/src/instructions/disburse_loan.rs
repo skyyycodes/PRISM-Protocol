@@ -1,6 +1,6 @@
+use crate::state::{GlobalConfig, Loan, LoanState, Vault};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount};
-use crate::state::{GlobalConfig, Vault, Loan, LoanState};
 
 #[derive(Accounts)]
 pub struct DisburseLoan<'info> {
