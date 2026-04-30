@@ -1,5 +1,5 @@
 {
-  "address": "4UwFjEnF8onQNzNSmrG3tqNe9fBbcucCz4Emg6ket6gR",
+  "address": "E3g9dfc7Azz9MZcM9vJPeWA8JKN3rrU7k35KBm5chcL6",
   "metadata": {
     "name": "prism_core",
     "version": "0.1.0",
@@ -37,7 +37,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -126,6 +127,90 @@
       ]
     },
     {
+      "name": "attach_ika_collateral",
+      "discriminator": [
+        223,
+        77,
+        205,
+        170,
+        162,
+        69,
+        159,
+        118
+      ],
+      "accounts": [
+        {
+          "name": "borrower",
+          "docs": [
+            "The borrower must sign — only the named borrower can attach collateral to their loan."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "loan"
+        },
+        {
+          "name": "ika_collateral",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  107,
+                  97,
+                  95,
+                  99,
+                  111,
+                  108,
+                  108,
+                  97,
+                  116,
+                  101,
+                  114,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loan"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "dwallet_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "chain_id",
+          "type": "u8"
+        },
+        {
+          "name": "collateral_amount_usd",
+          "type": "u64"
+        },
+        {
+          "name": "oracle_pubkey",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
       "name": "deposit",
       "discriminator": [
         242,
@@ -155,7 +240,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -366,7 +452,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -433,6 +520,14 @@
         {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "ika_collateral",
+          "docs": [
+            "Optional IKA collateral PDA.  If provided, must be in Locked state.",
+            "Pass SystemProgram when not using IKA collateral."
+          ],
+          "optional": true
         }
       ],
       "args": []
@@ -468,7 +563,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -528,7 +624,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -643,7 +740,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -740,7 +838,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -813,7 +912,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -920,7 +1020,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -991,6 +1092,91 @@
       "args": []
     },
     {
+      "name": "liquidate_ika_collateral",
+      "discriminator": [
+        45,
+        114,
+        182,
+        26,
+        134,
+        122,
+        222,
+        145
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "docs": [
+            "Vault must be Defaulted before admin can liquidate collateral."
+          ],
+          "relations": [
+            "loan"
+          ]
+        },
+        {
+          "name": "loan"
+        },
+        {
+          "name": "ika_collateral",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  107,
+                  97,
+                  95,
+                  99,
+                  111,
+                  108,
+                  108,
+                  97,
+                  116,
+                  101,
+                  114,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loan"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "pause",
       "discriminator": [
         211,
@@ -1023,8 +1209,66 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "release_ika_collateral",
+      "discriminator": [
+        218,
+        186,
+        59,
+        3,
+        240,
+        71,
+        3,
+        162
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "Anyone may trigger release once the loan is provably Repaid."
+          ],
+          "signer": true
+        },
+        {
+          "name": "loan"
+        },
+        {
+          "name": "ika_collateral",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  107,
+                  97,
+                  95,
+                  99,
+                  111,
+                  108,
+                  108,
+                  97,
+                  116,
+                  101,
+                  114,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loan"
               }
             ]
           }
@@ -1061,7 +1305,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -1167,7 +1412,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -1351,11 +1597,99 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
           }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "verify_ika_collateral",
+      "docs": [
+        "Must be called as instruction index 1 in a tx where index 0 is an",
+        "ed25519 native-program instruction containing the oracle's signature."
+      ],
+      "discriminator": [
+        68,
+        158,
+        128,
+        243,
+        58,
+        120,
+        182,
+        12
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "Anyone may relay the oracle-signed attestation to the chain."
+          ],
+          "signer": true
+        },
+        {
+          "name": "config",
+          "docs": [
+            "Read oracle_allowlist to validate the signer's key."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "loan"
+        },
+        {
+          "name": "ika_collateral",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  107,
+                  97,
+                  95,
+                  99,
+                  111,
+                  108,
+                  108,
+                  97,
+                  116,
+                  101,
+                  114,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loan"
+              }
+            ]
+          }
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
         }
       ],
       "args": []
@@ -1390,7 +1724,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -1501,6 +1836,19 @@
         252,
         176,
         217
+      ]
+    },
+    {
+      "name": "IkaCollateral",
+      "discriminator": [
+        192,
+        51,
+        90,
+        243,
+        0,
+        162,
+        146,
+        156
       ]
     },
     {
@@ -1680,9 +2028,54 @@
       "code": 6013,
       "name": "OracleStale",
       "msg": "Switchboard feed value is older than freshness threshold"
+    },
+    {
+      "code": 6014,
+      "name": "CollateralNotLocked",
+      "msg": "IKA collateral is not in Locked state; disbursement blocked"
+    },
+    {
+      "code": 6015,
+      "name": "OracleSignatureInvalid",
+      "msg": "Oracle signature invalid or message mismatch"
+    },
+    {
+      "code": 6016,
+      "name": "DwalletIdMismatch",
+      "msg": "dWallet ID in attestation does not match registered collateral"
+    },
+    {
+      "code": 6017,
+      "name": "InsufficientCollateral",
+      "msg": "Collateral USD value is insufficient to cover loan principal"
+    },
+    {
+      "code": 6018,
+      "name": "CollateralAlreadyLocked",
+      "msg": "Collateral already locked; cannot re-verify"
     }
   ],
   "types": [
+    {
+      "name": "CollateralStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Locked"
+          },
+          {
+            "name": "Released"
+          },
+          {
+            "name": "Liquidated"
+          }
+        ]
+      }
+    },
     {
       "name": "CreditEvent",
       "type": {
@@ -1850,6 +2243,73 @@
             "type": {
               "vec": "pubkey"
             }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "IkaCollateral",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "loan",
+            "docs": [
+              "The Loan PDA this collateral secures."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "dwallet_id",
+            "docs": [
+              "IKA dWallet identifier (32-byte key on the IKA / dWallet Network)."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "chain_id",
+            "docs": [
+              "Chain where the real asset lives: 0 = BTC, 1 = ETH."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "collateral_amount_usd",
+            "docs": [
+              "USD value of locked collateral in micro-USD (1 USD = 1_000_000)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "CollateralStatus"
+              }
+            }
+          },
+          {
+            "name": "oracle_pubkey",
+            "docs": [
+              "Ed25519 public key of the IKA oracle that must sign the attestation."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "locked_ts",
+            "docs": [
+              "Unix timestamp when the oracle confirmed the lock (0 until Locked)."
+            ],
+            "type": "i64"
           },
           {
             "name": "bump",

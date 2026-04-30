@@ -5,8 +5,8 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-prism_amm = "9jzqUXjdq6F13Tu6kWYg5d7iuJNEaCuCebNpBxnijUG"
-prism_core = "Dg1PpRKjMJsGMFxPPHix65TGbma861JiervB7MtZeEQP"
+prism_amm = "4y3iZE8WSAJyMrUgnSCDmqzVQru63UF9YU5L74EaUJY3"
+prism_core = "E3g9dfc7Azz9MZcM9vJPeWA8JKN3rrU7k35KBm5chcL6"
 
 [provider]
 cluster = "localnet"

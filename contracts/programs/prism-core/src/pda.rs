@@ -2,7 +2,7 @@ use crate::ID;
 use anchor_lang::prelude::*;
 
 pub fn config_pda() -> (Pubkey, u8) {
-    Pubkey::find_program_address(&[b"config"], &ID)
+    Pubkey::find_program_address(&[b"config2"], &ID)
 }
 
 pub fn vault_pda(vault_id: u32) -> (Pubkey, u8) {

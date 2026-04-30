@@ -10,7 +10,7 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
-    #[account(seeds = [b"config"], bump, constraint = !config.paused @ PrismError::VaultPaused)]
+    #[account(seeds = [b"config2"], bump, constraint = !config.paused @ PrismError::VaultPaused)]
     pub config: Box<Account<'info, GlobalConfig>>,
 
     #[account(

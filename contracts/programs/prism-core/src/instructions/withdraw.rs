@@ -9,14 +9,14 @@ pub struct Withdraw<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
-    #[account(seeds = [b"config"], bump, constraint = !config.paused @ PrismError::VaultPaused)]
+    #[account(seeds = [b"config2"], bump, constraint = !config.paused @ PrismError::VaultPaused)]
     pub config: Box<Account<'info, GlobalConfig>>,
 
     #[account(
         mut,
         seeds = [b"vault", &vault.id.to_le_bytes()],
         bump = vault.bump,
-        constraint = vault.state == VaultState::Active @ PrismError::VaultNotActive
+        constraint = matches!(vault.state, VaultState::Active | VaultState::Defaulted) @ PrismError::VaultNotActive
     )]
     pub vault: Box<Account<'info, Vault>>,
 

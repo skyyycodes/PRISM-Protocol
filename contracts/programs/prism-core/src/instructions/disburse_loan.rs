@@ -1,4 +1,5 @@
-use crate::state::{GlobalConfig, Loan, LoanState, Vault};
+use crate::errors::PrismError;
+use crate::state::{CollateralStatus, GlobalConfig, IkaCollateral, Loan, LoanState, Vault};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount};
 
@@ -6,7 +7,7 @@ use anchor_spl::token::{Token, TokenAccount};
 pub struct DisburseLoan<'info> {
     pub admin: Signer<'info>,
 
-    #[account(seeds = [b"config"], bump, has_one = admin)]
+    #[account(seeds = [b"config2"], bump, has_one = admin)]
     pub config: Account<'info, GlobalConfig>,
 
     #[account(mut, seeds = [b"vault", &vault.id.to_le_bytes()], bump = vault.bump)]
@@ -22,15 +23,26 @@ pub struct DisburseLoan<'info> {
     pub borrower_usdc_ata: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
+
+    /// Optional IKA collateral PDA.  If provided, must be in Locked state.
+    /// Pass SystemProgram when not using IKA collateral.
+    pub ika_collateral: Option<Account<'info, IkaCollateral>>,
 }
 
 pub fn disburse_loan_handler(ctx: Context<DisburseLoan>) -> Result<()> {
+    // If IKA collateral was provided, it must be oracle-verified (Locked).
+    if let Some(col) = &ctx.accounts.ika_collateral {
+        require!(
+            col.status == CollateralStatus::Locked,
+            PrismError::CollateralNotLocked
+        );
+        require!(col.loan == ctx.accounts.loan.key(), PrismError::DwalletIdMismatch);
+    }
+
     let vault = &mut ctx.accounts.vault;
     let loan = &mut ctx.accounts.loan;
-
     let principal = loan.principal;
 
-    // 1. Transfer principal from Vault Reserve to Borrower
     let vault_id_bytes = vault.id.to_le_bytes();
     let bump_bytes = [vault.bump];
     let vault_seeds: &[&[u8]] = &[b"vault", &vault_id_bytes, &bump_bytes];
@@ -49,7 +61,6 @@ pub fn disburse_loan_handler(ctx: Context<DisburseLoan>) -> Result<()> {
         principal,
     )?;
 
-    // 2. Update state
     loan.state = LoanState::Active;
     vault.total_loaned += principal;
 
