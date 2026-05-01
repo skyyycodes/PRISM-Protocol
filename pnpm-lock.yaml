@@ -17,6 +17,9 @@ importers:
       '@ika.xyz/sdk':
         specifier: ^0.4.0
         version: 0.4.0(typescript@5.9.3)
+      '@mysten/sui':
+        specifier: 2.16.0
+        version: 2.16.0(typescript@5.9.3)
       '@radix-ui/react-accordion':
         specifier: 1.2.2
         version: 1.2.2(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
