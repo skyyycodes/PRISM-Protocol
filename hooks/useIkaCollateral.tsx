@@ -4,13 +4,14 @@ import { useCallback, useState } from 'react';
 import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
 import { AnchorProvider, BN, Program } from '@coral-xyz/anchor';
 import { PublicKey, SystemProgram, type Connection } from '@solana/web3.js';
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import type { PrismCore } from '@/app/lib/idl/prism_core';
 import prismCoreIdl from '@/app/lib/idl/prism_core.json';
-import { PRISM_CORE_PROGRAM_ID } from '@/app/lib/constants';
-import { getConfigPda, getIkaCollateralPda, getLoanPda, getVaultPda } from '@/app/lib/pda';
+import { USDC_MINT } from '@/app/lib/constants';
+import { getConfigPda, getIkaCollateralPda, getLoanPda, getVaultPda, getVaultReservePda } from '@/app/lib/pda';
 import {
   buildVerifyCollateralTx,
   IkaDwalletInfo,
@@ -75,7 +76,7 @@ export function useIkaCollateralAccount(loanPubkey: PublicKey | null) {
           dwalletId: new Uint8Array(acc.dwalletId),
           chainId: acc.chainId,
           collateralAmountUsd: BigInt(acc.collateralAmountUsd.toString()),
-          status: Object.keys(acc.status)[0] as IkaCollateralState['status'],
+          status: (() => { const s = Object.keys(acc.status)[0]; return (s.charAt(0).toUpperCase() + s.slice(1)) as IkaCollateralState['status']; })(),
           oraclePubkey: acc.oraclePubkey,
           lockedTs: acc.lockedTs.toNumber(),
           bump: acc.bump,
@@ -244,5 +245,51 @@ export function useReleaseIkaCollateral() {
       toast.success('Collateral released — IKA Network will unlock your BTC/ETH');
     },
     onError: (e: Error) => toast.error(`Release failed: ${e.message}`),
+  });
+}
+
+interface RepayParams {
+  vaultId: number;
+  loanId: number;
+  amount: bigint;
+}
+
+export function useRepayLoan() {
+  const { connection } = useConnection();
+  const wallet = useAnchorWallet();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: RepayParams) => {
+      if (!wallet) throw new Error('Wallet not connected');
+      const program = buildPrismCoreProgram(connection, wallet);
+
+      const [vaultPda] = getVaultPda(params.vaultId);
+      const [loanPda] = getLoanPda(vaultPda, params.loanId);
+      const [configPda] = getConfigPda();
+      const [reservePda] = getVaultReservePda(vaultPda);
+      const borrowerUsdcAta = await getAssociatedTokenAddress(USDC_MINT, wallet.publicKey);
+
+      await program.methods
+        .repayLoan(new BN(params.amount.toString()))
+        .accounts({
+          borrower: wallet.publicKey,
+          config: configPda,
+          vault: vaultPda,
+          loan: loanPda,
+          borrowerUsdcAta,
+          vaultUsdcReserve: reservePda,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .rpc({ commitment: 'confirmed' });
+
+      return loanPda;
+    },
+    onSuccess: (loanPda) => {
+      qc.invalidateQueries({ queryKey: ['loan-account', loanPda.toBase58()] });
+      qc.invalidateQueries({ queryKey: ['ika-collateral', loanPda.toBase58()] });
+      toast.success('Loan repaid!');
+    },
+    onError: (e: Error) => toast.error(`Repay failed: ${e.message}`),
   });
 }

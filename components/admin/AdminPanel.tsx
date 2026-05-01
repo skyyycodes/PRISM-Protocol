@@ -140,9 +140,9 @@ export function AdminPanel() {
   // ── Individual Step Functions ──────────────────────────────────────────
 
   async function setupGlobalConfig() {
-    const { core } = getPrograms();
+    const { core, adminKeypair } = getPrograms();
     const p = getPdas();
-    const admin = wallet!.publicKey;
+    const admin = adminKeypair.publicKey;
     setStep(0, 'running');
     try {
       console.log('Using config PDA:', p.config.toBase58());
@@ -167,9 +167,9 @@ export function AdminPanel() {
   }
 
   async function setupVault() {
-    const { core } = getPrograms();
+    const { core, adminKeypair } = getPrograms();
     const p = getPdas();
-    const admin = wallet!.publicKey;
+    const admin = adminKeypair.publicKey;
     setStep(1, 'running');
     try {
       const existing = await core.account.vault.fetchNullable(p.vault);
@@ -213,9 +213,9 @@ export function AdminPanel() {
   }
 
   async function setupTranches() {
-    const { core } = getPrograms();
+    const { core, adminKeypair } = getPrograms();
     const p = getPdas();
-    const admin = wallet!.publicKey;
+    const admin = adminKeypair.publicKey;
     setStep(2, 'running');
     try {
       const trancheParams = [
@@ -252,9 +252,9 @@ export function AdminPanel() {
   }
 
   async function setupLoan() {
-    const { core } = getPrograms();
+    const { core, adminKeypair } = getPrograms();
     const p = getPdas();
-    const admin = wallet!.publicKey;
+    const admin = adminKeypair.publicKey;
     setStep(3, 'running');
     try {
       const existing = await core.account.loan.fetchNullable(p.loan);
@@ -283,9 +283,9 @@ export function AdminPanel() {
   }
 
   async function setupAmmPools() {
-    const { amm } = getPrograms();
+    const { amm, adminKeypair } = getPrograms();
     const p = getPdas();
-    const admin = wallet!.publicKey;
+    const admin = adminKeypair.publicKey;
     setStep(4, 'running');
     try {
       const poolEntries = [
@@ -354,9 +354,9 @@ export function AdminPanel() {
   async function deposit(kind: TrancheKind, label: string, amountUsdc: string) {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
+      const { core, adminKeypair } = getPrograms();
       const p = getPdas();
-      const admin = wallet.publicKey;
+      const admin = adminKeypair.publicKey;
       const amount = BigInt(parseFloat(amountUsdc) * 1_000_000);
 
       const tranchePda = kind === TrancheKind.Prime ? p.tranches.prime : kind === TrancheKind.Core ? p.tranches.core : p.tranches.alpha;
@@ -392,11 +392,29 @@ export function AdminPanel() {
   async function accrueYield() {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
+      const { core, adminKeypair } = getPrograms();
       const p = getPdas();
-      const admin = wallet.publicKey;
+      const admin = adminKeypair.publicKey;
       const adminUsdcAta = await getAssociatedTokenAddress(USDC_MINT, admin);
       const amount = new BN(parseFloat(params.yieldAmount) * 1_000_000);
+
+      // Ensure the admin USDC ATA exists. accrue_yield transfers FROM the borrower
+      // (= admin in this simulation harness) so the ATA must be initialized AND funded.
+      const ataInfo = await connection.getAccountInfo(adminUsdcAta);
+      if (!ataInfo) {
+        const createTx = new Transaction().add(
+          createAssociatedTokenAccountInstruction(admin, adminUsdcAta, admin, USDC_MINT),
+        );
+        const bh = await connection.getLatestBlockhash('confirmed');
+        createTx.recentBlockhash = bh.blockhash;
+        createTx.feePayer = admin;
+        createTx.sign(adminKeypair);
+        const sig = await connection.sendRawTransaction(createTx.serialize());
+        await connection.confirmTransaction({ signature: sig, ...bh }, 'confirmed');
+        addLog(`✓ Created admin USDC ATA. Now request USDC from Circle's faucet.`);
+        toast(`ATA created — admin still needs USDC. Click "Mint USDC" to open Circle's faucet.`);
+        return;
+      }
 
       await core.methods
         .accrueYield(amount)
@@ -425,10 +443,44 @@ export function AdminPanel() {
   async function disburseLoan() {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
+      const { core, adminKeypair } = getPrograms();
       const p = getPdas();
-      const admin = wallet.publicKey;
-      const borrowerUsdcAta = await getAssociatedTokenAddress(USDC_MINT, admin);
+      const admin = adminKeypair.publicKey;
+
+      // Fetch the on-chain loan to get the actual borrower pubkey.
+      const loanAcc = await (core.account as any).loan.fetch(p.loan);
+      const borrower: PublicKey = loanAcc.borrower;
+      const principal: bigint = BigInt(loanAcc.principal.toString());
+
+      // Pre-check the vault reserve has enough USDC.
+      const reserveAcc = await (core.provider.connection.getTokenAccountBalance(p.reserve)).value;
+      const reserveAmount = BigInt(reserveAcc.amount);
+      if (reserveAmount < principal) {
+        const need = (Number(principal) / 1_000_000).toFixed(2);
+        const have = (Number(reserveAmount) / 1_000_000).toFixed(2);
+        const msg = `Vault reserve has ${have} USDC, need ${need}. Fund vault by depositing USDC into Prime/Core/Alpha first (Section 2). Use Circle's faucet to get devnet USDC.`;
+        addLog(`✗ Disburse: ${msg}`);
+        toast.error(msg);
+        return;
+      }
+
+      const borrowerUsdcAta = await getAssociatedTokenAddress(USDC_MINT, borrower);
+
+      // Create the borrower's USDC ATA if it doesn't exist yet.
+      const ataInfo = await connection.getAccountInfo(borrowerUsdcAta);
+      if (!ataInfo) {
+        const createAtaTx = new Transaction().add(
+          createAssociatedTokenAccountInstruction(admin, borrowerUsdcAta, borrower, USDC_MINT),
+        );
+        const latestBlockhash = await connection.getLatestBlockhash('confirmed');
+        createAtaTx.recentBlockhash = latestBlockhash.blockhash;
+        createAtaTx.feePayer = admin;
+        createAtaTx.sign(adminKeypair);
+        const ataSig = await connection.sendRawTransaction(createAtaTx.serialize());
+        await connection.confirmTransaction({ signature: ataSig, ...latestBlockhash }, 'confirmed');
+        addLog(`✓ Created USDC ATA for borrower ${borrower.toBase58().slice(0, 8)}…`);
+      }
+
       // Check for IKA collateral
       const [ikaCollateralPda] = getIkaCollateralPda(p.loan);
       const ikaAcc = await core.account.ikaCollateral.fetchNullable(ikaCollateralPda);
@@ -446,7 +498,7 @@ export function AdminPanel() {
           ikaCollateral: ikaAcc ? ikaCollateralPda : null,
         })
         .rpc({ commitment: 'confirmed' });
-      addLog('✓ Loan disbursed — USDC sent to borrower (admin wallet)');
+      addLog(`✓ Loan disbursed — USDC sent to borrower ${borrower.toBase58().slice(0, 8)}…`);
       toast.success('Loan disbursed');
     } catch (e: any) {
       addLog(`✗ Disburse: ${e.message}`);
@@ -457,9 +509,9 @@ export function AdminPanel() {
   async function repayLoan() {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
+      const { core, adminKeypair } = getPrograms();
       const p = getPdas();
-      const admin = wallet.publicKey;
+      const admin = adminKeypair.publicKey;
       const amount = new BN(parseFloat(params.repayAmount) * 1_000_000);
       const borrowerUsdcAta = await getAssociatedTokenAddress(USDC_MINT, admin);
       await (core.methods as any)
@@ -518,9 +570,9 @@ export function AdminPanel() {
   async function triggerDefault() {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
+      const { core, adminKeypair } = getPrograms();
       const p = getPdas();
-      const admin = wallet.publicKey;
+      const admin = adminKeypair.publicKey;
 
       const vaultAccount = await core.account.vault.fetch(p.vault);
       const seq: number = vaultAccount.creditEventSeq ?? 0;
@@ -528,6 +580,19 @@ export function AdminPanel() {
 
       const amount = new BN(parseFloat(params.lossAmount) * 1_000_000);
       const severity = parseInt(params.severity) * 100;
+
+      // Pre-check: trigger_credit_event transfers loss USDC from the vault reserve to
+      // the loss bucket. If the reserve is empty the SPL transfer fails with 0x1.
+      const reserveBalance = (await connection.getTokenAccountBalance(p.reserve)).value;
+      const lossLamports = BigInt(amount.toString());
+      if (BigInt(reserveBalance.amount) < lossLamports) {
+        const have = (Number(reserveBalance.amount) / 1_000_000).toFixed(2);
+        const need = (Number(lossLamports) / 1_000_000).toFixed(2);
+        const msg = `Vault reserve has ${have} USDC, need ${need} to cascade. Deposit into tranches first.`;
+        addLog(`✗ Default: ${msg}`);
+        toast.error(msg);
+        return;
+      }
 
       await core.methods
         .triggerCreditEvent(0, amount, severity)
@@ -554,38 +619,32 @@ export function AdminPanel() {
     }
   }
 
+  // The vault uses Circle's official devnet USDC mint. We cannot mint it ourselves —
+  // only Circle is the mint authority. The "faucet" button opens Circle's faucet
+  // and copies the admin address so the user can paste it.
   async function mintUsdc() {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const admin = wallet.publicKey;
-      const amount = Math.round(parseFloat(params.faucetAmount) * 1_000_000);
-      if (isNaN(amount) || amount <= 0) { toast.error('Enter a valid USDC amount'); return; }
-      const ata = await getAssociatedTokenAddress(USDC_MINT, admin);
-      const ataInfo = await connection.getAccountInfo(ata);
-      const tx = new Transaction();
-      if (!ataInfo) {
-        tx.add(createAssociatedTokenAccountInstruction(admin, ata, admin, USDC_MINT));
-      }
-      tx.add(createMintToInstruction(USDC_MINT, ata, admin, BigInt(amount)));
-      tx.recentBlockhash = (await connection.getLatestBlockhash('confirmed')).blockhash;
-      tx.feePayer = admin;
-      const signed = await wallet.signTransaction(tx);
-      const sig = await connection.sendRawTransaction(signed.serialize());
-      await connection.confirmTransaction(sig, 'confirmed');
-      addLog(`✓ Minted ${params.faucetAmount} USDC to ${admin.toBase58().slice(0, 8)}…`);
-      toast.success(`Minted ${params.faucetAmount} devnet USDC to your wallet`);
+      const { adminKeypair } = getPrograms();
+      const adminAddr = adminKeypair.publicKey.toBase58();
+      const phantomAddr = wallet.publicKey.toBase58();
+      try { await navigator.clipboard.writeText(adminAddr); } catch {}
+      window.open('https://faucet.circle.com/', '_blank', 'noopener');
+      addLog(`ℹ Circle faucet opened. Admin (paste this): ${adminAddr}`);
+      addLog(`ℹ Phantom wallet (also needs USDC for repay): ${phantomAddr}`);
+      toast.success('Circle faucet opened — admin address copied to clipboard. Request USDC there.');
     } catch (e: any) {
       addLog(`✗ Faucet: ${e.message}`);
-      toast.error(`Mint failed: ${e.message} — wallet must be mint authority`);
+      toast.error(`Faucet failed: ${e.message}`);
     }
   }
 
   async function liquidateCollateral() {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
+      const { core, adminKeypair } = getPrograms();
       const p = getPdas();
-      const admin = wallet.publicKey;
+      const admin = adminKeypair.publicKey;
       const [ikaCollateralPda] = getIkaCollateralPda(p.loan);
       await core.methods
         .liquidateIkaCollateral()

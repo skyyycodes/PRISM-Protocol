@@ -83,7 +83,7 @@ export function buildAttestationMessage(
   MSG_PREFIX.copy(buf, 0);
   Buffer.from(dwalletId).copy(buf, 8);
   buf.writeUInt8(chainId, 40);
-  buf.writeBigUInt64LE(amountUsdMicro, 41);
+  new DataView(buf.buffer, buf.byteOffset + 41, 8).setBigUint64(0, amountUsdMicro, true);
   loanPubkey.toBuffer().copy(buf, 49);
   return buf;
 }

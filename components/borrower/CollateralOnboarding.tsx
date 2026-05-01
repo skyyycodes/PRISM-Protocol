@@ -12,6 +12,7 @@ import {
   useAttachIkaCollateral,
   useVerifyIkaCollateral,
   useReleaseIkaCollateral,
+  useRepayLoan,
   useLoanAccount,
 } from '@/hooks/useIkaCollateral';
 import { getVaultPda, getLoanPda } from '@/app/lib/pda';
@@ -47,6 +48,7 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
   const attachMutation = useAttachIkaCollateral();
   const { verify, isPolling } = useVerifyIkaCollateral();
   const releaseMutation = useReleaseIkaCollateral();
+  const repayMutation = useRepayLoan();
 
   // ── Attach form state ─────────────────────────────────────────────────────
   const [dwalletIdHex, setDwalletIdHex] = useState('');
@@ -153,9 +155,23 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
               {releaseMutation.isPending ? 'Releasing…' : 'Release Collateral'}
             </button>
           ) : (
-            <p className="text-xs text-slate-500 bg-slate-50 rounded-lg p-2 border border-slate-200">
-              Repay your loan in full before releasing collateral.
-            </p>
+            <div className="space-y-2">
+              <p className="text-xs text-slate-500">
+                Repay your loan to unlock collateral release.
+                {loan && ` Principal: $${(Number((loan as any).principal) / 1_000_000).toLocaleString(undefined, { minimumFractionDigits: 2 })} USDC`}
+              </p>
+              <button
+                disabled={repayMutation.isPending || !loan}
+                onClick={() => loan && repayMutation.mutate({
+                  vaultId,
+                  loanId,
+                  amount: BigInt((loan as any).principal.toString()),
+                })}
+                className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {repayMutation.isPending ? 'Repaying…' : 'Repay Loan'}
+              </button>
+            </div>
           )
         )}
 

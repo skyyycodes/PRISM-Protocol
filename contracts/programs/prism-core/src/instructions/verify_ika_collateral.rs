@@ -41,9 +41,17 @@ pub struct VerifyIkaCollateral<'info> {
 }
 
 pub fn verify_ika_collateral_handler(ctx: Context<VerifyIkaCollateral>) -> Result<()> {
-    // ── 1. Load the ed25519 instruction that must be ix 0 in this tx ─────────
-    let ix = ix_sysvar::load_instruction_at_checked(0, &ctx.accounts.instructions_sysvar)
-        .map_err(|_| PrismError::OracleSignatureInvalid)?;
+    // ── 1. Load the ed25519 instruction immediately preceding this one ────────
+    // Wallets (e.g. Phantom) prepend ComputeBudget instructions before signing,
+    // so we cannot hardcode index 0. Instead we read the current instruction
+    // index and step back by one — ed25519 must be the instruction right before
+    // verify_ika_collateral regardless of how many prefix instructions exist.
+    let current_index =
+        ix_sysvar::load_current_index_checked(&ctx.accounts.instructions_sysvar)? as usize;
+    require!(current_index >= 1, PrismError::OracleSignatureInvalid);
+    let ix =
+        ix_sysvar::load_instruction_at_checked(current_index - 1, &ctx.accounts.instructions_sysvar)
+            .map_err(|_| PrismError::OracleSignatureInvalid)?;
 
     require!(ix.program_id == ED25519_PROGRAM_ID, PrismError::OracleSignatureInvalid);
 
