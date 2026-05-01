@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { label: "Tranches", href: "/deposit" },
   { label: "Markets", href: "/trade" },
   { label: "Analytics", href: "/analytics" },
+  { label: "Admin", href: "/admin" },
   { label: "Docs", href: "/" },
 ] as const;
 

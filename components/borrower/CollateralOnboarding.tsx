@@ -53,6 +53,8 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
   const [chainId, setChainId] = useState<IkaChain>(IKA_CHAIN.BTC);
   const [collateralUsd, setCollateralUsd] = useState('');
   const [oracleKey, setOracleKey] = useState('');
+  const [isCreatingDwallet, setIsCreatingDwallet] = useState(false);
+  const [suiSeedHex, setSuiSeedHex] = useState('');
 
   if (!connected) {
     return (
@@ -180,9 +182,6 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
       </div>
     );
   }
-
-  const [isCreatingDwallet, setIsCreatingDwallet] = useState(false);
-  const [suiSeedHex, setSuiSeedHex] = useState('');
 
   async function handleCreateDwallet() {
     if (!suiSeedHex || suiSeedHex.length < 64) {

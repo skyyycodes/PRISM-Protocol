@@ -5,7 +5,8 @@ import { useLoanApplications } from '@/hooks/useLoanApplications';
 import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { AnchorProvider, Program, BN, type Idl } from '@coral-xyz/anchor';
-import { SystemProgram, SYSVAR_RENT_PUBKEY, PublicKey, Transaction } from '@solana/web3.js';
+import { SystemProgram, SYSVAR_RENT_PUBKEY, PublicKey, Transaction, Keypair } from '@solana/web3.js';
+import adminSecret from '@/contracts/keys/admin.json';
 import {
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -95,17 +96,25 @@ export function AdminPanel() {
     });
   }
 
+  function getAdminKeypair() {
+    return Keypair.fromSecretKey(Uint8Array.from(adminSecret as number[]));
+  }
+
   function getPrograms() {
-    if (!wallet) throw new Error('Wallet not connected');
-    const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
+    const admin = getAdminKeypair();
+    const adminWallet = {
+      publicKey: admin.publicKey,
+      signTransaction: async <T extends Parameters<AnchorProvider['sendAndConfirm']>[0]>(tx: T) => { (tx as any).partialSign?.(admin); return tx; },
+      signAllTransactions: async <T extends Parameters<AnchorProvider['sendAndConfirm']>[0]>(txs: T[]) => txs,
+    };
+    const provider = new AnchorProvider(connection, adminWallet as any, { commitment: 'confirmed' });
     const core = new Program(prismCoreIdl as Idl, provider) as any;
     const amm = new Program(prismAmmIdl as Idl, provider) as any;
-    return { core, amm };
+    return { core, amm, adminKeypair: admin };
   }
 
   function getPdas() {
-    // HARDCODE derivation here to bypass potential caching issues in pda.ts
-    const [config] = PublicKey.findProgramAddressSync([Buffer.from('config2')], PRISM_CORE_PROGRAM_ID);
+    const [config] = getConfigPda(PRISM_CORE_PROGRAM_ID);
     const [vault] = getVaultPda(VAULT_ID, PRISM_CORE_PROGRAM_ID);
     const [trancheP] = getTranchePda(vault, TrancheKind.Prime, PRISM_CORE_PROGRAM_ID);
     const [trancheC] = getTranchePda(vault, TrancheKind.Core, PRISM_CORE_PROGRAM_ID);
@@ -484,23 +493,18 @@ export function AdminPanel() {
     maturityDays: number,
     nextLoanId: number,
   ) {
-    if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
+      const { core, adminKeypair } = getPrograms();
       const p = getPdas();
-      const admin = wallet.publicKey;
-      const { PublicKey: PK } = await import('@solana/web3.js');
-      const borrower = new PK(borrowerPubkeyStr);
+      const borrower = new PublicKey(borrowerPubkeyStr);
       const principal = new BN(requestedUSDC * 1_000_000);
       const apr = parseInt(params.loanApr) * 100;
       const maturity = new BN(Math.floor(Date.now() / 1000) + maturityDays * 24 * 60 * 60);
-      const vaultPubkey = p.vault;
-      const idBuf = Buffer.alloc(4);
-      idBuf.writeUInt32LE(nextLoanId, 0);
-      const [loanPda] = getLoanPda(vaultPubkey, nextLoanId, PRISM_CORE_PROGRAM_ID);
+      const [loanPda] = getLoanPda(p.vault, nextLoanId, PRISM_CORE_PROGRAM_ID);
       await core.methods
         .initializeLoan(nextLoanId, principal, apr, maturity, borrower)
-        .accounts({ admin, config: p.config, vault: p.vault, loan: loanPda, systemProgram: SystemProgram.programId })
+        .accounts({ admin: adminKeypair.publicKey, config: p.config, vault: p.vault, loan: loanPda, systemProgram: SystemProgram.programId })
+        .signers([adminKeypair])
         .rpc({ commitment: 'confirmed' });
       approve(appId, nextLoanId, apr);
       addLog(`✓ Loan originated for ${borrowerPubkeyStr.slice(0, 8)}… — $${requestedUSDC} USDC`);

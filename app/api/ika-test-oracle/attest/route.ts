@@ -18,7 +18,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PublicKey } from '@solana/web3.js';
 
 // Fixed 32-byte seed for the test oracle keypair.
-// Solana base58 pubkey: SBEJ7epASX4irgiMqL5uVTunT8YpTZW7bLpRYdHpS4G
+// Derived Solana base58 pubkey: 5nmEq5cNc9yXpK1ySrb4XH65zccBvRK2hwKnEJePjcrf
 const TEST_SEED = Buffer.from(
   'fc0dfc6881aee8d6af913f60fff07ab0b1ec16427573ab6d33b3825df3a52820',
   'hex',
