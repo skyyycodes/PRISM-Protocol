@@ -2,17 +2,19 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { DOCS_URL } from "@/lib/site-links";
 import { WaitlistDialog } from "@/components/landing/waitlist-dialog";
 
 const navLinks = [
-  { name: "Tranches",      href: "#features"      },
-  { name: "Waterfall",     href: "#how-it-works"  },
-  { name: "Architecture",  href: "#infra"          },
-  { name: "Integrations",  href: "#integrations"  },
-  { name: "Security",      href: "#security"      },
+  { name: "Tranches",      href: "/#features"      },
+  { name: "Waterfall",     href: "/#how-it-works"  },
+  { name: "Architecture",  href: "/#infra"          },
+  { name: "Integrations",  href: "/#integrations"  },
+  { name: "Security",      href: "/#security"      },
+  { name: "Blog",          href: "/blog"            },
 ];
 
 export function Navigation() {
@@ -48,7 +50,7 @@ export function Navigation() {
           }`}
         >
           {/* Logo */}
-          <a href="#" className="flex items-center gap-3 group">
+          <Link href="/" className="flex items-center gap-3 group">
             <span
               className={`relative shrink-0 overflow-hidden transition-all duration-500 ${
                 isScrolled ? "h-8 w-8" : "h-11 w-11"
@@ -67,19 +69,19 @@ export function Navigation() {
             </span>
             <span className={`font-display tracking-tight transition-all duration-500 ${isScrolled ? "text-xl text-foreground" : "text-2xl text-white"}`}>PRISM</span>
             <span className={`font-mono transition-all duration-500 ${isScrolled ? "text-[10px] mt-0.5 text-muted-foreground" : "text-xs mt-1 text-white/60"}`}>PROTOCOL</span>
-          </a>
+          </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-12">
+          <div className="hidden md:flex items-center gap-8 lg:gap-10">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.name}
                 href={link.href}
                 className={`text-sm transition-colors duration-300 relative group ${isScrolled ? "text-foreground/70 hover:text-foreground" : "text-white/70 hover:text-white"}`}
               >
                 {link.name}
                 <span className={`absolute -bottom-1 left-0 w-0 h-px transition-all duration-300 group-hover:w-full ${isScrolled ? "bg-foreground" : "bg-white"}`} />
-              </a>
+              </Link>
             ))}
           </div>
 
@@ -127,7 +129,7 @@ export function Navigation() {
           {/* Navigation Links */}
           <div className="flex-1 flex flex-col justify-center gap-8">
             {navLinks.map((link, i) => (
-              <a
+              <Link
                 key={link.name}
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -139,7 +141,7 @@ export function Navigation() {
                 style={{ transitionDelay: isMobileMenuOpen ? `${i * 75}ms` : "0ms" }}
               >
                 {link.name}
-              </a>
+              </Link>
             ))}
           </div>
           

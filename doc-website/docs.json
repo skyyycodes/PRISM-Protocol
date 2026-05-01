@@ -24,11 +24,11 @@
     "links": [
       {
         "label": "Blog",
-        "href": "/blog"
+        "href": "https://prism-protocol.finance/blog"
       },
       {
         "label": "Website",
-        "href": "https://prism-protocol.finance"
+        "href": "https://www.prismprotocol.dev/"
       }
     ]
   },

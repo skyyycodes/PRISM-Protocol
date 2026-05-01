@@ -27,25 +27,25 @@ nav-logo {
   color: rgb(245 245 246);
 }
 
-#navbar .navbar-link a[href="/blog"] {
+#navbar .navbar-link a[href="https://prism-protocol.finance/blog"] {
   color: rgb(107 114 128) !important;
   font-size: 1rem;
   font-weight: 650;
 }
 
-.dark #navbar .navbar-link a[href="/blog"] {
+.dark #navbar .navbar-link a[href="https://prism-protocol.finance/blog"] {
   color: rgb(161 161 170) !important;
 }
 
-#navbar .navbar-link a[href="/blog"]:hover {
+#navbar .navbar-link a[href="https://prism-protocol.finance/blog"]:hover {
   color: rgb(31 41 55) !important;
 }
 
-.dark #navbar .navbar-link a[href="/blog"]:hover {
+.dark #navbar .navbar-link a[href="https://prism-protocol.finance/blog"]:hover {
   color: rgb(245 245 246) !important;
 }
 
-#navbar .navbar-link a[href="https://prism-protocol.finance"] {
+#navbar .navbar-link a[href="https://www.prismprotocol.dev/"] {
   align-items: center;
   background: rgb(var(--primary-light) / var(--tw-text-opacity, 1));
   border-radius: 8px;
@@ -60,7 +60,7 @@ nav-logo {
   transition: background-color 180ms ease;
 }
 
-#navbar .navbar-link a[href="https://prism-protocol.finance"]::after {
+#navbar .navbar-link a[href="https://www.prismprotocol.dev/"]::after {
   border-right: 2px solid currentColor;
   border-top: 2px solid currentColor;
   content: "";
@@ -70,8 +70,8 @@ nav-logo {
   width: 0.4rem;
 }
 
-#navbar .navbar-link a[href="https://prism-protocol.finance"]:hover {
-  background: #a25ee8;
+#navbar .navbar-link a[href="https://www.prismprotocol.dev/"]:hover {
+  background: #db5fb9;
 }
 
 @media (max-width: 640px) {
@@ -84,7 +84,7 @@ nav-logo {
     font-size: 0.9rem;
   }
 
-  #navbar .navbar-link a[href="https://prism-protocol.finance"] {
+  #navbar .navbar-link a[href="https://www.prismprotocol.dev/"] {
     height: 2.1rem;
     padding: 0 0.8rem;
   }

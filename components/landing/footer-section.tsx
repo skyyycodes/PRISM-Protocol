@@ -6,26 +6,26 @@ import { DOCS_URL, TWITTER_URL } from "@/lib/site-links";
 
 const footerLinks = {
   Product: [
-    { name: "Tranche vaults", href: "#features" },
-    { name: "Waterfall flow", href: "#how-it-works" },
-    { name: "Ecosystem", href: "#integrations" },
+    { name: "Tranche vaults", href: "/#features" },
+    { name: "Waterfall flow", href: "/#how-it-works" },
+    { name: "Ecosystem", href: "/#integrations" },
   ],
   Developers: [
     { name: "Documentation", href: DOCS_URL },
-    { name: "Anchor programs", href: "#infra" },
-    { name: "Typed IDL", href: "#developers" },
+    { name: "Anchor programs", href: "/#infra" },
+    { name: "Typed IDL", href: "/#developers" },
     { name: "Devnet status", href: "#" },
   ],
   Company: [
     { name: "About", href: "#" },
-    { name: "Blog", href: "#" },
+    { name: "Blog", href: "/blog" },
     { name: "Hackathon", href: "#", badge: "2026" },
     { name: "Contact", href: "#" },
   ],
   Legal: [
     { name: "Privacy", href: "#" },
     { name: "Terms", href: "#" },
-    { name: "Security", href: "#security" },
+    { name: "Security", href: "/#security" },
   ],
 };
 
