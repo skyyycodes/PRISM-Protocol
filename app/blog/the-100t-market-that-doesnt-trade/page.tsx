@@ -124,10 +124,10 @@ export default function HundredTMarketArticlePage() {
               fill
               priority
               sizes="100vw"
-              className="object-cover object-center opacity-45 brightness-105 contrast-110 saturate-125"
+              className="object-cover object-center opacity-66 brightness-105 contrast-115 saturate-140"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/78 to-black/30" />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-black/20 to-black/55" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/62 to-black/8" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-black/10 to-black/38" />
           </div>
 
           <div className="absolute inset-0 opacity-20">
