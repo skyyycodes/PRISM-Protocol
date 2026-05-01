@@ -27,21 +27,21 @@ nav-logo {
   color: rgb(245 245 246);
 }
 
-#navbar .navbar-link a[href="https://prism-protocol.finance/blog"] {
+#navbar .navbar-link a[href="https://www.prismprotocol.dev/blog"] {
   color: rgb(107 114 128) !important;
   font-size: 1rem;
   font-weight: 650;
 }
 
-.dark #navbar .navbar-link a[href="https://prism-protocol.finance/blog"] {
+.dark #navbar .navbar-link a[href="https://www.prismprotocol.dev/blog"] {
   color: rgb(161 161 170) !important;
 }
 
-#navbar .navbar-link a[href="https://prism-protocol.finance/blog"]:hover {
+#navbar .navbar-link a[href="https://www.prismprotocol.dev/blog"]:hover {
   color: rgb(31 41 55) !important;
 }
 
-.dark #navbar .navbar-link a[href="https://prism-protocol.finance/blog"]:hover {
+.dark #navbar .navbar-link a[href="https://www.prismprotocol.dev/blog"]:hover {
   color: rgb(245 245 246) !important;
 }
 
