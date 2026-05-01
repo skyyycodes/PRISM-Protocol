@@ -1,6 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program, BN } from "@coral-xyz/anchor";
-import { PrismAmm } from "../target/types/prism_amm";
+import { BN } from "@coral-xyz/anchor";
 import { 
   PublicKey, 
   SystemProgram, 
@@ -23,12 +22,13 @@ import {
   getPoolQuoteReservePda, 
   getLpMintPda 
 } from "../lib/pda";
+import type { PrismAmmProgram } from "../lib/accounts";
 
 describe("prism-amm", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.PrismAmm as Program<PrismAmm>;
+  const program = anchor.workspace.PrismAmm as PrismAmmProgram;
   const connection = provider.connection;
 
   // Test state

@@ -16,6 +16,7 @@
 import {
   Ed25519Program,
   PublicKey,
+  SYSVAR_INSTRUCTIONS_PUBKEY,
   Transaction,
   TransactionInstruction,
 } from '@solana/web3.js';
@@ -29,8 +30,10 @@ import {
   prepareDKGAsync,
   coordinatorTransactions,
   createRandomSessionIdentifier,
+  Curve,
 } from '@ika.xyz/sdk';
-import { CoreClient as SuiClient } from '@mysten/sui/client';
+import { decodeSuiPrivateKey } from '@mysten/sui/cryptography';
+import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { Transaction as SuiTransaction } from '@mysten/sui/transactions';
 
@@ -49,8 +52,9 @@ export const IKA_CHAIN = {
 
 export type IkaChain = (typeof IKA_CHAIN)[keyof typeof IKA_CHAIN];
 
-/** secp256k1 curve value used by IKA SDK (matches BTC and ETH). */
-const SECP256K1_CURVE = 1 as const;
+/** secp256k1 is used by BTC and ETH dWallets. */
+const SECP256K1_CURVE = Curve.SECP256K1;
+const SECP256K1_CURVE_NUMBER = 0;
 
 /**
  * IKA testnet fullnode (Sui-compatible RPC endpoint).
@@ -189,6 +193,7 @@ export async function buildVerifyCollateralTx(
       config: configPda,
       loan: loanPubkey,
       ikaCollateral: ikaCollateralPda,
+      instructionsSysvar: SYSVAR_INSTRUCTIONS_PUBKEY,
     })
     .instruction();
 
@@ -224,11 +229,12 @@ export async function createIkaDwallet(
   entropy: Uint8Array,
 ): Promise<IkaDwalletInfo> {
   const ikaConfig = getNetworkConfig(IKA_NETWORK);
-  const suiClient = new CoreClient({ url: IKA_FULLNODE_URL });
-  const ikaClient = new IkaClient({ suiClient, config: ikaConfig });
+  const suiClient = new SuiJsonRpcClient({ url: IKA_FULLNODE_URL, network: IKA_NETWORK });
+  const ikaClient = new IkaClient({ suiClient, config: ikaConfig, cache: true });
+  await ikaClient.initialize();
 
   // Derive deterministic user-share encryption keys from the keypair's seed.
-  const rootSeed = suiKeypair.getSecretKey().slice(0, 32);
+  const rootSeed = decodeSuiPrivateKey(suiKeypair.getSecretKey()).secretKey;
   const userShareEncryptionKeys = await UserShareEncryptionKeys.fromRootSeedKey(
     rootSeed,
     SECP256K1_CURVE,
@@ -249,10 +255,10 @@ export async function createIkaDwallet(
     coordinatorTransactions.registerEncryptionKeyTx(
       ikaConfig,
       coordRef,
-      SECP256K1_CURVE,
+      SECP256K1_CURVE_NUMBER,
       userShareEncryptionKeys.encryptionKey,
       encKeySig,
-      Array.from(suiKeypair.getPublicKey().toRawBytes()),
+      suiKeypair.getPublicKey().toRawBytes(),
       regTx,
     );
     await suiClient.signAndExecuteTransaction({ transaction: regTx, signer: suiKeypair });
@@ -298,12 +304,12 @@ export async function createIkaDwallet(
     ikaConfig,
     coordRef,
     networkEncKey.id,
-    SECP256K1_CURVE,
+    SECP256K1_CURVE_NUMBER,
     dkgOutput.userDKGMessage,
     dkgOutput.encryptedUserShareAndProof,
     encKeyAddress,
     dkgOutput.userPublicOutput,
-    Array.from(suiKeypair.getPublicKey().toRawBytes()),
+    suiKeypair.getPublicKey().toRawBytes(),
     sessionId,
     null,
     ikaCoin,
@@ -319,13 +325,16 @@ export async function createIkaDwallet(
 
   // Extract the created dWallet object ID from the tx result.
   const createdObjects = dkgResult.objectChanges?.filter(
-    (c) => c.type === 'created',
+    (change): change is Extract<
+      NonNullable<typeof dkgResult.objectChanges>[number],
+      { type: 'created' }
+    > => change.type === 'created',
   ) ?? [];
 
   // The dWallet object is the first newly created object in the transaction.
   const dwalletObj = createdObjects.find(
-    (c) => c.type === 'created' && 'objectType' in c && String(c.objectType).includes('DWallet'),
-  ) as { objectId: string } | undefined;
+    (change) => String(change.objectType).includes('DWallet'),
+  );
 
   if (!dwalletObj) {
     throw new Error('DKG transaction completed but no DWallet object found in result');

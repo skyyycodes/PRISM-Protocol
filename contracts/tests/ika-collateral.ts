@@ -16,7 +16,7 @@
  */
 
 import * as anchor from "@coral-xyz/anchor";
-import { BN, Program } from "@coral-xyz/anchor";
+import { BN } from "@coral-xyz/anchor";
 import {
   Ed25519Program,
   Keypair,
@@ -49,6 +49,7 @@ import {
   getVaultPda,
   getVaultReservePda,
 } from "../lib/pda";
+import type { PrismCoreProgram } from "../lib/accounts";
 
 // ── Test oracle keypair (same seed as app/api/ika-test-oracle/route.ts) ─────
 const TEST_ORACLE_SEED = Buffer.from(
@@ -88,7 +89,7 @@ describe("ika-collateral", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.PrismCore as Program<any>;
+  const program = anchor.workspace.PrismCore as PrismCoreProgram;
   const connection = provider.connection;
   const admin = (provider.wallet as anchor.Wallet).payer;
 
@@ -162,7 +163,7 @@ describe("ika-collateral", () => {
           config: configPda,
           usdcMint,
           systemProgram: SystemProgram.programId,
-        })
+        } as any)
         .rpc();
       console.log("  ✔ GlobalConfig initialized");
     } else {

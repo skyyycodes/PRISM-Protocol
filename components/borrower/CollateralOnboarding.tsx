@@ -226,7 +226,7 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
     attachMutation.mutate({
       vaultId,
       loanId,
-      dwallet: { dwalletId: Buffer.from(dwalletIdHex, 'hex'), dwalletCapId: '' },
+      dwallet: { dwalletId: Buffer.from(dwalletIdHex, 'hex'), dwalletObjectId: '' },
       chainId,
       collateralAmountUsd: BigInt(Math.round(usd * 1_000_000)),
       oraclePubkey: oraclePk,

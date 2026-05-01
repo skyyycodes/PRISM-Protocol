@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
 import { AnchorProvider, BN, Program } from '@coral-xyz/anchor';
-import { PublicKey, SYSVAR_INSTRUCTIONS_PUBKEY } from '@solana/web3.js';
+import { PublicKey, SystemProgram, type Connection } from '@solana/web3.js';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -13,7 +13,6 @@ import { PRISM_CORE_PROGRAM_ID } from '@/app/lib/constants';
 import { getConfigPda, getIkaCollateralPda, getLoanPda, getVaultPda } from '@/app/lib/pda';
 import {
   buildVerifyCollateralTx,
-  getOracleAttestation,
   IkaDwalletInfo,
   IkaChain,
   pollOracleAttestation,
@@ -34,6 +33,26 @@ export interface IkaCollateralState {
   bump: number;
 }
 
+type FetchableAccount<T = any> = {
+  fetch(address: PublicKey): Promise<T>;
+  fetchNullable(address: PublicKey): Promise<T | null>;
+};
+
+type PrismCoreProgram = Program<PrismCore> & {
+  account: {
+    ikaCollateral: FetchableAccount;
+    loan: FetchableAccount;
+  };
+};
+
+function buildPrismCoreProgram(
+  connection: Connection,
+  wallet: NonNullable<ReturnType<typeof useAnchorWallet>>,
+): PrismCoreProgram {
+  const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
+  return new Program<PrismCore>(prismCoreIdl as PrismCore, provider) as PrismCoreProgram;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Read: fetch IkaCollateral PDA state
 // ─────────────────────────────────────────────────────────────────────────────
@@ -47,11 +66,10 @@ export function useIkaCollateralAccount(loanPubkey: PublicKey | null) {
     enabled: !!loanPubkey && !!wallet,
     queryFn: async (): Promise<IkaCollateralState | null> => {
       if (!loanPubkey || !wallet) return null;
-      const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
-      const program = new Program<PrismCore>(prismCoreIdl as PrismCore, provider);
+      const program = buildPrismCoreProgram(connection, wallet);
       const [pda] = getIkaCollateralPda(loanPubkey);
       try {
-        const acc = await (program.account as any).ikaCollateral.fetch(pda);
+        const acc = await program.account.ikaCollateral.fetch(pda);
         return {
           loan: acc.loan,
           dwalletId: new Uint8Array(acc.dwalletId),
@@ -90,8 +108,7 @@ export function useAttachIkaCollateral() {
   return useMutation({
     mutationFn: async (params: AttachParams) => {
       if (!wallet) throw new Error('Wallet not connected');
-      const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
-      const program = new Program<PrismCore>(prismCoreIdl as PrismCore, provider);
+      const program = buildPrismCoreProgram(connection, wallet);
 
       const [vaultPda] = getVaultPda(params.vaultId);
       const [loanPda] = getLoanPda(vaultPda, params.loanId);
@@ -108,7 +125,7 @@ export function useAttachIkaCollateral() {
           borrower: wallet.publicKey,
           loan: loanPda,
           ikaCollateral: ikaCollateralPda,
-          systemProgram: PublicKey.default,
+          systemProgram: SystemProgram.programId,
         })
         .rpc({ commitment: 'confirmed' });
 
@@ -136,8 +153,7 @@ export function useVerifyIkaCollateral() {
   const verify = useCallback(
     async (params: VerifyParams & { dwalletId: Uint8Array; chainId: IkaChain }) => {
       if (!wallet) throw new Error('Wallet not connected');
-      const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
-      const program = new Program<PrismCore>(prismCoreIdl as PrismCore, provider);
+      const program = buildPrismCoreProgram(connection, wallet);
 
       const [vaultPda] = getVaultPda(params.vaultId);
       const [loanPda] = getLoanPda(vaultPda, params.loanId);
@@ -187,8 +203,7 @@ export function useLoanAccount(loanPubkey: PublicKey | null) {
     refetchInterval: 5_000,
     queryFn: async () => {
       if (!loanPubkey || !wallet) return null;
-      const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
-      const program = new Program<PrismCore>(prismCoreIdl as PrismCore, provider);
+      const program = buildPrismCoreProgram(connection, wallet);
       return program.account.loan.fetchNullable(loanPubkey);
     },
   });
@@ -207,8 +222,7 @@ export function useReleaseIkaCollateral() {
   return useMutation({
     mutationFn: async (params: ReleaseParams) => {
       if (!wallet) throw new Error('Wallet not connected');
-      const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
-      const program = new Program<PrismCore>(prismCoreIdl as PrismCore, provider);
+      const program = buildPrismCoreProgram(connection, wallet);
 
       const [vaultPda] = getVaultPda(params.vaultId);
       const [loanPda] = getLoanPda(vaultPda, params.loanId);
