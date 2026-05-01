@@ -16,7 +16,7 @@ pub struct Withdraw<'info> {
         mut,
         seeds = [b"vault", &vault.id.to_le_bytes()],
         bump = vault.bump,
-        constraint = vault.state == VaultState::Active @ PrismError::VaultNotActive
+        constraint = matches!(vault.state, VaultState::Active | VaultState::Defaulted) @ PrismError::VaultNotActive
     )]
     pub vault: Box<Account<'info, Vault>>,
 

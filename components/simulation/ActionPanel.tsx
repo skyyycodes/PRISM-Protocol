@@ -4,6 +4,7 @@ import { BN } from '@coral-xyz/anchor';
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
+  createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
 } from '@solana/spl-token';
 import { useConnection } from '@solana/wallet-adapter-react';
@@ -38,6 +39,7 @@ import {
   getCreditEventPda,
   getLoanPda,
   getLossBucketPda,
+  getLpMintPda,
   getPoolPda,
   getPoolQuoteReservePda,
   getPoolTrancheReservePda,
@@ -500,11 +502,58 @@ export function ActionPanel() {
           .rpc({ commitment: 'confirmed' });
       }
 
+      const usdcMint = vaultState.data?.usdcMint ?? USDC_MINT;
+
+      // Initialize AMM pools for each tranche
+      for (const kind of [TrancheKind.Prime, TrancheKind.Core, TrancheKind.Alpha] as const) {
+        const [trancheMint] = getTrancheMintPda(vault, kind, programs.core.programId);
+        const [pool] = getPoolPda(trancheMint, programs.amm.programId);
+        if (!(await programs.amm.account.ammPool.fetchNullable(pool))) {
+          await programs.amm.methods
+            .initializePool(30)
+            .accounts({
+              admin: admin.publicKey,
+              trancheMint,
+              quoteMint: usdcMint,
+              pool,
+              systemProgram: SystemProgram.programId,
+            })
+            .signers([admin])
+            .rpc({ commitment: 'confirmed' });
+          await programs.amm.methods
+            .initializePoolReserves()
+            .accounts({
+              admin: admin.publicKey,
+              pool,
+              trancheMint,
+              quoteMint: usdcMint,
+              trancheReserve: getPoolTrancheReservePda(trancheMint, programs.amm.programId)[0],
+              quoteReserve: getPoolQuoteReservePda(trancheMint, programs.amm.programId)[0],
+              lpMint: getLpMintPda(trancheMint, programs.amm.programId)[0],
+              tokenProgram: TOKEN_PROGRAM_ID,
+              systemProgram: SystemProgram.programId,
+            })
+            .signers([admin])
+            .rpc({ commitment: 'confirmed' });
+        }
+      }
+
+      // Ensure borrower USDC ATA exists so accrueYield doesn't fail with AccountNotInitialized
+      const borrower = identity.identities.borrower.keypair;
+      const borrowerAta = await getAssociatedTokenAddress(usdcMint, borrower.publicKey);
+      if (!(await connection.getAccountInfo(borrowerAta))) {
+        const { Transaction: Tx } = await import('@solana/web3.js');
+        const tx = new Tx().add(
+          createAssociatedTokenAccountInstruction(admin.publicKey, borrowerAta, borrower.publicKey, usdcMint),
+        );
+        await programs.core.provider.sendAndConfirm(tx, [admin]);
+      }
+
       addEntry({
         action: 'Initialize Vault Scaffold',
         role: 'Protocol Admin',
         status: 'info',
-        message: 'Config, vault, reserves, tranches, and loan were checked or initialized on-chain.',
+        message: 'Config, vault, reserves, tranches, loan, AMM pools, and borrower ATA were checked or initialized on-chain.',
         navSnapshot: await navSnapshot(),
         deltas: {},
       });

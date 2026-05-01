@@ -8,6 +8,7 @@ import { IdentityProvider } from '@/hooks/useIdentity';
 import { SimulationActionProvider } from '@/hooks/useSimulationActions';
 import { SimulationLogProvider } from '@/hooks/useSimulationLog';
 
+import { LoanApplicationProvider } from '@/hooks/useLoanApplications';
 import { SolanaWalletProvider } from './solana-wallet-provider';
 
 export function AppProviders({ children }: { children: ReactNode }) {
@@ -28,7 +29,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <IdentityProvider>
           <SimulationLogProvider>
-            <SimulationActionProvider>{children}</SimulationActionProvider>
+            <SimulationActionProvider>
+              <LoanApplicationProvider>{children}</LoanApplicationProvider>
+            </SimulationActionProvider>
           </SimulationLogProvider>
         </IdentityProvider>
         <Toaster richColors position="bottom-right" />

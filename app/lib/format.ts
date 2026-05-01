@@ -11,7 +11,7 @@ export function toBigInt(value: unknown): bigint {
 }
 
 export function parseUsdc(value: string): bigint {
-  const trimmed = value.trim();
+  const trimmed = value.trim().replace(/,/g, '');
   if (!trimmed) return 0n;
   const [whole = '0', rawFraction = ''] = trimmed.split('.');
   const fraction = rawFraction.padEnd(6, '0').slice(0, 6);

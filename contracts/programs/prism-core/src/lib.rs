@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("4UwFjEnF8onQNzNSmrG3tqNe9fBbcucCz4Emg6ket6gR");
+declare_id!("GGb2hHKWGxFT72wFDMtyLrqCj9yQaE8etpPTw1p26BKp");
 
 pub mod errors;
 pub mod events;
@@ -100,5 +100,37 @@ pub mod prism_core {
 
     pub fn unpause(ctx: Context<Pause>) -> Result<()> {
         instructions::unpause_handler(ctx)
+    }
+
+    // ── IKA collateral instructions ────────────────────────────────────────
+
+    pub fn attach_ika_collateral(
+        ctx: Context<AttachIkaCollateral>,
+        dwallet_id: [u8; 32],
+        chain_id: u8,
+        collateral_amount_usd: u64,
+        oracle_pubkey: Pubkey,
+    ) -> Result<()> {
+        instructions::attach_ika_collateral_handler(
+            ctx,
+            dwallet_id,
+            chain_id,
+            collateral_amount_usd,
+            oracle_pubkey,
+        )
+    }
+
+    /// Must be called as instruction index 1 in a tx where index 0 is an
+    /// ed25519 native-program instruction containing the oracle's signature.
+    pub fn verify_ika_collateral(ctx: Context<VerifyIkaCollateral>) -> Result<()> {
+        instructions::verify_ika_collateral_handler(ctx)
+    }
+
+    pub fn release_ika_collateral(ctx: Context<ReleaseIkaCollateral>) -> Result<()> {
+        instructions::release_ika_collateral_handler(ctx)
+    }
+
+    pub fn liquidate_ika_collateral(ctx: Context<LiquidateIkaCollateral>) -> Result<()> {
+        instructions::liquidate_ika_collateral_handler(ctx)
     }
 }

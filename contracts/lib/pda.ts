@@ -141,3 +141,13 @@ export function getLpMintPda(
     programId
   );
 }
+
+export function getIkaCollateralPda(
+  loan: PublicKey,
+  programId: PublicKey = PRISM_CORE_PROGRAM_ID
+): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("ika_collateral"), loan.toBuffer()],
+    programId
+  );
+}

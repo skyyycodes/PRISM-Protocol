@@ -30,4 +30,15 @@ pub enum PrismError {
     TrancheWipedNoDepositsAllowed,
     #[msg("Switchboard feed value is older than freshness threshold")]
     OracleStale,
+    // ── IKA collateral errors ──────────────────────────────────────────────
+    #[msg("IKA collateral is not in Locked state; disbursement blocked")]
+    CollateralNotLocked,
+    #[msg("Oracle signature invalid or message mismatch")]
+    OracleSignatureInvalid,
+    #[msg("dWallet ID in attestation does not match registered collateral")]
+    DwalletIdMismatch,
+    #[msg("Collateral USD value is insufficient to cover loan principal")]
+    InsufficientCollateral,
+    #[msg("Collateral already locked; cannot re-verify")]
+    CollateralAlreadyLocked,
 }

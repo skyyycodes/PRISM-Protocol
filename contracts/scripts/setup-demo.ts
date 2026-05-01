@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program, BN, AnchorProvider, workspace } from "@coral-xyz/anchor";
+import { BN, AnchorProvider, workspace } from "@coral-xyz/anchor";
 import { 
   Connection, 
   Keypair, 
@@ -31,6 +31,7 @@ import {
   getLpMintPda,
   TrancheKind 
 } from "../lib/pda";
+import type { PrismAmmProgram, PrismCoreProgram } from "../lib/accounts";
 
 dotenv.config();
 
@@ -49,8 +50,8 @@ interface SetupContext {
   connection: Connection;
   provider: AnchorProvider;
   programs: {
-    core: Program<any>;
-    amm: Program<any>;
+    core: PrismCoreProgram;
+    amm: PrismAmmProgram;
   };
   wallets: {
     admin: Keypair;
@@ -82,8 +83,8 @@ async function loadContext(): Promise<SetupContext> {
   anchor.setProvider(provider);
 
   // Note: workspace typing depends on anchor build having run. Using any for now.
-  const core = (workspace as any).PrismCore as Program<any>;
-  const amm  = (workspace as any).PrismAmm  as Program<any>;
+  const core = (workspace as any).PrismCore as PrismCoreProgram;
+  const amm  = (workspace as any).PrismAmm  as PrismAmmProgram;
 
   const wallets = {
     admin,
@@ -194,14 +195,14 @@ async function initializeGlobalConfig(ctx: SetupContext) {
     return;
   }
 
-  await ctx.programs.core.methods
+  await (ctx.programs.core.methods as any)
     .initializeGlobalConfig(0, [ctx.wallets.borrower.publicKey])
     .accounts({
       admin: ctx.wallets.admin.publicKey,
       config: ctx.pdas.config,
       usdcMint: ctx.usdcMint,
       systemProgram: SystemProgram.programId,
-    })
+    } as any)
     .signers([ctx.wallets.admin])
     .rpc({ commitment: "confirmed" });
 

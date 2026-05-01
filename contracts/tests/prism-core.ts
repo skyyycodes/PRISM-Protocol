@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program, BN } from "@coral-xyz/anchor";
+import { BN } from "@coral-xyz/anchor";
 import { 
   PublicKey, 
   SystemProgram, 
@@ -26,12 +26,13 @@ import {
   getLoanPda,
   TrancheKind 
 } from "../lib/pda";
+import type { PrismCoreProgram } from "../lib/accounts";
 
 describe("prism-core", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.PrismCore as Program<any>;
+  const program = anchor.workspace.PrismCore as PrismCoreProgram;
   const connection = provider.connection;
 
   // Test state
@@ -348,6 +349,7 @@ describe("prism-core", () => {
         vaultUsdcReserve: reservePda,
         borrowerUsdcAta: borrowerUsdcAta,
         tokenProgram: TOKEN_PROGRAM_ID,
+        ikaCollateral: null,
       })
       .rpc();
 

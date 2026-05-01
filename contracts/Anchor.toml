@@ -5,18 +5,19 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-prism_amm = "9jzqUXjdq6F13Tu6kWYg5d7iuJNEaCuCebNpBxnijUG"
-prism_core = "Dg1PpRKjMJsGMFxPPHix65TGbma861JiervB7MtZeEQP"
+prism_amm = "6xu3TJubMGdepBDoyKN4dC8rHytK35FRbG2fdZ1S5M6Q"
+prism_core = "GGb2hHKWGxFT72wFDMtyLrqCj9yQaE8etpPTw1p26BKp"
+
+[registry]
+url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "Localnet"
 wallet = "keys/admin.json"
 
 [scripts]
 setup = "yarn run ts-node scripts/setup-demo.ts"
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
-
-[hooks]
 
 [test]
 startup_wait = 5000
