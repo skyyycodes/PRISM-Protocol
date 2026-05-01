@@ -8,7 +8,7 @@ pub struct InitializeTranche<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
 
-    #[account(seeds = [b"config2"], bump, has_one = admin)]
+    #[account(seeds = [b"config"], bump, has_one = admin)]
     pub config: Account<'info, GlobalConfig>,
 
     #[account(mut, seeds = [b"vault", &vault.id.to_le_bytes()], bump = vault.bump)]

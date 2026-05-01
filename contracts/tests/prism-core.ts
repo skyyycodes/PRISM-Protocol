@@ -348,6 +348,7 @@ describe("prism-core", () => {
         vaultUsdcReserve: reservePda,
         borrowerUsdcAta: borrowerUsdcAta,
         tokenProgram: TOKEN_PROGRAM_ID,
+        ikaCollateral: null,
       })
       .rpc();
 

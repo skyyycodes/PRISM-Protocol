@@ -105,3 +105,24 @@ pub enum CreditEventType {
     PartialLoss,
     Recovery,
 }
+
+#[account]
+#[derive(InitSpace)]
+pub struct IkaCollateral {
+    pub loan: Pubkey,
+    pub dwallet_id: [u8; 32],
+    pub chain_id: u8,
+    pub collateral_amount_usd: u64,
+    pub status: CollateralStatus,
+    pub oracle_pubkey: Pubkey,
+    pub locked_ts: i64,
+    pub bump: u8,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, InitSpace)]
+pub enum CollateralStatus {
+    Pending,
+    Locked,
+    Released,
+    Liquidated,
+}

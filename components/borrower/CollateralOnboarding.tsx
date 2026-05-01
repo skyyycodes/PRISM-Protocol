@@ -12,6 +12,7 @@ import {
   useAttachIkaCollateral,
   useVerifyIkaCollateral,
   useReleaseIkaCollateral,
+  useLoanAccount,
 } from '@/hooks/useIkaCollateral';
 import { getVaultPda, getLoanPda } from '@/app/lib/pda';
 
@@ -40,6 +41,8 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
   const [loanPda] = getLoanPda(vaultPda, loanId);
 
   const { data: collateral, isLoading } = useIkaCollateralAccount(loanPda);
+  const { data: loan } = useLoanAccount(loanPda);
+  const loanIsRepaid = loan?.state != null && 'repaid' in (loan.state as object);
 
   const attachMutation = useAttachIkaCollateral();
   const { verify, isPolling } = useVerifyIkaCollateral();
@@ -139,13 +142,19 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
         )}
 
         {collateral.status === 'Locked' && (
-          <button
-            disabled={releaseMutation.isPending}
-            onClick={() => releaseMutation.mutate({ vaultId, loanId })}
-            className="w-full rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
-          >
-            {releaseMutation.isPending ? 'Releasing…' : 'Release Collateral (after repayment)'}
-          </button>
+          loanIsRepaid ? (
+            <button
+              disabled={releaseMutation.isPending}
+              onClick={() => releaseMutation.mutate({ vaultId, loanId })}
+              className="w-full rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+            >
+              {releaseMutation.isPending ? 'Releasing…' : 'Release Collateral'}
+            </button>
+          ) : (
+            <p className="text-xs text-slate-500 bg-slate-50 rounded-lg p-2 border border-slate-200">
+              Repay your loan in full before releasing collateral.
+            </p>
+          )
         )}
 
         {collateral.status === 'Released' && (

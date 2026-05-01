@@ -173,6 +173,27 @@ export function useVerifyIkaCollateral() {
   return { verify, isPolling };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Read: fetch Loan account state (for gating release)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function useLoanAccount(loanPubkey: PublicKey | null) {
+  const { connection } = useConnection();
+  const wallet = useAnchorWallet();
+
+  return useQuery({
+    queryKey: ['loan-account', loanPubkey?.toBase58()],
+    enabled: !!loanPubkey && !!wallet,
+    refetchInterval: 5_000,
+    queryFn: async () => {
+      if (!loanPubkey || !wallet) return null;
+      const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
+      const program = new Program<PrismCore>(prismCoreIdl as PrismCore, provider);
+      return program.account.loan.fetchNullable(loanPubkey);
+    },
+  });
+}
+
 interface ReleaseParams {
   vaultId: number;
   loanId: number;

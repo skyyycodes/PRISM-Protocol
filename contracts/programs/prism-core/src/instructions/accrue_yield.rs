@@ -8,7 +8,7 @@ pub struct AccrueYield<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
 
-    #[account(seeds = [b"config2"], bump)]
+    #[account(seeds = [b"config"], bump)]
     pub config: Account<'info, GlobalConfig>,
 
     #[account(

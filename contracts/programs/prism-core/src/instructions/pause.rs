@@ -5,7 +5,7 @@ use anchor_lang::prelude::*;
 pub struct Pause<'info> {
     pub admin: Signer<'info>,
 
-    #[account(mut, seeds = [b"config2"], bump, has_one = admin)]
+    #[account(mut, seeds = [b"config"], bump, has_one = admin)]
     pub config: Account<'info, GlobalConfig>,
 }
 

@@ -5,11 +5,13 @@ import { useLoanApplications } from '@/hooks/useLoanApplications';
 import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { AnchorProvider, Program, BN, type Idl } from '@coral-xyz/anchor';
-import { SystemProgram, SYSVAR_RENT_PUBKEY, PublicKey } from '@solana/web3.js';
+import { SystemProgram, SYSVAR_RENT_PUBKEY, PublicKey, Transaction } from '@solana/web3.js';
 import {
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getAssociatedTokenAddress,
+  createMintToInstruction,
+  createAssociatedTokenAccountInstruction,
 } from '@solana/spl-token';
 import { toast } from 'sonner';
 
@@ -29,6 +31,7 @@ import {
   getLossBucketPda,
   getLoanPda,
   getCreditEventPda,
+  getIkaCollateralPda,
   getPoolPda,
   getPoolTrancheReservePda,
   getPoolQuoteReservePda,
@@ -70,6 +73,7 @@ export function AdminPanel() {
     lossAmount: '6500',
     severity: '100',
     repayAmount: '20000',
+    faucetAmount: '1000',
   });
 
   const [activeMode, setActiveMode] = useState<'auto' | 'manual'>('auto');
@@ -546,6 +550,57 @@ export function AdminPanel() {
     }
   }
 
+  async function mintUsdc() {
+    if (!wallet) { toast.error('Connect wallet first'); return; }
+    try {
+      const admin = wallet.publicKey;
+      const amount = Math.round(parseFloat(params.faucetAmount) * 1_000_000);
+      if (isNaN(amount) || amount <= 0) { toast.error('Enter a valid USDC amount'); return; }
+      const ata = await getAssociatedTokenAddress(USDC_MINT, admin);
+      const ataInfo = await connection.getAccountInfo(ata);
+      const tx = new Transaction();
+      if (!ataInfo) {
+        tx.add(createAssociatedTokenAccountInstruction(admin, ata, admin, USDC_MINT));
+      }
+      tx.add(createMintToInstruction(USDC_MINT, ata, admin, BigInt(amount)));
+      tx.recentBlockhash = (await connection.getLatestBlockhash('confirmed')).blockhash;
+      tx.feePayer = admin;
+      const signed = await wallet.signTransaction(tx);
+      const sig = await connection.sendRawTransaction(signed.serialize());
+      await connection.confirmTransaction(sig, 'confirmed');
+      addLog(`✓ Minted ${params.faucetAmount} USDC to ${admin.toBase58().slice(0, 8)}…`);
+      toast.success(`Minted ${params.faucetAmount} devnet USDC to your wallet`);
+    } catch (e: any) {
+      addLog(`✗ Faucet: ${e.message}`);
+      toast.error(`Mint failed: ${e.message} — wallet must be mint authority`);
+    }
+  }
+
+  async function liquidateCollateral() {
+    if (!wallet) { toast.error('Connect wallet first'); return; }
+    try {
+      const { core } = getPrograms();
+      const p = getPdas();
+      const admin = wallet.publicKey;
+      const [ikaCollateralPda] = getIkaCollateralPda(p.loan);
+      await core.methods
+        .liquidateIkaCollateral()
+        .accounts({
+          admin,
+          config: p.config,
+          vault: p.vault,
+          loan: p.loan,
+          ikaCollateral: ikaCollateralPda,
+        })
+        .rpc({ commitment: 'confirmed' });
+      addLog('✓ IKA collateral liquidated — IKA Network will seize BTC/ETH');
+      toast.success('Collateral liquidated');
+    } catch (e: any) {
+      addLog(`✗ Liquidate: ${e.message}`);
+      toast.error(`Liquidation failed: ${e.message}`);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       {/* Header */}
@@ -719,6 +774,26 @@ export function AdminPanel() {
             </button>
           ))}
         </div>
+
+        {/* Dev Faucet — only works if wallet is USDC mint authority */}
+        <div className="flex items-center gap-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+          <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider whitespace-nowrap">Dev Faucet</span>
+          <input
+            type="text"
+            value={params.faucetAmount}
+            onChange={(e) => setParams(p => ({ ...p, faucetAmount: e.target.value }))}
+            className="w-20 bg-black/30 border border-amber-500/20 rounded px-2 py-1 text-[10px] text-white focus:outline-none"
+          />
+          <span className="text-[10px] text-amber-400/50">USDC</span>
+          <button
+            onClick={mintUsdc}
+            disabled={!wallet}
+            className="rounded bg-amber-500/20 border border-amber-500/30 px-3 py-1 text-[10px] font-semibold text-amber-200 hover:bg-amber-500/30 disabled:opacity-40 whitespace-nowrap"
+          >
+            Mint to Wallet
+          </button>
+          <span className="text-[10px] text-white/20 truncate">wallet must be mint authority</span>
+        </div>
       </section>
 
       {/* Step 3: Simulate Events */}
@@ -794,7 +869,16 @@ export function AdminPanel() {
                 Repay Loan
               </button>
             </div>
-            <p className="text-[10px] text-white/25">Disburse sends vault reserve USDC to the borrower. Repay returns USDC back into the reserve.</p>
+            {ikaStatus === 'Locked' && (
+              <button
+                onClick={liquidateCollateral}
+                disabled={!wallet}
+                className="w-full py-1.5 rounded bg-orange-500/20 border border-orange-500/30 text-orange-200 text-xs font-semibold hover:bg-orange-500/30 transition-all disabled:opacity-40"
+              >
+                Liquidate IKA Collateral
+              </button>
+            )}
+            <p className="text-[10px] text-white/25">Disburse sends vault reserve USDC to the borrower. Repay returns USDC back into the reserve. Liquidate seizes IKA collateral after a vault default.</p>
           </div>
 
           {/* Default Simulation */}

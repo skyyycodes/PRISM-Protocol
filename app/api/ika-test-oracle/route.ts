@@ -13,9 +13,9 @@
  *   Change NEXT_PUBLIC_IKA_ORACLE_URL to the real IKA oracle and remove this file.
  */
 
+import { createPrivateKey, createPublicKey, sign } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { PublicKey } from '@solana/web3.js';
-import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 
 // Fixed 32-byte seed for the test oracle keypair.
 // Solana base58 pubkey: SBEJ7epASX4irgiMqL5uVTunT8YpTZW7bLpRYdHpS4G
@@ -24,8 +24,16 @@ const TEST_SEED = Buffer.from(
   'hex',
 );
 
-const oracleKeypair = Ed25519Keypair.fromSecretKey(TEST_SEED);
-const oraclePublicKey = new PublicKey(oracleKeypair.getPublicKey().toRawBytes());
+// PKCS#8 DER header for an Ed25519 private key (OID 1.3.101.112).
+const PKCS8_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex');
+const oraclePrivateKey = createPrivateKey({
+  key: Buffer.concat([PKCS8_PREFIX, TEST_SEED]),
+  format: 'der',
+  type: 'pkcs8',
+});
+const oraclePublicKey = new PublicKey(
+  createPublicKey(oraclePrivateKey).export({ type: 'spki', format: 'der' }).slice(-32),
+);
 
 export const TEST_ORACLE_PUBKEY = oraclePublicKey.toBase58();
 
@@ -65,7 +73,7 @@ export async function POST(req: NextRequest) {
   }
 
   const message = buildMessage(dwallet_id, chain_id, TEST_COLLATERAL_USD_MICRO, loan_pubkey);
-  const signature = await oracleKeypair.sign(message);
+  const signature = sign(null, message, oraclePrivateKey);
 
   return NextResponse.json({
     signature: Buffer.from(signature).toString('hex'),

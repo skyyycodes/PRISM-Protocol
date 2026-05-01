@@ -21,7 +21,7 @@ pub struct VerifyIkaCollateral<'info> {
     pub signer: Signer<'info>,
 
     /// Read oracle_allowlist to validate the signer's key.
-    #[account(seeds = [b"config2"], bump)]
+    #[account(seeds = [b"config"], bump)]
     pub config: Account<'info, GlobalConfig>,
 
     pub loan: Account<'info, Loan>,

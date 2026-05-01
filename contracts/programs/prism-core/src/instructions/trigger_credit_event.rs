@@ -8,7 +8,7 @@ pub struct TriggerCreditEvent<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
 
-    #[account(seeds = [b"config2"], bump)]
+    #[account(seeds = [b"config"], bump)]
     pub config: Box<Account<'info, GlobalConfig>>,
 
     #[account(

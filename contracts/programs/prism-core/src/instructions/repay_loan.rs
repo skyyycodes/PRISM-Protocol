@@ -6,7 +6,7 @@ use anchor_spl::token::{Token, TokenAccount};
 pub struct RepayLoan<'info> {
     pub borrower: Signer<'info>,
 
-    #[account(seeds = [b"config2"], bump)]
+    #[account(seeds = [b"config"], bump)]
     pub config: Account<'info, GlobalConfig>,
 
     #[account(mut, seeds = [b"vault", &vault.id.to_le_bytes()], bump = vault.bump)]

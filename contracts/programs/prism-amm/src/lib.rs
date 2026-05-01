@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("7H5nPYgcKtZef1BZjFx3F3cYEbzgLp3cCKBpesGMvfd2");
+declare_id!("6xu3TJubMGdepBDoyKN4dC8rHytK35FRbG2fdZ1S5M6Q");
 // Replace after first `anchor build` with the actual program ID from
 // target/deploy/prism_amm-keypair.json (run `solana address -k <path>`)
 
