@@ -34,7 +34,7 @@ export function InfrastructureSection({ id = "infra" }: { id?: string }) {
   }, []);
 
   return (
-    <section id={id} ref={sectionRef} className="relative flex h-screen items-center overflow-hidden pt-20">
+    <section id={id} ref={sectionRef} className="relative flex min-h-[100svh] items-center overflow-hidden py-24 lg:h-screen lg:py-0 lg:pt-20">
         {/* Background accent — retiré, remplacé par l'image sphère */}
       
       <div className="w-full max-w-[1400px] mx-auto px-6 lg:px-12">
@@ -49,7 +49,7 @@ export function InfrastructureSection({ id = "infra" }: { id?: string }) {
           
           <div className="grid lg:grid-cols-[auto_1fr] gap-6 lg:gap-10 items-stretch">
             {/* Image globe — colonne gauche, pleine hauteur */}
-            <div className={`w-36 lg:w-52 xl:w-60 shrink-0 transition-all duration-1000 ${
+            <div className={`hidden w-36 shrink-0 transition-all duration-1000 sm:block lg:w-52 xl:w-60 ${
               isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
             }`}>
               <img
@@ -61,7 +61,7 @@ export function InfrastructureSection({ id = "infra" }: { id?: string }) {
 
             {/* Titre + description empilés */}
             <div className="flex flex-col justify-center">
-              <h2 className={`text-5xl md:text-6xl lg:text-[104px] font-display tracking-tight leading-[0.9] transition-all duration-1000 ${
+              <h2 className={`font-display text-5xl leading-[0.92] tracking-tight transition-all duration-1000 sm:text-6xl lg:text-[104px] lg:leading-[0.9] ${
                 isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
               }`}>
                 On-chain by
@@ -81,7 +81,7 @@ export function InfrastructureSection({ id = "infra" }: { id?: string }) {
         {/* Main content grid */}
         <div className="grid lg:grid-cols-3 gap-4 lg:gap-5">
           {/* Large stat card */}
-          <div className={`lg:col-span-2 relative p-6 lg:p-8 border border-foreground/10 bg-foreground/[0.02] overflow-hidden transition-all duration-700 ${
+          <div className={`lg:col-span-2 relative overflow-hidden border border-foreground/10 bg-foreground/[0.02] p-5 transition-all duration-700 sm:p-6 lg:p-8 ${
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}>
             {/* Animated dots background with connecting lines */}
@@ -143,8 +143,8 @@ export function InfrastructureSection({ id = "infra" }: { id?: string }) {
             
             <div className="relative z-10">
               <div className="flex items-baseline gap-2 mb-3">
-                <span className="text-7xl lg:text-[8rem] font-display leading-none">2</span>
-                <span className="text-2xl text-muted-foreground">programs</span>
+                <span className="font-display text-6xl leading-none sm:text-7xl lg:text-[8rem]">2</span>
+                <span className="text-xl text-muted-foreground sm:text-2xl">programs</span>
               </div>
               <p className="text-muted-foreground max-w-md">
                 Credit risk engine and market layer separated for blast-radius isolation. AMM bug ≠ vault failure.
@@ -154,14 +154,14 @@ export function InfrastructureSection({ id = "infra" }: { id?: string }) {
 
           {/* Stacked stat cards */}
           <div className="flex flex-col gap-4 lg:gap-5">
-            <div className={`p-6 border border-foreground/10 bg-foreground/[0.02] transition-all duration-700 delay-100 ${
+            <div className={`border border-foreground/10 bg-foreground/[0.02] p-5 transition-all duration-700 delay-100 sm:p-6 ${
               isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
             }`}>
               <span className="text-4xl lg:text-5xl font-display">100%</span>
               <span className="block text-sm text-muted-foreground mt-2">On-chain transparency</span>
             </div>
 
-            <div className={`p-6 border border-foreground/10 bg-foreground/[0.02] transition-all duration-700 delay-200 ${
+            <div className={`border border-foreground/10 bg-foreground/[0.02] p-5 transition-all duration-700 delay-200 sm:p-6 ${
               isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
             }`}>
               <span className="text-4xl lg:text-5xl font-display">&lt;400ms</span>
@@ -171,7 +171,7 @@ export function InfrastructureSection({ id = "infra" }: { id?: string }) {
         </div>
 
         {/* Region list */}
-        <div className={`mt-6 grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 transition-all duration-1000 delay-300 ${
+        <div className={`mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4 transition-all duration-1000 delay-300 ${
           isVisible ? "opacity-100" : "opacity-0"
         }`}>
           {regions.map((region, index) => (

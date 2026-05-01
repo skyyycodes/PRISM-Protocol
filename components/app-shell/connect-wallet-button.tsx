@@ -29,10 +29,11 @@ export function ConnectWalletButton() {
       <button
         type="button"
         onClick={() => setVisible(true)}
-        className="hidden h-12 items-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 px-7 text-sm font-semibold text-pink-300 transition-colors hover:bg-pink-500/20 md:inline-flex"
+        className="inline-flex h-10 w-10 items-center justify-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 text-sm font-semibold text-pink-300 transition-colors hover:bg-pink-500/20 md:h-12 md:w-auto md:px-7"
+        aria-label="Connect wallet"
       >
         <Wallet className="h-4 w-4" />
-        Connect Wallet
+        <span className="hidden md:inline">Connect Wallet</span>
       </button>
     );
   }
@@ -40,11 +41,12 @@ export function ConnectWalletButton() {
   const address = publicKey.toBase58();
 
   return (
-    <div ref={ref} className="relative hidden md:block">
+    <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-12 items-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 px-5 text-sm font-semibold text-pink-200 transition-colors hover:bg-pink-500/20"
+        className="flex h-10 w-10 items-center justify-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 text-sm font-semibold text-pink-200 transition-colors hover:bg-pink-500/20 md:h-12 md:w-auto md:px-5"
+        aria-label="Wallet menu"
       >
         {wallet?.adapter.icon ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -52,10 +54,10 @@ export function ConnectWalletButton() {
         ) : (
           <Wallet className="h-4 w-4" />
         )}
-        <span className="font-mono text-xs">{shortAddress(address)}</span>
+        <span className="hidden font-mono text-xs md:inline">{shortAddress(address)}</span>
         <ChevronDown
           className={[
-            "h-3.5 w-3.5 transition-transform",
+            "hidden h-3.5 w-3.5 transition-transform md:block",
             open ? "rotate-180" : "",
           ].join(" ")}
         />

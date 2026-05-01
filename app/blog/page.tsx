@@ -21,15 +21,15 @@ const featuredPosts = [
     metricLabel: "credit market",
   },
   {
-    category: "Architecture",
+    category: "Market design",
     date: "APR 2026",
-    title: "Separating the vault engine from the market layer.",
+    title: "Solana fixed speed. It didn't fix credit.",
     excerpt:
-      "The case for two Anchor programs: one for credit accounting, one for secondary-market liquidity, with a smaller blast radius between them.",
-    href: `${docsBase}system-architecture`,
+      "Solana made execution fast and cheap. PRISM adds the missing credit primitive: explicit risk, structured markets, and liquid exposure.",
+    href: "/blog/solana-fixed-speed-not-credit",
     image: "/images/isolated.jpg",
-    metric: "2",
-    metricLabel: "programs",
+    metric: "3",
+    metricLabel: "risk layers",
   },
 ];
 
@@ -92,7 +92,8 @@ function ArticleCard({
 
       <div className="relative z-10 flex h-full flex-col justify-between gap-8">
         <div>
-          <div className="mb-5 flex items-center gap-3 font-mono text-xs uppercase text-muted-foreground lg:mb-4">
+          <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs uppercase text-muted-foreground lg:mb-4">
+            <span className="text-foreground/25">0{index + 1}</span>
             <span>{post.category}</span>
             <span className="h-px w-8 bg-foreground/20" />
             <span>{post.date}</span>
@@ -126,10 +127,6 @@ function ArticleCard({
           {post.metricLabel}
         </div>
       </div>
-
-      <span className="absolute left-6 top-6 font-mono text-xs text-foreground/20 md:left-10 lg:left-12">
-        0{index + 1}
-      </span>
     </article>
   );
 }

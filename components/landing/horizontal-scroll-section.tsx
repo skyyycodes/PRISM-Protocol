@@ -35,8 +35,24 @@ export function HorizontalScrollSection() {
   const exitIntentResetTimerRef = useRef(0);
   const upIntentResetTimerRef = useRef(0);
   const [progress, setProgress] = useState(0);
+  const [isHorizontalEnabled, setIsHorizontalEnabled] = useState(false);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    const syncMode = () => setIsHorizontalEnabled(mediaQuery.matches);
+
+    syncMode();
+    mediaQuery.addEventListener("change", syncMode);
+
+    return () => mediaQuery.removeEventListener("change", syncMode);
+  }, []);
+
+  useEffect(() => {
+    if (!isHorizontalEnabled) {
+      setProgress(0);
+      return;
+    }
+
     const updateProgress = () => {
       if (!sectionRef.current) return;
 
@@ -220,7 +236,19 @@ export function HorizontalScrollSection() {
       window.removeEventListener("resize", requestUpdate);
       window.removeEventListener("horizontal-last-panel-entry-lock", handleLastPanelEntryLock);
     };
-  }, []);
+  }, [isHorizontalEnabled]);
+
+  if (!isHorizontalEnabled) {
+    return (
+      <section ref={sectionRef} className="relative bg-background">
+        {panels.map((panel) => (
+          <div key={panel.id} id={panel.id} className="relative">
+            {panel.component}
+          </div>
+        ))}
+      </section>
+    );
+  }
 
   return (
     <section

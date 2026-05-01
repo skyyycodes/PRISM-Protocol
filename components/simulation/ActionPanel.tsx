@@ -555,9 +555,9 @@ export function ActionPanel() {
               <Landmark className="h-4 w-4 text-white/50" />
               {investorTrancheConfig.label} tranche entry
             </div>
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
               <Input value={depositAmount} onChange={(event) => setDepositAmount(event.target.value)} />
-              <Button disabled={busy} onClick={() => deposit.mutate()} className="gap-2">
+              <Button disabled={busy} onClick={() => deposit.mutate()} className="w-full gap-2 sm:w-auto">
                 <WalletCards className="h-4 w-4" />
                 Deposit
               </Button>
@@ -570,10 +570,10 @@ export function ActionPanel() {
             </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
               <Input value={withdrawShares} onChange={(event) => setWithdrawShares(event.target.value)} />
-              <Button disabled={busy} variant="secondary" onClick={() => withdraw.mutate()}>
+              <Button disabled={busy} variant="secondary" onClick={() => withdraw.mutate()} className="w-full sm:w-auto">
                 Withdraw
               </Button>
-              <Button disabled={busy} variant="outline" onClick={() => emergencySell.mutate()} className="gap-2">
+              <Button disabled={busy} variant="outline" onClick={() => emergencySell.mutate()} className="w-full gap-2 sm:w-auto">
                 <TrendingDown className="h-4 w-4" />
                 AMM Exit
               </Button>
@@ -589,10 +589,10 @@ export function ActionPanel() {
             <div className="text-sm font-medium text-white">Loan lifecycle</div>
             <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
               <Input value={loanAmount} onChange={(event) => setLoanAmount(event.target.value)} />
-              <Button disabled={busy} onClick={() => disburse.mutate()}>
+              <Button disabled={busy} onClick={() => disburse.mutate()} className="w-full sm:w-auto">
                 Disburse
               </Button>
-              <Button disabled={busy} variant="secondary" onClick={() => repay.mutate()}>
+              <Button disabled={busy} variant="secondary" onClick={() => repay.mutate()} className="w-full sm:w-auto">
                 Repay
               </Button>
             </div>
@@ -609,23 +609,23 @@ export function ActionPanel() {
             </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
               <Input value={yieldAmount} onChange={(event) => setYieldAmount(event.target.value)} />
-              <Button disabled={busy} onClick={() => accrueYield.mutate()}>
+              <Button disabled={busy} onClick={() => accrueYield.mutate()} className="w-full sm:w-auto">
                 Accrue Yield
               </Button>
             </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
               <Input value={lossAmount} onChange={(event) => setLossAmount(event.target.value)} />
-              <Button disabled={busy} variant="destructive" onClick={() => triggerDefault.mutate()} className="gap-2">
+              <Button disabled={busy} variant="destructive" onClick={() => triggerDefault.mutate()} className="w-full gap-2 sm:w-auto">
                 <ShieldAlert className="h-4 w-4" />
                 Trigger Default
               </Button>
             </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <Button disabled={busy} variant="outline" onClick={() => marketReaction.mutate()} className="gap-2">
+              <Button disabled={busy} variant="outline" onClick={() => marketReaction.mutate()} className="w-full gap-2">
                 <Flame className="h-4 w-4" />
                 Run Market Reaction
               </Button>
-              <Button disabled={busy} variant="secondary" onClick={() => initialize.mutate()} className="gap-2">
+              <Button disabled={busy} variant="secondary" onClick={() => initialize.mutate()} className="w-full gap-2">
                 <RotateCcw className="h-4 w-4" />
                 Initialize
               </Button>

@@ -34,22 +34,23 @@ export function AppTopbar() {
   const [view, setView] = useState<"grid" | "list">("grid");
 
   return (
-    <div className="relative flex-shrink-0 border-b border-white/10 px-6 py-3">
+    <div className="relative flex-shrink-0 border-b border-white/10 px-4 py-3 sm:px-6">
       <div className="flex items-center gap-3">
         <button
           type="button"
           aria-label="Open filters"
-          className="inline-flex items-center gap-1.5 rounded-md border border-white/10 px-3 py-2 text-sm text-white/85 transition-colors hover:bg-white/10 lg:hidden"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/10 text-sm text-white/85 transition-colors hover:bg-white/10 sm:w-auto sm:px-3 sm:py-2 lg:hidden"
         >
           <Sliders className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Filters</span>
         </button>
 
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/40" />
           <input
             type="text"
-            placeholder="Search vaults, tranches, pools..."
-            className="h-9 w-full rounded-md border border-white/10 bg-black/50 px-4 pl-9 text-sm text-white placeholder:text-white/35 transition-colors focus:border-white/30 focus:outline-none"
+            placeholder="Search PRISM..."
+            className="h-9 w-full rounded-md border border-white/10 bg-black/50 px-4 pl-9 text-sm text-white placeholder:text-white/35 transition-colors focus:border-white/30 focus:outline-none sm:placeholder:text-white/35"
           />
         </div>
 
@@ -148,7 +149,7 @@ export function AppTopbar() {
             </button>
           );
         })}
-        <div className="ml-auto flex-shrink-0 whitespace-nowrap pl-4 text-xs text-white/50">
+        <div className="ml-auto hidden flex-shrink-0 whitespace-nowrap pl-4 text-xs text-white/50 sm:block">
           0 vaults
         </div>
       </div>

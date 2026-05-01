@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { FooterSection } from "@/components/landing/footer-section";
 import { Navigation } from "@/components/landing/navigation";
+import { WaitlistDialog } from "@/components/landing/waitlist-dialog";
 
 const xArticleUrl = "https://x.com/prismsolana/status/2048830720278483222";
 
@@ -266,13 +267,15 @@ export default function HundredTMarketArticlePage() {
               <p>
                 This is the beginning of programmable credit markets. And we are just getting started.
               </p>
-              <Link
-                href="/"
-                className="mt-8 inline-flex items-center gap-2 border border-white/15 bg-white px-5 py-3 font-mono text-sm text-black transition-colors hover:bg-[#eca8d6]"
-              >
-                Join the waitlist
-                <ArrowUpRight className="h-4 w-4" />
-              </Link>
+              <WaitlistDialog>
+                <button
+                  type="button"
+                  className="mt-8 inline-flex items-center gap-2 border border-white/15 bg-white px-5 py-3 font-mono text-sm text-black transition-colors hover:bg-[#eca8d6]"
+                >
+                  Join the waitlist
+                  <ArrowUpRight className="h-4 w-4" />
+                </button>
+              </WaitlistDialog>
             </ArticleSection>
           </div>
 

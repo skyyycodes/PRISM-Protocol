@@ -25,6 +25,9 @@ export function PageSnapScroll() {
   const boundaryExitResetTimerRef = useRef(0);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    if (!mediaQuery.matches) return;
+
     const getStops = () => {
       const stops = SNAP_SELECTORS.map((selector) => {
         const element = document.querySelector<HTMLElement>(selector);

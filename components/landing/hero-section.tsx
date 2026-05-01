@@ -120,7 +120,7 @@ export function HeroSection() {
   }, []);
 
   return (
-    <section id="top" className="relative min-h-screen flex flex-col justify-center items-start overflow-hidden bg-black">
+    <section id="top" className="relative flex min-h-[100svh] flex-col items-start justify-center overflow-hidden bg-black">
       {/* Background video */}
       <div className="absolute inset-0 z-0">
         <video
@@ -129,12 +129,12 @@ export function HeroSection() {
           loop
           playsInline
           aria-hidden="true"
-          className="w-full h-full object-cover object-center opacity-80"
+          className="h-full w-full object-cover object-[74%_center] opacity-80 md:object-center"
         >
           <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/bg-hero-0BnFGdr81Ifnj3WbBZoNt1KE4D5DMT.mp4" type="video/mp4" />
         </video>
         {/* Subtle overlay to ensure text readability on the left */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-transparent md:from-black/70 md:via-black/30" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
       </div>
 
@@ -164,7 +164,7 @@ export function HeroSection() {
         ))}
       </div>
       
-      <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 lg:px-12 py-32 lg:py-40">
+      <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 py-28 sm:py-32 lg:px-12 lg:py-40">
         <div className="lg:max-w-[55%]">
         {/* Eyebrow */}
         <div 
@@ -173,20 +173,21 @@ export function HeroSection() {
           }`}
         >
           <span className="inline-flex items-center gap-3 text-sm font-mono text-white/60">
-            <span className="w-8 h-px bg-white/30" />
-            Programmable credit infrastructure on Solana
+            <span className="h-px w-8 shrink-0 bg-white/30" />
+            <span className="sm:hidden">Programmable credit on Solana</span>
+            <span className="hidden sm:inline">Programmable credit infrastructure on Solana</span>
           </span>
         </div>
         
         {/* Main headline */}
         <div className="mb-12">
           <h1 
-            className={`text-left text-[clamp(2rem,6vw,7rem)] font-display leading-[0.92] tracking-tight text-white transition-all duration-1000 ${
+            className={`text-left font-display text-5xl leading-[0.95] tracking-tight text-white transition-all duration-1000 sm:text-6xl md:text-7xl lg:text-[7rem] lg:leading-[0.92] ${
               isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
             }`}
           >
-            <span className="block whitespace-nowrap">Credit risk,</span>
-            <span className="block whitespace-nowrap">
+            <span className="block sm:whitespace-nowrap">Credit risk,</span>
+            <span className="block sm:whitespace-nowrap">
               made to{" "}
               <span className="relative inline-block">
                 <BlurWord word={words[wordIndex]} trigger={wordIndex} />
@@ -199,19 +200,19 @@ export function HeroSection() {
       
       {/* Stats — 3 metrics static, no auto-scroll */}
       <div 
-        className={`absolute bottom-12 left-0 right-0 px-6 lg:px-12 transition-all duration-700 delay-500 ${
+        className={`absolute bottom-6 left-0 right-0 px-6 transition-all duration-700 delay-500 sm:bottom-10 lg:bottom-12 lg:px-12 ${
           isVisible ? "opacity-100" : "opacity-0"
         }`}
       >
-        <div className="max-w-[1400px] mx-auto flex items-start gap-10 lg:gap-20">
+        <div className="mx-auto grid max-w-[1400px] grid-cols-2 gap-x-6 gap-y-4 sm:flex sm:items-start sm:gap-10 lg:gap-20">
           {[
             { value: "3", label: "Prime / Core / Alpha layers" },
             { value: "$6.5k", label: "demo loss cascade" },
             { value: "AMM", label: "live tranche pricing" },
           ].map((stat) => (
-            <div key={stat.label} className="flex flex-col gap-2">
-              <span className="text-3xl lg:text-4xl font-display text-white">{stat.value}</span>
-              <span className="text-xs text-white/50 leading-tight">
+            <div key={stat.label} className="flex min-w-0 flex-col gap-2">
+              <span className="font-display text-2xl text-white sm:text-3xl lg:text-4xl">{stat.value}</span>
+              <span className="text-[11px] leading-tight text-white/50 sm:text-xs">
                 {stat.label}
               </span>
             </div>

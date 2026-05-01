@@ -66,7 +66,7 @@ export function HowItWorksSection({ id = "how-it-works" }: { id?: string }) {
     <section
       id={id}
       ref={sectionRef}
-      className="relative flex h-screen items-center overflow-hidden bg-[oklch(0.09_0.01_260)] pt-20 text-white"
+      className="relative flex min-h-[100svh] items-center overflow-hidden bg-[oklch(0.09_0.01_260)] py-24 text-white lg:h-screen lg:py-0 lg:pt-20"
     >
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-white/[0.02] blur-[100px] pointer-events-none" />
 
@@ -82,7 +82,7 @@ export function HowItWorksSection({ id = "how-it-works" }: { id?: string }) {
               </span>
             </div>
 
-            <h2 className={`text-5xl md:text-6xl lg:text-[104px] font-display tracking-tight leading-[0.85] transition-all duration-1000 delay-100 ${
+            <h2 className={`font-display text-5xl leading-[0.9] tracking-tight transition-all duration-1000 delay-100 sm:text-6xl lg:text-[104px] lg:leading-[0.85] ${
               isVisible ? "translate-y-0 opacity-100" : "translate-y-16 opacity-0"
             }`}>
               <span className="block">Deposit.</span>
@@ -92,7 +92,7 @@ export function HowItWorksSection({ id = "how-it-works" }: { id?: string }) {
           </div>
 
           {/* Image cerisier — se colle en bas sur les blocs */}
-          <div className={`relative h-[260px] lg:h-[360px] overflow-hidden transition-all duration-1000 delay-200 ${
+          <div className={`relative hidden h-[260px] overflow-hidden transition-all duration-1000 delay-200 sm:block lg:h-[360px] ${
             isVisible ? "opacity-100" : "opacity-0"
           }`}>
             <img
@@ -113,7 +113,7 @@ export function HowItWorksSection({ id = "how-it-works" }: { id?: string }) {
               key={step.number}
               type="button"
               onClick={() => setActiveStep(index)}
-              className={`relative text-left p-6 lg:p-8 border transition-all duration-500 ${
+              className={`relative border p-5 text-left transition-all duration-500 sm:p-6 lg:p-8 ${
                 activeStep === index 
                   ? "bg-[#000000] border-white/60" 
                   : "bg-[#000000] border-white/25 hover:border-white/50"
@@ -134,10 +134,10 @@ export function HowItWorksSection({ id = "how-it-works" }: { id?: string }) {
               </div>
 
               {/* Title */}
-              <h3 className="text-3xl lg:text-4xl font-display mb-1">
+              <h3 className="mb-1 font-display text-3xl lg:text-4xl">
                 {step.title}
               </h3>
-              <span className="text-lg lg:text-xl text-white/40 font-display block mb-4">
+              <span className="mb-4 block font-display text-lg text-white/40 lg:text-xl">
                 {step.subtitle}
               </span>
 

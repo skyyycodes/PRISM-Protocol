@@ -86,7 +86,7 @@ export function WaitlistDialog({ children }: WaitlistDialogProps) {
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent
         showCloseButton={false}
-        className="overflow-hidden border-white/10 bg-black/95 p-0 text-white shadow-2xl shadow-black/60 backdrop-blur-2xl sm:max-w-[520px]"
+        className="max-h-[calc(100svh-2rem)] overflow-y-auto border-white/10 bg-black/95 p-0 text-white shadow-2xl shadow-black/60 backdrop-blur-2xl sm:max-w-[520px]"
       >
         <DialogClose asChild>
           <button

@@ -57,7 +57,7 @@ export function SecuritySection() {
   }, []);
 
   return (
-    <section id="security" ref={sectionRef} className="relative min-h-screen pt-20 pb-10 lg:pt-24 lg:pb-12 overflow-hidden">
+    <section id="security" ref={sectionRef} className="relative min-h-[100svh] overflow-hidden pb-12 pt-24 lg:pt-24">
       {/* Background accent removed */}
       
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
@@ -71,7 +71,7 @@ export function SecuritySection() {
           </span>
           
           {/* Title — full width */}
-          <h2 className={`text-6xl md:text-7xl lg:text-[104px] font-display tracking-tight leading-[0.9] mb-6 transition-all duration-1000 ${
+          <h2 className={`mb-6 font-display text-5xl leading-[0.92] tracking-tight transition-all duration-1000 sm:text-6xl md:text-7xl lg:text-[104px] lg:leading-[0.9] ${
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}>
             Trustless,
@@ -83,7 +83,7 @@ export function SecuritySection() {
           <div className={`transition-all duration-1000 delay-100 ${
             isVisible ? "opacity-100" : "opacity-0"
           }`}>
-            <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl">
+            <p className="max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
               PRISM keeps credit accounting explicit: authority boundaries, checked math, reserve reconciliation, and auditable credit events.
             </p>
           </div>
@@ -92,7 +92,7 @@ export function SecuritySection() {
         {/* Main content */}
         <div className="grid lg:grid-cols-12 gap-4 lg:gap-5">
           {/* Large visual card */}
-          <div className={`lg:col-span-7 relative p-6 lg:p-8 border border-foreground/10 min-h-[320px] overflow-hidden transition-all duration-700 ${
+          <div className={`lg:col-span-7 relative min-h-[300px] overflow-hidden border border-foreground/10 p-5 transition-all duration-700 sm:p-6 lg:min-h-[320px] lg:p-8 ${
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}>
             {/* Dynamic feature image with cross-fade — desktop only */}
@@ -111,7 +111,7 @@ export function SecuritySection() {
             <div className="relative z-10">
               <span className="font-mono text-sm text-muted-foreground">Accounting guardrail</span>
               <div className="mt-5">
-                <span className="text-6xl lg:text-7xl font-display">0</span>
+                <span className="font-display text-5xl sm:text-6xl lg:text-7xl">0</span>
                 <span className="block text-muted-foreground mt-2">manual balance adjustments</span>
               </div>
             </div>

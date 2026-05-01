@@ -239,7 +239,7 @@ export function MetricsSection({ id }: { id?: string }) {
   }, []);
 
   return (
-    <section id={id} ref={sectionRef} className="relative flex h-screen items-center overflow-hidden pt-20">
+    <section id={id} ref={sectionRef} className="relative flex min-h-[100svh] items-center overflow-hidden py-24 lg:h-screen lg:py-0 lg:pt-20">
       <GridBackground />
 
       <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 lg:px-12">
@@ -256,7 +256,7 @@ export function MetricsSection({ id }: { id?: string }) {
               </span>
             </div>
 
-            <h2 className={`text-5xl md:text-6xl lg:text-[104px] font-display tracking-tight leading-[0.9] transition-all duration-1000 ${
+            <h2 className={`font-display text-5xl leading-[0.92] tracking-tight transition-all duration-1000 sm:text-6xl lg:text-[104px] lg:leading-[0.9] ${
               isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
             }`}>
               Real-time
@@ -274,7 +274,7 @@ export function MetricsSection({ id }: { id?: string }) {
             src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/real-time-graph-INFmn3u0MlUwvNPynoIhwxtPaPjxM5.png"
             alt=""
             aria-hidden="true"
-            className="w-full max-h-[180px] lg:max-h-[220px] object-contain object-left"
+            className="h-auto max-h-[150px] w-full object-contain object-left sm:max-h-[180px] lg:max-h-[220px]"
           />
         </div>
 
@@ -284,7 +284,7 @@ export function MetricsSection({ id }: { id?: string }) {
           <div className={`lg:col-span-1 bg-foreground/[0.02] border border-foreground/10 p-6 lg:p-8 transition-all duration-700 ${
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
           }`}>
-            <div className="text-3xl md:text-4xl lg:text-5xl font-display tracking-tight mb-3 whitespace-nowrap overflow-hidden">
+            <div className="mb-3 overflow-hidden whitespace-nowrap font-display text-3xl tracking-tight sm:text-4xl lg:text-5xl">
               <AnimatedNumber end={metrics[0].value} suffix={metrics[0].suffix} prefix={metrics[0].prefix} />
             </div>
             <div className="mb-4">
@@ -317,7 +317,7 @@ export function MetricsSection({ id }: { id?: string }) {
                   amplitude={index === 0 ? 0.45 : 0.6}
                 />
               </div>
-              <div className="text-3xl md:text-4xl lg:text-5xl font-display tracking-tight w-full">
+              <div className="w-full font-display text-3xl tracking-tight sm:text-4xl lg:text-5xl">
                 <AnimatedNumber end={metric.value} suffix={metric.suffix} prefix={metric.prefix} />
               </div>
             </div>

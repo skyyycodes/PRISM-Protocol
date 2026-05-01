@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
 import { DOCS_URL } from "@/lib/site-links";
 import { WaitlistDialog } from "@/components/landing/waitlist-dialog";
 
@@ -103,14 +102,26 @@ export function Navigation() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className={`md:hidden p-2 transition-colors duration-500 ${isScrolled || isMobileMenuOpen ? "text-foreground" : "text-white"}`}
+            className={`flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/30 backdrop-blur transition-colors duration-500 md:hidden ${isScrolled || isMobileMenuOpen ? "text-foreground" : "text-white"}`}
             aria-label="Toggle menu"
           >
-            {isMobileMenuOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
+            <span className="relative h-4 w-5" aria-hidden="true">
+              <span
+                className={`absolute left-0 top-0 h-px w-5 bg-current transition-transform ${
+                  isMobileMenuOpen ? "translate-y-2 rotate-45" : ""
+                }`}
+              />
+              <span
+                className={`absolute left-0 top-2 h-px w-5 bg-current transition-opacity ${
+                  isMobileMenuOpen ? "opacity-0" : "opacity-100"
+                }`}
+              />
+              <span
+                className={`absolute left-0 top-4 h-px w-5 bg-current transition-transform ${
+                  isMobileMenuOpen ? "-translate-y-2 -rotate-45" : ""
+                }`}
+              />
+            </span>
           </button>
         </div>
 
@@ -125,15 +136,15 @@ export function Navigation() {
         }`}
         style={{ top: 0 }}
       >
-        <div className="flex flex-col h-full px-8 pt-28 pb-8">
+        <div className="flex h-full flex-col px-6 pb-6 pt-24 sm:px-8 sm:pb-8 sm:pt-28">
           {/* Navigation Links */}
-          <div className="flex-1 flex flex-col justify-center gap-8">
+          <div className="flex flex-1 flex-col justify-center gap-5 sm:gap-8">
             {navLinks.map((link, i) => (
               <Link
                 key={link.name}
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`text-5xl font-display text-foreground hover:text-muted-foreground transition-all duration-500 ${
+                className={`font-display text-4xl text-foreground transition-all duration-500 hover:text-muted-foreground sm:text-5xl ${
                   isMobileMenuOpen 
                     ? "opacity-100 translate-y-0" 
                     : "opacity-0 translate-y-4"
@@ -146,7 +157,7 @@ export function Navigation() {
           </div>
           
           {/* Bottom CTAs */}
-          <div className={`flex gap-4 pt-8 border-t border-foreground/10 transition-all duration-500 ${
+          <div className={`grid gap-3 border-t border-foreground/10 pt-6 transition-all duration-500 sm:grid-cols-2 sm:gap-4 sm:pt-8 ${
             isMobileMenuOpen 
               ? "opacity-100 translate-y-0" 
               : "opacity-0 translate-y-4"
@@ -156,14 +167,14 @@ export function Navigation() {
             <Button
               asChild
               variant="outline"
-              className="flex-1 rounded-full h-14 text-base"
+              className="h-13 rounded-full text-base sm:h-14"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               <a href={DOCS_URL}>View docs</a>
             </Button>
             <WaitlistDialog>
               <Button
-                className="flex-1 bg-foreground text-background rounded-full h-14 text-base"
+                className="h-13 rounded-full bg-foreground text-base text-background sm:h-14"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Join Waitlist

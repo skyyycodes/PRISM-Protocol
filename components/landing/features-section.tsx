@@ -149,7 +149,7 @@ export function FeaturesSection({ id = "features" }: { id?: string }) {
     <section
       id={id}
       ref={sectionRef}
-      className="relative flex h-screen items-center overflow-hidden pt-20"
+      className="relative flex min-h-[100svh] items-center overflow-hidden py-24 lg:h-screen lg:py-0 lg:pt-20"
     >
       <div className="w-full max-w-[1400px] mx-auto px-6 lg:px-12">
         {/* Header - Full width with diagonal layout */}
@@ -161,7 +161,7 @@ export function FeaturesSection({ id = "features" }: { id?: string }) {
                 Tranches
               </span>
               <h2
-                className={`text-5xl md:text-6xl lg:text-[104px] font-display tracking-tight leading-[0.9] transition-all duration-1000 ${
+                className={`text-5xl font-display tracking-tight leading-[0.92] transition-all duration-1000 sm:text-6xl lg:text-[104px] lg:leading-[0.9] ${
                   isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
                 }`}
               >
@@ -190,18 +190,18 @@ export function FeaturesSection({ id = "features" }: { id?: string }) {
             onMouseEnter={() => setActiveFeature(0)}
             >
             {/* Left: text content */}
-            <div className="relative flex-1 p-6 lg:p-8 bg-black">
+            <div className="relative flex-1 bg-black p-5 sm:p-6 lg:p-8">
               <ParticleVisualization />
               <div className="relative z-10">
                 <span className="font-mono text-sm text-muted-foreground">{features[0].number}</span>
-                <h3 className="text-3xl lg:text-4xl font-display mt-3 mb-4 group-hover:translate-x-2 transition-transform duration-500">
+                <h3 className="mt-3 mb-4 font-display text-3xl transition-transform duration-500 group-hover:translate-x-2 lg:text-4xl">
                   {features[0].title}
                 </h3>
-                <p className="text-base lg:text-lg text-muted-foreground leading-relaxed max-w-md mb-5">
+                <p className="mb-5 max-w-md text-base leading-relaxed text-muted-foreground lg:text-lg">
                   {features[0].description}
                 </p>
                 <div>
-                  <span className="text-4xl lg:text-5xl font-display">{features[0].stats.value}</span>
+                  <span className="font-display text-4xl lg:text-5xl">{features[0].stats.value}</span>
                   <span className="block text-sm text-muted-foreground font-mono mt-2">{features[0].stats.label}</span>
                 </div>
               </div>
