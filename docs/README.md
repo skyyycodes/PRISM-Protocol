@@ -1,115 +1,285 @@
-# PRISM Protocol — Documentation Index (start here)
+# PRISM Protocol - Documentation Index
 
-**You are a coding agent reading this project for the first time.** Read this file in full before opening any other doc. It tells you what to read, in what order, and what each doc is for.
+Read this first.
 
----
-
-
-## What this project is (1 minute)
-
-**PRISM Protocol** is a Solana-based on-chain credit market submitted to the **Solana Frontier Hackathon** (Colosseum). Deadline: **May 11, 2026**.
-
-A user deposits USDC into one of three risk tranches (`Prime` / `Core` / `Alpha`). A simulated borrower pays yield, which gets distributed via a waterfall (Prime first, then Core, then Alpha). When a credit event triggers, losses cascade in reverse priority (Alpha wiped first, then Core, then Prime). Tranche tokens (`pPRIME`, `pCORE`, `pALPHA`) trade on a constant-product AMM — letting markets price credit risk live.
-
-**Pitch line:** *"PRISM Protocol turns credit into programmable, tradable risk layers — with live loss simulation and real-time market pricing."*
-
-**Stack:** Anchor (Rust) + Solana devnet + Next.js + Tailwind + Solana Wallet Adapter + Framer Motion. Two programs: `prism_core` (credit engine) and `prism_amm` (market layer).
+This file is the orientation layer for coding agents, reviewers, and contributors entering the PRISM Protocol repo for the first time. It tells you what the project is, what is already locked, which docs matter, and where to look before changing code.
 
 ---
 
-## Reading order (mandatory)
+## One-Minute Context
 
-Read these in order. Don't skip.
+PRISM Protocol is a Solana-based on-chain credit market built for the Solana Frontier Hackathon by Colosseum.
 
-| Step | Doc | Purpose | Time |
-|---|---|---|---|
-| 1 | **This file** ([README.md](README.md)) | Orientation | 5 min |
-| 2 | **[CLAUDE.md](CLAUDE.md)** | Coding conventions, do's/don'ts, anti-patterns. Apply to every file you write | 10 min |
-| 3 | **[00-overview.md](00-overview.md)** | Master index + 13 locked architecture decisions | 10 min |
-| 4 | **[12-reference-card.md](12-reference-card.md)** | Single-page lookup for all magic numbers, PDA seeds, error codes, events, demo wallets. **Keep this open while coding.** | 5 min |
-| 5 | **[06-mvp-build-plan.md](06-mvp-build-plan.md)** | Day-by-day plan + Tier 1/2/3 priorities + Day 5 checkpoint rule | 15 min |
-| 6 | **[10-scaffolding-day-1.md](10-scaffolding-day-1.md)** | Exact files to create on Day 1 with content | 20 min |
+Users deposit USDC into one of three risk tranches:
 
-After step 6, you have enough context to start coding. The remaining docs are reference material — read on-demand when the task calls for them.
+- `Prime` - lowest-risk layer, paid first, absorbs losses last
+- `Core` - intermediate risk and yield layer
+- `Alpha` - residual upside layer, first-loss capital
+
+Borrower yield flows through a top-down waterfall:
+
+```text
+Prime -> Core -> Alpha
+```
+
+Credit losses move through a bottom-up cascade:
+
+```text
+Alpha -> Core -> Prime
+```
+
+Each tranche has its own SPL token:
+
+```text
+pPRIME
+pCORE
+pALPHA
+```
+
+Those tranche tokens trade on a constant-product AMM, so credit risk is not just held to maturity. It can be repriced by the market.
+
+Pitch line:
+
+> PRISM turns credit into programmable, tradable risk layers with live loss simulation and real-time market pricing.
 
 ---
 
-## Reference docs (read when relevant)
+## Current Repo State
 
-| Doc | Read when |
+The project is no longer just a design doc. It now contains:
+
+- Public landing page and blog
+- Dashboard simulation
+- Admin route
+- Borrower route
+- IKA collateral flow
+- Local IKA test oracle endpoint
+- Two Anchor programs:
+  - `prism_core`
+  - `prism_amm`
+
+Important routes:
+
+| Route | Purpose |
 |---|---|
-| [01-sidetrack-strategy.md](01-sidetrack-strategy.md) | Preparing submissions for side tracks |
-| [02-domain-model.md](02-domain-model.md) | Writing account structs / PDA logic |
-| [03-layered-architecture.md](03-layered-architecture.md) | Building the pitch deck or explaining the system |
-| [04-data-flows.md](04-data-flows.md) | Implementing user flows + recording the demo video |
-| [05-anchor-architecture.md](05-anchor-architecture.md) | Writing instruction handlers — see hot-path Anchor contexts here |
-| [07-roadmap.md](07-roadmap.md) | Building the pitch deck closer slide |
-| [08-open-questions.md](08-open-questions.md) | Want to know "why did we pick X?" — every architectural decision is logged with rationale |
-| [09-lld-completion.md](09-lld-completion.md) | The LLD bible. Full Anchor contexts for ALL 15 instructions, handler pseudocode, helpers, tests, frontend tree, partner SDK patterns |
-| [11-setup-demo-script.md](11-setup-demo-script.md) | Writing `scripts/setup-demo.ts` |
-| [13-demo-runbook.md](13-demo-runbook.md) | Day 15 recording session |
+| `/` | Public website |
+| `/blog` | Essays and protocol research |
+| `/dashboard` | Demo simulation surface |
+| `/admin` | Demo admin setup and operations |
+| `/borrower` | Loan application and IKA collateral onboarding |
+| `/api/ika-test-oracle/attest` | Devnet/local oracle attestation endpoint |
 
 ---
 
-## Hard rules — never break these
+## Mandatory Reading Order
 
-These show up multiple times across the docs. They're called out here to prevent slip-ups:
+Read these in order before making broad changes.
 
-1. **Tier 1 must work perfectly before any Tier 2 or 3 work.** Tier 1 = `deposit`, `accrue_yield` (waterfall), `trigger_credit_event` (cascade). If these don't work, the demo fails. See [06-mvp-build-plan.md §6.2](06-mvp-build-plan.md).
+| Step | Doc | Why it matters |
+|---|---|---|
+| 1 | This file | Orientation and map |
+| 2 | [../README.md](../README.md) | Public repo README and quick start |
+| 3 | [../CLAUDE.md](../CLAUDE.md) | Local coding conventions and project rules |
+| 4 | [00-overview.md](00-overview.md) | Master architecture and locked decisions |
+| 5 | [12-reference-card.md](12-reference-card.md) | Constants, PDA seeds, demo numbers, errors, events |
+| 6 | [protocol_explained.md](protocol_explained.md) | Full financial and technical system explanation |
+| 7 | [before-mainnet.md](before-mainnet.md) | Demo shortcuts and production blockers |
 
-2. **Day 5 is a hard checkpoint.** By end of Day 5, Tier 1 must work in CLI/script form — even with no UI. This is the safety net for video recording. See [06-mvp-build-plan.md §6.4 Phase 1](06-mvp-build-plan.md).
-
-3. **IDL sync after every contract change.** Run `anchor build && anchor idl parse` and commit the IDL. Frontend type drift is the #1 wasted-time bug.
-
-4. **Demo recording deadline: Day 15, not Day 16.** Day 16 is for submitting only.
-
-5. **Never drop a higher tier for a lower one.** Strategy presets never come before NAV math working.
-
-6. **The vault USDC reserve invariant: `vault_usdc_reserve.amount == sum(tranche.total_assets)` at all times.** On default, transfer `loss_amount` USDC to `loss_bucket` PDA. If you skip this, accounting and cash drift apart.
-
-7. **NAV edge cases — three explicit handlers in `deposit`:**
-   - If `total_supply == 0` → mint shares 1:1 (NAV starts at 1.0)
-   - If wiped (NAV → 0 with supply > 0) → block deposits with `TrancheWipedNoDepositsAllowed`
-   - Total wipeout (Alpha NAV = 0) on withdraw → returns 0 USDC. **This is the demo moment, not a bug.**
+After this, read task-specific docs from the tables below.
 
 ---
 
-## What's locked vs what's flexible
+## Fast Lookup
 
-Almost everything is **locked**. The 13 architecture decisions in [00-overview.md](00-overview.md) and the 4 Tier 1 decisions + 2 Tier 1B decisions in [08-open-questions.md](08-open-questions.md) are settled — don't relitigate.
-
-What you CAN change without asking:
-- Implementation details that aren't called out in the locked decisions (e.g., specific helper function names, internal variable naming)
-- Test scaffolding patterns
-- CSS / styling beyond the storyboard requirements
-- Helper utility functions and modules
-
-What you must NOT change without asking:
-- Any of the 13 architecture decisions
-- Demo numbers (every USDC is accounted for — see [12-reference-card.md](12-reference-card.md))
-- Tier priorities (see [06-mvp-build-plan.md §6.2](06-mvp-build-plan.md))
-- Token strategy (tokenless through Phase 2)
-- The 5 hero features list
-- Demo arc structure
+| Question | Read |
+|---|---|
+| What is PRISM in one page? | [00-overview.md](00-overview.md) |
+| What are the exact demo numbers? | [12-reference-card.md](12-reference-card.md) |
+| How are PDAs derived? | [12-reference-card.md](12-reference-card.md) |
+| How does NAV/waterfall/loss math work? | [protocol_explained.md](protocol_explained.md) |
+| Which Anchor accounts does an instruction need? | [05-anchor-architecture.md](05-anchor-architecture.md), [09-lld-completion.md](09-lld-completion.md) |
+| What changed in the IKA branch? | [contract-integration-progress.md](contract-integration-progress.md) |
+| What is unsafe before mainnet? | [before-mainnet.md](before-mainnet.md) |
+| How do we test this? | [testing.md](testing.md), [frontend_testing.md](frontend_testing.md) |
+| What is the demo recording flow? | [13-demo-runbook.md](13-demo-runbook.md) |
+| What is the side-track strategy? | [01-sidetrack-strategy.md](01-sidetrack-strategy.md) |
 
 ---
 
-## When in doubt
+## Core Docs
 
-- "What does X mean?" → [12-reference-card.md](12-reference-card.md) (glossary at the end)
-- "What's the value of constant Y?" → [12-reference-card.md](12-reference-card.md)
-- "How is Z derived as a PDA?" → [12-reference-card.md](12-reference-card.md)
-- "Why did we pick decision W?" → [08-open-questions.md](08-open-questions.md)
-- "What instruction context does the handler need?" → [09-lld-completion.md §9.3](09-lld-completion.md) (or [05-anchor-architecture.md §5.4](05-anchor-architecture.md) for hot-path)
-- "What does this user flow look like end-to-end?" → [04-data-flows.md](04-data-flows.md)
-- "What's the Day-N task?" → [06-mvp-build-plan.md §6.4](06-mvp-build-plan.md)
+| Doc | Purpose |
+|---|---|
+| [00-overview.md](00-overview.md) | Master index, pitch, architecture decisions |
+| [01-sidetrack-strategy.md](01-sidetrack-strategy.md) | Hackathon side-track strategy |
+| [02-domain-model.md](02-domain-model.md) | Entities, accounts, PDA model, tranche domain |
+| [03-layered-architecture.md](03-layered-architecture.md) | Layered system view and partner integration map |
+| [04-data-flows.md](04-data-flows.md) | User flows and demo sequence diagrams |
+| [05-anchor-architecture.md](05-anchor-architecture.md) | Anchor instruction signatures and contexts |
+| [06-mvp-build-plan.md](06-mvp-build-plan.md) | MVP priorities and build phases |
+| [07-roadmap.md](07-roadmap.md) | Post-demo roadmap |
+| [08-open-questions.md](08-open-questions.md) | Decision log and rationale |
+| [09-lld-completion.md](09-lld-completion.md) | Low-level design completion reference |
+| [10-scaffolding-day-1.md](10-scaffolding-day-1.md) | Original scaffolding plan |
+| [11-setup-demo-script.md](11-setup-demo-script.md) | Demo setup script specification |
+| [12-reference-card.md](12-reference-card.md) | Single-page implementation reference |
+| [13-demo-runbook.md](13-demo-runbook.md) | Recording-day runbook |
 
 ---
 
-## Done reading? Next steps
+## Newer Implementation Docs
 
-If you've read steps 1–6 above, you have enough context to:
-- Scaffold the project (Day 1) — see [10-scaffolding-day-1.md](10-scaffolding-day-1.md)
-- Begin writing Anchor contracts (Day 2+) — see [05-anchor-architecture.md](05-anchor-architecture.md) and [09-lld-completion.md](09-lld-completion.md)
+| Doc | Purpose |
+|---|---|
+| [protocol_explained.md](protocol_explained.md) | Complete system specification for developers and auditors |
+| [contract-integration-progress.md](contract-integration-progress.md) | Contract, admin, borrower, and IKA integration progress |
+| [before-mainnet.md](before-mainnet.md) | Production-readiness checklist and demo shortcuts |
+| [ika-audit-2026-05-01.md](ika-audit-2026-05-01.md) | IKA-specific audit notes |
+| [ika-frontend-test-plan.md](ika-frontend-test-plan.md) | IKA frontend testing plan |
+| [frontend_testing.md](frontend_testing.md) | Frontend testing notes |
+| [testing.md](testing.md) | General test strategy |
 
-If you have specific questions, check [12-reference-card.md](12-reference-card.md) and [08-open-questions.md](08-open-questions.md) first. Most have answers.
+---
+
+## Non-Negotiable Rules
+
+These rules are repeated across the docs because breaking them causes expensive bugs.
+
+1. Tier 1 behavior must stay correct:
+   - deposit
+   - yield waterfall
+   - default cascade
+
+2. Keep IDLs in sync after contract changes:
+   - rebuild Anchor programs
+   - update frontend IDL files
+   - rerun the app build
+
+3. Do not change locked demo numbers casually. Every USDC in the demo is part of the narrative.
+
+4. Preserve the vault reserve invariant:
+
+```text
+vault_usdc_reserve.amount == sum(tranche.total_assets)
+```
+
+5. Losses move to the loss bucket. Do not silently delete accounting state.
+
+6. Alpha wipeout is not a bug. It is the demo moment.
+
+7. Demo keypairs and test oracles are devnet-only. Never treat them as production architecture.
+
+---
+
+## What Is Locked
+
+Do not relitigate these unless the user explicitly asks:
+
+- Three tranche model: Prime, Core, Alpha
+- NAV-per-share accounting
+- Q64.64 fixed-point math
+- Separate `prism_core` and `prism_amm` programs
+- Classic SPL tranche tokens
+- Pull-pattern yield accrual
+- Reverse-priority loss cascade
+- Tokenless protocol stance through early phases
+- Demo arc: setup, deposit, yield, trade, default, reprice, withdraw
+
+Implementation details can change. The financial model should not drift.
+
+---
+
+## What You Can Change Freely
+
+Without asking first, you can usually change:
+
+- Component structure
+- CSS and responsive layout
+- Internal helper names
+- Test scaffolding
+- Local utility modules
+- Copy that does not alter protocol meaning
+- Non-contract UI states
+
+Ask before changing:
+
+- Contract account layout
+- PDA seeds
+- Demo constants
+- Error semantics
+- Tranche ordering
+- Yield/loss priority
+- Production safety assumptions
+
+---
+
+## Build And Verification
+
+From repo root:
+
+```bash
+pnpm install
+pnpm build
+```
+
+For local app development:
+
+```bash
+pnpm dev
+```
+
+For contract work:
+
+```bash
+cd contracts
+anchor build
+anchor test
+```
+
+If a build fails after IKA changes, first check whether these direct dependencies exist in `package.json`:
+
+```text
+@ika.xyz/sdk
+@mysten/sui
+```
+
+The app imports `@mysten/sui/*` directly, so it must be a direct dependency, not only a transitive dependency.
+
+---
+
+## Mainnet Warning
+
+Read [before-mainnet.md](before-mainnet.md) before any production claim.
+
+Current demo shortcuts include:
+
+- Client-side demo keypairs
+- Admin demo signing
+- Local IKA test oracle
+- Devnet USDC
+- Devnet program IDs
+- Unfinalized IKA dWallet creation flow
+
+This repo is hackathon/devnet infrastructure until those items are fixed and the contracts are audited.
+
+---
+
+## If You Are Lost
+
+Use this sequence:
+
+1. [12-reference-card.md](12-reference-card.md)
+2. [protocol_explained.md](protocol_explained.md)
+3. [contract-integration-progress.md](contract-integration-progress.md)
+4. [before-mainnet.md](before-mainnet.md)
+5. [09-lld-completion.md](09-lld-completion.md)
+
+PRISM is simple when you keep the spine in mind:
+
+```text
+Deposit into risk layer
+Yield waterfalls down
+Losses cascade up
+Tranche tokens trade
+Markets reprice credit risk
+```
