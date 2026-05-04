@@ -15,7 +15,7 @@ export default function BorrowerPage() {
   const showCollateral = application?.status === 'approved' && application.loanId !== undefined;
 
   return (
-    <div data-app-scroll className="relative flex-1 overflow-y-auto px-4 py-12 [overscroll-behavior:contain] sm:px-6 lg:px-8">
+    <div data-app-scroll className="relative flex-1 overflow-y-auto px-4 pb-12 pt-24 [overscroll-behavior:contain] sm:px-6 lg:px-8">
       <div className="mx-auto grid w-full max-w-[1260px] gap-6 pb-12 xl:grid-cols-[minmax(0,1fr)_360px]">
         <main className="space-y-5">
           <section className="rounded-md border border-white/10 bg-black/35 p-6 shadow-[0_8px_24px_rgba(60,46,22,0.05)]">
@@ -23,7 +23,7 @@ export default function BorrowerPage() {
               <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
                 Borrower desk
               </span>
-              <span className="rounded-full border border-[#2d72ff] bg-[#eaf1ff] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[#1f62df]">
+              <span className="rounded-full border border-[#2d72ff]/50 bg-[#2d72ff]/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[#9ec0ff]">
                 IKA collateral
               </span>
             </div>
@@ -47,7 +47,7 @@ export default function BorrowerPage() {
           {showCollateral && (
             <section className="space-y-3">
               <div className="flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-md border border-[#2d72ff] bg-[#eaf1ff] font-mono text-xs text-[#1f62df]">2</span>
+                <span className="flex h-8 w-8 items-center justify-center rounded-md border border-[#2d72ff]/50 bg-[#2d72ff]/10 font-mono text-xs text-[#9ec0ff]">2</span>
                 <div>
                   <h2 className="text-sm font-semibold text-white">Lock collateral via IKA dWallet</h2>
                   <p className="text-xs text-white/50">Register and verify the collateral route before funding.</p>
@@ -62,7 +62,7 @@ export default function BorrowerPage() {
               <div className="flex items-center gap-3">
                 <span className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-black/35 font-mono text-xs text-white/35">3</span>
                 <div>
-                  <h2 className="text-sm font-semibold text-[#514b40]">Disbursement</h2>
+                  <h2 className="text-sm font-semibold text-white">Disbursement</h2>
                   <p className="text-xs text-white/50">Admin releases USDC after collateral is locked.</p>
                 </div>
               </div>
@@ -99,7 +99,7 @@ export default function BorrowerPage() {
             </div>
           </section>
 
-          <section className="rounded-md border border-[#ad7b21]/30 bg-[#f5eddd] p-4 text-sm leading-6 text-[#7a5a1a]">
+          <section className="rounded-md border border-[#ad7b21]/40 bg-[#ad7b21]/10 p-4 text-sm leading-6 text-[#f0c06a]">
             Collateral verification is intentionally separate from investor deposits, keeping borrower risk and tranche market decisions cleanly separated.
           </section>
         </aside>

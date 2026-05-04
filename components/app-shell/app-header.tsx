@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { label: "Earn", href: "/earn" },
   { label: "Protect", href: "/protect" },
   { label: "Trade", href: "/trade" },
+  { label: "Borrow", href: "/borrower" },
   { label: "Docs", href: "https://docs.prismprotocol.dev/" },
 ] as const;
 
@@ -107,7 +108,7 @@ export function AppHeader() {
             </span>
           </Link>
 
-          <div className="hidden items-center gap-8 md:flex lg:gap-10">
+          <div className="hidden items-center gap-6 md:flex lg:gap-8">
             {NAV_LINKS.map((link) => {
               const external = link.href.startsWith("http");
               const hrefPath = link.href.split("#")[0];

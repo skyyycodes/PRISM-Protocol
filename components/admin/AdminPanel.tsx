@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useLoanApplications } from '@/hooks/useLoanApplications';
 import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { AnchorProvider, Program, BN, type Idl } from '@coral-xyz/anchor';
 import { SystemProgram, SYSVAR_RENT_PUBKEY, PublicKey, Transaction, Keypair } from '@solana/web3.js';
 import adminSecret from '@/contracts/keys/admin.json';
@@ -606,21 +605,23 @@ export function AdminPanel() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto w-full max-w-[1180px] space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="rounded-md border border-white/10 bg-black/35 p-5 shadow-[0_8px_24px_rgba(60,46,22,0.05)] sm:p-6">
         <div>
-          <h1 className="text-xl font-semibold text-white">Admin Panel</h1>
-          <p className="text-sm text-white/40">
+          <div className="mb-3 inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
+            Protocol operations
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight text-white">Admin Panel</h1>
+          <p className="mt-2 font-mono text-sm text-white/40">
             Vault {VAULT_ID} · {PRISM_CORE_PROGRAM_ID.toBase58().slice(0, 8)}…
           </p>
         </div>
-        <WalletMultiButton style={{}} />
       </div>
 
       {/* Step 1: Protocol Setup */}
-      <section className="rounded-xl border border-white/10 bg-white/5 p-5 space-y-4 relative overflow-hidden">
-        <div className="flex items-center justify-between relative z-10">
+      <section className="relative space-y-5 overflow-hidden rounded-md border border-white/10 bg-black/35 p-5 shadow-[0_8px_24px_rgba(60,46,22,0.05)] sm:p-6">
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-medium text-white/80">1 · Protocol Setup</h2>
           <div className="flex gap-2 p-1 rounded-lg bg-black/40 border border-white/5">
             <button
@@ -640,7 +641,7 @@ export function AdminPanel() {
 
         {activeMode === 'auto' ? (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-white/40">Run all initialization steps in sequence with default parameters.</p>
               <button
                 onClick={runFullSetup}
@@ -650,7 +651,7 @@ export function AdminPanel() {
                 {setupRunning ? 'Running…' : 'Run Full Setup'}
               </button>
             </div>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
               {SETUP_STEPS.map((step, i) => (
                 <div
                   key={step}
@@ -745,8 +746,8 @@ export function AdminPanel() {
       </section>
 
       {/* Step 2: Seed Deposits */}
-      <section className="rounded-xl border border-white/10 bg-white/5 p-5 space-y-4">
-        <div className="flex items-center justify-between">
+      <section className="space-y-5 rounded-md border border-white/10 bg-black/35 p-5 shadow-[0_8px_24px_rgba(60,46,22,0.05)] sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-medium text-white/80">2 · Seed Deposits</h2>
           <div className="flex gap-2">
             <input
@@ -758,11 +759,11 @@ export function AdminPanel() {
             />
           </div>
         </div>
-        <div className="flex gap-3">
+        <div className="grid gap-3 md:grid-cols-3">
           {[
-            { kind: TrancheKind.Prime, label: 'Prime', apy: '5%', color: 'sky' },
-            { kind: TrancheKind.Core, label: 'Core', apy: '8%', color: 'amber' },
-            { kind: TrancheKind.Alpha, label: 'Alpha', apy: '15%', color: 'rose' },
+            { kind: TrancheKind.Prime, label: 'Prime', apy: '5%', cls: 'border-sky-400/30 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20' },
+            { kind: TrancheKind.Core, label: 'Core', apy: '8%', cls: 'border-amber-400/30 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20' },
+            { kind: TrancheKind.Alpha, label: 'Alpha', apy: '15%', cls: 'border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20' },
           ].map((t) => (
             <button
               key={t.label}
@@ -771,7 +772,7 @@ export function AdminPanel() {
                 deposit(t.kind, t.label, amount);
               }}
               disabled={!wallet}
-              className={`flex-1 rounded-lg border border-${t.color}-400/30 bg-${t.color}-500/10 py-2 text-xs text-${t.color}-200 hover:bg-${t.color}-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-center`}
+              className={`rounded-md border py-3 text-center text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${t.cls}`}
             >
               Deposit to {t.label}<br />
               <span className="text-[10px] text-white/40">{t.apy} APY</span>
@@ -780,7 +781,7 @@ export function AdminPanel() {
         </div>
 
         {/* Dev Faucet — only works if wallet is USDC mint authority */}
-        <div className="flex items-center gap-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
           <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider whitespace-nowrap">Dev Faucet</span>
           <input
             type="text"
@@ -801,13 +802,13 @@ export function AdminPanel() {
       </section>
 
       {/* Step 3: Simulate Events */}
-      <section className="rounded-xl border border-white/10 bg-white/5 p-5 space-y-6">
+      <section className="space-y-6 rounded-md border border-white/10 bg-black/35 p-5 shadow-[0_8px_24px_rgba(60,46,22,0.05)] sm:p-6">
         <h2 className="text-sm font-medium text-white/80">3 · Simulate Events</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
           {/* Yield Simulation */}
           <div className="space-y-3 p-4 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <h3 className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Yield Accrual</h3>
               <span className="text-[10px] text-emerald-400/50 italic">Waterfall Distribution</span>
             </div>
@@ -832,10 +833,10 @@ export function AdminPanel() {
           </div>
 
           {/* Loan Lifecycle */}
-          <div className="space-y-3 p-4 rounded-lg bg-blue-500/5 border border-blue-500/10 md:col-span-2">
+          <div className="space-y-3 p-4 rounded-lg bg-blue-500/5 border border-blue-500/10 xl:col-span-2">
             <div className="flex items-center justify-between">
               <h3 className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Loan Lifecycle</h3>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-3">
                 <span className="text-[10px] text-blue-400/50 italic">Disburse → Repay</span>
                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/5 border border-white/10">
                   <span className="text-[9px] text-white/30 uppercase font-bold">Collateral:</span>
@@ -848,8 +849,8 @@ export function AdminPanel() {
                 </div>
               </div>
             </div>
-            <div className="flex items-end gap-3">
-              <div className="flex-1 space-y-1">
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="min-w-[220px] flex-1 space-y-1">
                 <label className="text-[10px] text-white/30 uppercase">Repay Amount (USDC)</label>
                 <input
                   type="text"
@@ -924,7 +925,7 @@ export function AdminPanel() {
 
       {/* Log */}
       {log.length > 0 && (
-        <section className="rounded-xl border border-white/10 bg-black/40 p-4">
+        <section className="rounded-md border border-white/10 bg-black/40 p-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-xs font-medium text-white/50">Transaction Log</h2>
             <button
@@ -946,7 +947,7 @@ export function AdminPanel() {
 
       {/* Pending Loan Applications */}
       {applications.filter(a => a.status === 'pending').length > 0 && (
-        <section className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-5 space-y-4">
+        <section className="space-y-4 rounded-md border border-yellow-500/20 bg-yellow-500/5 p-5 shadow-[0_8px_24px_rgba(60,46,22,0.05)] sm:p-6">
           <h2 className="text-sm font-medium text-yellow-200/80">
             4 · Pending Loan Applications ({applications.filter(a => a.status === 'pending').length})
           </h2>
@@ -958,13 +959,13 @@ export function AdminPanel() {
                 const nextId = 1 + applications.filter(a => a.status === 'approved').length + idx;
                 return (
                   <div key={app.id} className="rounded-lg border border-yellow-500/10 bg-black/20 p-3 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="text-xs space-y-0.5">
                         <p className="font-mono text-white/70">{app.borrowerPubkey.slice(0, 16)}…</p>
                         <p className="text-white/50">{app.purpose} · {app.maturityDays} days · ${app.requestedUSDC.toLocaleString()} USDC</p>
                         <p className="text-white/30 text-[10px]">{new Date(app.submittedAt).toLocaleString()}</p>
                       </div>
-                      <div className="flex gap-2 shrink-0">
+                      <div className="flex shrink-0 gap-2">
                         <button
                           onClick={() => originateLoanForApplicant(app.id, app.borrowerPubkey, app.requestedUSDC, app.maturityDays, nextId)}
                           disabled={!wallet}

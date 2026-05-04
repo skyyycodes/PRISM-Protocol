@@ -23,10 +23,10 @@ const CHAIN_LABELS: Record<IkaChain, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  Pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  Locked: 'bg-green-100 text-green-800 border-green-200',
-  Released: 'bg-blue-100 text-blue-800 border-blue-200',
-  Liquidated: 'bg-red-100 text-red-800 border-red-200',
+  Pending: 'border-[#ad7b21]/50 bg-[#ad7b21]/10 text-[#f0c06a]',
+  Locked: 'border-[#16a34a]/60 bg-[#16a34a]/10 text-[#86efac]',
+  Released: 'border-[#2d72ff]/50 bg-[#2d72ff]/10 text-[#9ec0ff]',
+  Liquidated: 'border-pink-500/45 bg-pink-500/10 text-pink-200',
 };
 
 interface Props {
@@ -58,7 +58,7 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
 
   if (!connected) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+      <div className="rounded-md border border-dashed border-white/25 bg-black/20 p-6 text-center text-sm text-white/45">
         Connect wallet to manage IKA collateral.
       </div>
     );
@@ -69,9 +69,9 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
     const dwalletHex = Buffer.from(collateral.dwalletId).toString('hex');
 
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
+      <div className="space-y-4 rounded-md border border-white/10 bg-black/35 p-5">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-slate-800">IKA Collateral</h3>
+          <h3 className="font-semibold text-white">IKA Collateral</h3>
           <span
             className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[collateral.status] ?? ''}`}
           >
@@ -80,28 +80,28 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
         </div>
 
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-          <dt className="text-slate-500">dWallet ID</dt>
-          <dd className="font-mono text-slate-700 truncate" title={dwalletHex}>
+          <dt className="text-white/45">dWallet ID</dt>
+          <dd className="truncate font-mono text-white/70" title={dwalletHex}>
             {dwalletHex.slice(0, 16)}…
           </dd>
 
-          <dt className="text-slate-500">Chain</dt>
-          <dd className="text-slate-700">{CHAIN_LABELS[collateral.chainId as IkaChain]}</dd>
+          <dt className="text-white/45">Chain</dt>
+          <dd className="text-white/70">{CHAIN_LABELS[collateral.chainId as IkaChain]}</dd>
 
-          <dt className="text-slate-500">Collateral (USD)</dt>
-          <dd className="text-slate-700">
+          <dt className="text-white/45">Collateral (USD)</dt>
+          <dd className="text-white/70">
             ${(Number(collateral.collateralAmountUsd) / 1_000_000).toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </dd>
 
-          <dt className="text-slate-500">Oracle</dt>
-          <dd className="font-mono text-slate-700 truncate" title={collateral.oraclePubkey.toBase58()}>
+          <dt className="text-white/45">Oracle</dt>
+          <dd className="truncate font-mono text-white/70" title={collateral.oraclePubkey.toBase58()}>
             {collateral.oraclePubkey.toBase58().slice(0, 12)}…
           </dd>
 
           {collateral.lockedTs > 0 && (
             <>
-              <dt className="text-slate-500">Locked at</dt>
-              <dd className="text-slate-700">
+              <dt className="text-white/45">Locked at</dt>
+              <dd className="text-white/70">
                 {new Date(collateral.lockedTs * 1000).toLocaleString()}
               </dd>
             </>
@@ -111,7 +111,7 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
         {/* Actions based on current status */}
         {collateral.status === 'Pending' && (
           <div className="space-y-2">
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-white/50">
               Waiting for IKA oracle to confirm your on-chain lock.
               Click Verify once your BTC/ETH transaction is confirmed.
             </p>
@@ -130,7 +130,7 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
                   toast.error(e instanceof Error ? e.message : 'Verification failed');
                 }
               }}
-              className="w-full rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+              className="w-full rounded-md bg-white px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-white/85 disabled:opacity-50"
             >
               {isPolling ? 'Polling IKA oracle…' : 'Verify Collateral Lock'}
             </button>
@@ -138,7 +138,7 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
         )}
 
         {collateral.status === 'Locked' && (
-          <p className="text-xs text-green-700 bg-green-50 rounded-lg p-2">
+          <p className="rounded-md border border-[#16a34a]/45 bg-[#16a34a]/10 p-2 text-xs text-[#86efac]">
             Collateral is locked. Your loan can now be disbursed by the admin.
           </p>
         )}
@@ -148,25 +148,25 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
             <button
               disabled={releaseMutation.isPending}
               onClick={() => releaseMutation.mutate({ vaultId, loanId })}
-              className="w-full rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+              className="w-full rounded-md border border-[#2d72ff]/50 bg-[#2d72ff]/10 px-4 py-2 text-sm font-medium text-[#9ec0ff] transition-colors hover:bg-[#2d72ff]/15 disabled:opacity-50"
             >
               {releaseMutation.isPending ? 'Releasing…' : 'Release Collateral'}
             </button>
           ) : (
-            <p className="text-xs text-slate-500 bg-slate-50 rounded-lg p-2 border border-slate-200">
+            <p className="rounded-md border border-white/10 bg-white/[0.04] p-2 text-xs text-white/50">
               Repay your loan in full before releasing collateral.
             </p>
           )
         )}
 
         {collateral.status === 'Released' && (
-          <p className="text-xs text-blue-700 bg-blue-50 rounded-lg p-2">
+          <p className="rounded-md border border-[#2d72ff]/45 bg-[#2d72ff]/10 p-2 text-xs text-[#9ec0ff]">
             Collateral released. IKA Network will unlock your BTC/ETH.
           </p>
         )}
 
         {collateral.status === 'Liquidated' && (
-          <p className="text-xs text-red-700 bg-red-50 rounded-lg p-2">
+          <p className="rounded-md border border-pink-500/45 bg-pink-500/10 p-2 text-xs text-pink-200">
             Collateral has been liquidated due to loan default.
           </p>
         )}
@@ -177,7 +177,7 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
   // ── No collateral yet — show attach form ─────────────────────────────────
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-400 animate-pulse">
+      <div className="animate-pulse rounded-md border border-white/10 bg-black/35 p-5 text-sm text-white/45">
         Loading collateral status…
       </div>
     );
@@ -233,10 +233,10 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
+    <div className="space-y-4 rounded-md border border-white/10 bg-black/35 p-5">
       <div>
-        <h3 className="font-semibold text-slate-800">Attach IKA Collateral</h3>
-        <p className="mt-1 text-xs text-slate-500">
+        <h3 className="font-semibold text-white">Attach IKA Collateral</h3>
+        <p className="mt-1 text-xs text-white/50">
           Lock BTC or ETH in an IKA dWallet and register it here as loan collateral.
           The IKA oracle will attest the lock on-chain before disbursement.
         </p>
@@ -244,11 +244,11 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
 
       <div className="space-y-3">
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Chain</label>
+          <label className="mb-1 block text-xs font-medium text-white/55">Chain</label>
           <select
             value={chainId}
             onChange={(e) => setChainId(Number(e.target.value) as IkaChain)}
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-pink-500/40"
           >
             <option value={IKA_CHAIN.BTC}>Bitcoin (BTC)</option>
             <option value={IKA_CHAIN.ETH}>Ethereum (ETH)</option>
@@ -257,12 +257,12 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
         </div>
 
         {/* Create dWallet via IKA SDK */}
-        <details className="rounded-lg border border-purple-100 bg-purple-50">
-          <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-purple-700 select-none">
+        <details className="rounded-md border border-pink-500/25 bg-pink-500/[0.06]">
+          <summary className="cursor-pointer select-none px-3 py-2 text-xs font-medium text-pink-100">
             Create a new dWallet on IKA Network
           </summary>
-          <div className="px-3 pb-3 pt-1 space-y-2">
-            <p className="text-xs text-purple-600">
+          <div className="space-y-2 px-3 pb-3 pt-1">
+            <p className="text-xs text-white/55">
               Provide a 32-byte Sui keypair seed (hex). This keypair pays gas on IKA Network
               and will own the resulting dWallet.
               Requires SUI &amp; IKA tokens on the target network.
@@ -271,12 +271,12 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
               value={suiSeedHex}
               onChange={(e) => setSuiSeedHex(e.target.value.trim().toLowerCase())}
               placeholder="64 hex chars (32-byte Sui keypair seed)"
-              className="w-full rounded-lg border border-purple-200 bg-white px-3 py-2 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs text-white outline-none transition-colors placeholder:text-white/30 focus:border-pink-500/40"
             />
             <button
               disabled={isCreatingDwallet}
               onClick={handleCreateDwallet}
-              className="w-full rounded-lg bg-purple-100 px-3 py-2 text-xs font-medium text-purple-800 hover:bg-purple-200 disabled:opacity-50"
+              className="w-full rounded-md border border-white/10 bg-white/[0.08] px-3 py-2 text-xs font-medium text-white/75 transition-colors hover:bg-white/[0.12] hover:text-white disabled:opacity-50"
             >
               {isCreatingDwallet ? 'Running DKG on IKA Network…' : 'Create dWallet'}
             </button>
@@ -284,19 +284,19 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
         </details>
 
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">
+          <label className="mb-1 block text-xs font-medium text-white/55">
             dWallet ID (hex, 64 chars)
           </label>
           <input
             value={dwalletIdHex}
             onChange={(e) => setDwalletIdHex(e.target.value.trim().toLowerCase())}
             placeholder="a1b2c3d4… (auto-filled after Create, or paste from IKA dashboard)"
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs text-white outline-none transition-colors placeholder:text-white/30 focus:border-pink-500/40"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">
+          <label className="mb-1 block text-xs font-medium text-white/55">
             Collateral Value (USD)
           </label>
           <input
@@ -305,25 +305,25 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
             value={collateralUsd}
             onChange={(e) => setCollateralUsd(e.target.value)}
             placeholder="50000"
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30 focus:border-pink-500/40"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">
+          <label className="mb-1 block text-xs font-medium text-white/55">
             IKA Oracle Public Key
           </label>
           <input
             value={oracleKey}
             onChange={(e) => setOracleKey(e.target.value.trim())}
             placeholder="IKA oracle ed25519 pubkey (base58)"
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs text-white outline-none transition-colors placeholder:text-white/30 focus:border-pink-500/40"
           />
-          <p className="mt-0.5 text-xs text-slate-400">
+          <p className="mt-0.5 text-xs text-white/35">
             Devnet test oracle:{' '}
             <button
               type="button"
-              className="font-mono text-purple-600 hover:underline"
+              className="font-mono text-pink-200 hover:underline"
               onClick={() => setOracleKey('5nmEq5cNc9yXpK1ySrb4XH65zccBvRK2hwKnEJePjcrf')}
             >
               5nmEq5cNc9yXp…
@@ -336,7 +336,7 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
       <button
         disabled={attachMutation.isPending}
         onClick={handleAttach}
-        className="w-full rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+        className="w-full rounded-md bg-white px-4 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-white/85 disabled:opacity-50"
       >
         {attachMutation.isPending ? 'Registering…' : 'Register IKA Collateral'}
       </button>
