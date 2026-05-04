@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DOCS_URL } from "@/lib/site-links";
 import { WaitlistDialog } from "@/components/landing/waitlist-dialog";
+import { BookOpen, ChevronDown, FileText, Rss } from "lucide-react";
 
 const navLinks = [
   { name: "Tranches",      href: "/#features"      },
@@ -13,12 +14,36 @@ const navLinks = [
   { name: "Architecture",  href: "/#infra"          },
   { name: "Integrations",  href: "/#integrations"  },
   { name: "Security",      href: "/#security"      },
-  { name: "Blog",          href: "/blog"            },
+];
+
+const resourceItems = [
+  {
+    icon: BookOpen,
+    name: "Documentation",
+    description: "Program IDs, instructions, CPIs.",
+    href: DOCS_URL,
+    external: true,
+  },
+  {
+    icon: Rss,
+    name: "Blog",
+    description: "Research, protocol updates, postmortems.",
+    href: "/blog",
+    external: false,
+  },
+  {
+    icon: FileText,
+    name: "Lite Paper",
+    description: "Architecture, tokenomics, and risk model.",
+    href: "https://drive.google.com/file/d/16wCCVdI0WqF_1p3yTVhyGGD_BvN7_dPy/view",
+    external: true,
+  },
 ];
 
 export function Navigation() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [resourcesMobileOpen, setResourcesMobileOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -31,19 +56,19 @@ export function Navigation() {
   return (
     <header
       className={`fixed z-50 transition-all duration-500 ${
-        isScrolled 
-          ? "top-4 left-4 right-4" 
+        isScrolled
+          ? "top-4 left-4 right-4"
           : "top-0 left-0 right-0"
       }`}
     >
-      <nav 
+      <nav
         className={`mx-auto transition-all duration-500 ${
           isScrolled || isMobileMenuOpen
             ? "bg-background/80 backdrop-blur-xl border border-foreground/10 rounded-2xl shadow-lg max-w-[1200px]"
             : "bg-transparent max-w-[1400px]"
         }`}
       >
-        <div 
+        <div
           className={`flex items-center justify-between transition-all duration-500 px-6 lg:px-8 ${
             isScrolled ? "h-14" : "h-20"
           }`}
@@ -82,13 +107,48 @@ export function Navigation() {
                 <span className={`absolute -bottom-1 left-0 w-0 h-px transition-all duration-300 group-hover:w-full ${isScrolled ? "bg-foreground" : "bg-white"}`} />
               </Link>
             ))}
+
+            {/* Resources Dropdown */}
+            <div className="relative group">
+              <button
+                className={`flex items-center gap-1 text-sm transition-colors duration-300 ${
+                  isScrolled ? "text-foreground/70 hover:text-foreground" : "text-white/70 hover:text-white"
+                }`}
+              >
+                Resources
+                <ChevronDown className="h-3 w-3 transition-transform duration-200 group-hover:rotate-180" />
+              </button>
+
+              {/* Dropdown Panel */}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none group-hover:pointer-events-auto">
+                <div className="w-64 rounded-xl border border-foreground/10 bg-background/95 backdrop-blur-xl shadow-xl overflow-hidden">
+                  {resourceItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <a
+                        key={item.name}
+                        href={item.href}
+                        target={item.external ? "_blank" : undefined}
+                        rel={item.external ? "noopener noreferrer" : undefined}
+                        className="flex items-start gap-3 px-4 py-3 hover:bg-foreground/5 transition-colors"
+                      >
+                        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-foreground/5">
+                          <Icon className="h-4 w-4 text-foreground/60" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-foreground">{item.name}</div>
+                          <div className="text-xs text-muted-foreground leading-relaxed">{item.description}</div>
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-4">
-            <a href={DOCS_URL} className={`transition-all duration-500 ${isScrolled ? "text-xs text-foreground/70 hover:text-foreground" : "text-sm text-white/70 hover:text-white"}`}>
-              View docs
-            </a>
             <WaitlistDialog>
               <Button
                 size="sm"
@@ -126,12 +186,12 @@ export function Navigation() {
         </div>
 
       </nav>
-      
+
       {/* Mobile Menu - Full Screen Overlay */}
       <div
         className={`md:hidden fixed inset-0 bg-background z-40 transition-all duration-500 ${
-          isMobileMenuOpen 
-            ? "opacity-100 pointer-events-auto" 
+          isMobileMenuOpen
+            ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
         }`}
         style={{ top: 0 }}
@@ -145,8 +205,8 @@ export function Navigation() {
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`font-display text-4xl text-foreground transition-all duration-500 hover:text-muted-foreground sm:text-5xl ${
-                  isMobileMenuOpen 
-                    ? "opacity-100 translate-y-0" 
+                  isMobileMenuOpen
+                    ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-4"
                 }`}
                 style={{ transitionDelay: isMobileMenuOpen ? `${i * 75}ms` : "0ms" }}
@@ -154,15 +214,57 @@ export function Navigation() {
                 {link.name}
               </Link>
             ))}
+
+            {/* Resources — mobile accordion */}
+            <div
+              className={`transition-all duration-500 ${
+                isMobileMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+              }`}
+              style={{ transitionDelay: isMobileMenuOpen ? `${navLinks.length * 75}ms` : "0ms" }}
+            >
+              <button
+                onClick={() => setResourcesMobileOpen(!resourcesMobileOpen)}
+                className="flex items-center gap-2 font-display text-4xl text-foreground hover:text-muted-foreground sm:text-5xl"
+              >
+                Resources
+                <ChevronDown
+                  className={`h-7 w-7 transition-transform duration-300 ${resourcesMobileOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {resourcesMobileOpen && (
+                <div className="mt-4 flex flex-col gap-1 pl-2 border-l border-foreground/10">
+                  {resourceItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <a
+                        key={item.name}
+                        href={item.href}
+                        target={item.external ? "_blank" : undefined}
+                        rel={item.external ? "noopener noreferrer" : undefined}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-foreground/5 transition-colors"
+                      >
+                        <Icon className="h-4 w-4 shrink-0 text-foreground/50" />
+                        <div>
+                          <div className="text-base font-medium text-foreground">{item.name}</div>
+                          <div className="text-xs text-muted-foreground">{item.description}</div>
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-          
+
           {/* Bottom CTAs */}
           <div className={`grid gap-3 border-t border-foreground/10 pt-6 transition-all duration-500 sm:grid-cols-2 sm:gap-4 sm:pt-8 ${
-            isMobileMenuOpen 
-              ? "opacity-100 translate-y-0" 
+            isMobileMenuOpen
+              ? "opacity-100 translate-y-0"
               : "opacity-0 translate-y-4"
           }`}
-          style={{ transitionDelay: isMobileMenuOpen ? "300ms" : "0ms" }}
+          style={{ transitionDelay: isMobileMenuOpen ? "375ms" : "0ms" }}
           >
             <Button
               asChild
