@@ -12,13 +12,13 @@ const features = [
   {
     number: "02",
     title: "Yield Waterfall",
-    description: "Borrower coupons distribute through tranches in priority order. Prime gets paid first up to its target rate, Core next, Alpha takes the residual.",
-    stats: { value: "5% / 12%", label: "Prime + Core target yields" },
+    description: "Borrower coupons distribute through tranches in priority order. Prime targets 5%, Core targets 8%, and Alpha targets 15% for first-loss upside.",
+    stats: { value: "5% / 8% / 15%", label: "tranche target yields" },
   },
   {
     number: "03",
     title: "Default Cascade",
-    description: "When a credit event hits, losses absorb in reverse priority. Alpha wipes first. Core takes the residual hit. Prime holders are protected — exactly as the contract promised.",
+    description: "When a credit event hits, losses absorb in reverse priority. Alpha wipes first. Core takes the next hit. Prime holders are protected — exactly as the contract promised.",
     stats: { value: "100%", label: "loss absorption proven on-chain" },
   },
   {

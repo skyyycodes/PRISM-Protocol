@@ -18,7 +18,7 @@ After successful run with `vault_id = 0`:
 |---|---|
 | `GlobalConfig` PDA exists with admin = keys/admin.json pubkey | `solana account <config_pda>` |
 | `Vault[0]` PDA exists, state = Active, USDC reserve + loss bucket initialized | `solana account <vault_pda>` |
-| 3 Tranches initialized: Prime (5% APY), Core (12%), Alpha (residual) | `program.account.tranche.fetch(...)` |
+| 3 Tranches initialized: Prime (5% APY), Core (8%), Alpha (15%) | `program.account.tranche.fetch(...)` |
 | 3 SPL mints exist (`pPRIME`, `pCORE`, `pALPHA`), authority = Tranche PDA | SPL token CLI: `spl-token display <mint>` |
 | 1 Loan PDA exists, borrower = keys/borrower.json | `program.account.loan.fetch(...)` |
 | LP wallets hold pTRANCHE balances per [12-reference-card.md §1.4](12-reference-card.md) | `spl-token balance --owner <lp_pubkey>` |
@@ -272,8 +272,8 @@ async function initializeVault(ctx: SetupContext) {
 async function initializeTranches(ctx: SetupContext) {
   const params = [
     { kind: TrancheKind.Prime, apy: 500, label: "prime" },
-    { kind: TrancheKind.Core,   apy: 1200, label: "core" },
-    { kind: TrancheKind.Alpha, apy: 0,    label: "alpha" },
+    { kind: TrancheKind.Core,   apy: 800,  label: "core" },
+    { kind: TrancheKind.Alpha, apy: 1500, label: "alpha" },
   ];
 
   for (const p of params) {
@@ -505,8 +505,8 @@ async function simulateYieldEvent(ctx: SetupContext) {
 
 **Note on 30-day "elapsed":** the handler computes `prime_target = total_assets × apy_bps × elapsed / SECONDS_PER_YEAR / BPS_DENOMINATOR`. With `elapsed = 30 days × 86400 s = 2,592,000 s`:
 - prime_target = 10K × 500 × 2,592,000 / (31,536,000 × 10,000) = 41.10 USDC ✓
-- core_target = 4.5K × 1,200 × 2,592,000 / (31,536,000 × 10,000) = 44.38 USDC ✓
-- alpha_take = 100 - 41.10 - 44.38 = 14.52 USDC ✓
+- core_target = 4.5K × 800 × 2,592,000 / (31,536,000 × 10,000) = 29.59 USDC ✓
+- alpha_take = 100 - 41.10 - 29.59 = 29.31 USDC ✓
 
 For real elapsed time on devnet, we'd need 30 days. **For demo recording**, set `vault.last_yield_timestamp = (now - 30 days)` directly via a setup-only `seed_demo_state` admin instruction, OR fudge the `elapsed` calculation in `accrue_yield` to accept an explicit `elapsed_seconds` parameter (admin-only path). My pick: add an explicit parameter — simpler, and clearly demo-only.
 

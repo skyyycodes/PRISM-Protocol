@@ -14,7 +14,7 @@ Users deposit USDC into one of three risk tranches:
 
 - `Prime` - lowest-risk layer, paid first, absorbs losses last
 - `Core` - intermediate risk and yield layer
-- `Alpha` - residual upside layer, first-loss capital
+- `Alpha` - 15% target-yield layer, first-loss capital
 
 Borrower yield flows through a top-down waterfall:
 

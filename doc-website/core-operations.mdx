@@ -31,7 +31,7 @@ Yield flow:
 3. Protocol computes each tranche's waterfall entitlement.
 4. Prime receives target yield first.
 5. Core receives target yield second.
-6. Alpha receives residual yield.
+6. Alpha receives yield up to its 15% target.
 7. NAV updates for every affected tranche.
 
 ## Credit Events
@@ -43,7 +43,7 @@ Credit event flow:
 1. Oracle or authorized admin submits a loss amount.
 2. Protocol records the credit event.
 3. Loss is applied to Alpha first.
-4. Residual loss is applied to Core.
+4. Remaining loss is applied to Core.
 5. Any remaining loss is applied to Prime.
 6. USDC moves from vault reserve to the loss sink.
 7. NAV updates to reflect the realized loss.
@@ -75,4 +75,3 @@ Trading flow:
 5. Market price changes.
 
 Trading provides an exit or repositioning path without interacting with the vault directly.
-

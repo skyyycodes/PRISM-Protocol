@@ -63,7 +63,7 @@ A PRISM vault is a credit pool split into three risk layers:
 | --- | --- | --- | --- |
 | Prime | Paid first | Most protected | Conservative capital |
 | Core | Paid second | Intermediate exposure | Balanced capital |
-| Alpha | Paid last | First-loss absorber | High-risk residual exposure |
+| Alpha | Paid last | First-loss absorber | 15% target-yield exposure |
 
 When yield enters the vault, it flows from the safest layer to the riskiest layer. When losses hit, they flow in the opposite direction.
 
@@ -74,7 +74,7 @@ The most important PRISM behavior is the loss cascade.
 When a credit event occurs:
 
 1. Alpha absorbs losses first.
-2. Core absorbs residual losses after Alpha is depleted.
+2. Core absorbs remaining losses after Alpha is depleted.
 3. Prime absorbs losses only after subordinate tranches are depleted.
 
 This is the core demonstration:

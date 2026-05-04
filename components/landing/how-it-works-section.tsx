@@ -18,17 +18,17 @@ const steps = [
     number: "02",
     title: "Waterfall",
     subtitle: "yield in priority",
-    description: "The borrower pays a coupon. The waterfall distributes it: Prime first up to its target APY, then Core, then Alpha. Your tranche's NAV updates on every event.",
+    description: "The borrower pays a coupon. The waterfall distributes it through Prime, Core, and Alpha target yields. Your tranche's NAV updates on every event.",
     code: `// Yield event distributes via waterfall
 // Prime → 5% APY  (target)
-// Core   → 12% APY (target)
-// Alpha → residual returns`,
+// Core  → 8% APY  (target)
+// Alpha → 15% APY (target)`,
   },
   {
     number: "03",
     title: "Default",
     subtitle: "then reprice",
-    description: "Trigger a credit event and watch the loss move through the stack. Alpha absorbs first, Core takes the residual, and AMM prices react in real time.",
+    description: "Trigger a credit event and watch the loss move through the stack. Alpha absorbs first, Core takes the next hit, and AMM prices react in real time.",
     code: `await prism.swap({
   from: 'pPRIME',
   to:   'USDC',

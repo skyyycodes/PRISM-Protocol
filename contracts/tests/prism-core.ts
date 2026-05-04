@@ -189,8 +189,8 @@ describe("prism-core", () => {
 
     const tranches = [
       { kind: TrancheKind.Prime, apy: 500, label: "Prime" },
-      { kind: TrancheKind.Core, apy: 1200, label: "Core" },
-      { kind: TrancheKind.Alpha, apy: 0, label: "Alpha" },
+      { kind: TrancheKind.Core, apy: 800, label: "Core" },
+      { kind: TrancheKind.Alpha, apy: 1500, label: "Alpha" },
     ];
 
     const start = Date.now();

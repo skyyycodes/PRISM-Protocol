@@ -49,8 +49,8 @@ All tokens use 6 decimals to match USDC base units. NAV math at 1.0 → 1 USDC b
 | Tranche | `kind` byte | `target_apy_bps` |
 |---|---|---|
 | Prime | `0` | `500` (5%) |
-| Core | `1` | `1200` (12%) |
-| Alpha | `2` | `0` (residual — gets whatever's left after Prime + Core targets) |
+| Core | `1` | `800` (8%) |
+| Alpha | `2` | `1500` (15%) |
 
 ### 1.4 Locked demo numbers
 
@@ -68,8 +68,8 @@ All tokens use 6 decimals to match USDC base units. NAV math at 1.0 → 1 USDC b
 
 **Yield event:** 100 USDC over 30 days
 - Prime take: 41.10 USDC (5% APY × 30/365 × 10,000)
-- Core take: 44.40 USDC (12% APY × 30/365 × 4,500)
-- Alpha take: 14.50 USDC (residual)
+- Core take: 29.59 USDC (8% APY × 30/365 × 4,500)
+- Alpha take: 29.31 USDC (remaining yield toward the 15% target)
 
 **Default loss:** 6,500 USDC
 - Alpha loss: 5,014.50 (full — wiped to NAV 0)
@@ -356,7 +356,7 @@ Vocabulary that appears across the docs. If two words could be confused, both ar
 | **Q64.64** | Fixed-point number representation. `u128` where bits 0–63 are fractional, bits 64–127 are integer. `Q64_ONE` (= 2^64) represents 1.0 |
 | **Tranche** | A single risk class within a vault. Three exist per vault: Prime (priority 0), Core (priority 1), Alpha (priority 2) |
 | **Tranche kind** | `u8` byte indicating Prime/Core/Alpha. Prime = 0, Core = 1, Alpha = 2 |
-| **Waterfall** | Yield distribution algorithm. Prime gets first call up to its target APY, then Core, then Alpha gets the residual |
+| **Waterfall** | Yield distribution algorithm. Prime gets first call up to its 5% target APY, then Core to 8%, then Alpha to 15% |
 | **Cascade** | Loss application algorithm. Reverse of waterfall — Alpha absorbs first, Core next, Prime last |
 | **Loss bucket** | A PDA-controlled token account holding USDC moved out of the vault on default. Maintains the cash invariant: `vault_reserve.amount == sum(tranche.total_assets)` |
 | **Closed-loop demo** | The MVP demo skips real loan disbursement. USDC stays in the vault; default just moves loss USDC to the loss bucket. See [§8.1](08-open-questions.md) |

@@ -261,8 +261,8 @@ async function initializeVault(ctx: SetupContext) {
 async function initializeTranches(ctx: SetupContext) {
   const params = [
     { kind: TrancheKind.Prime, apy: 500, label: "prime" },
-    { kind: TrancheKind.Core,  apy: 1200, label: "core" },
-    { kind: TrancheKind.Alpha, apy: 0,    label: "alpha" },
+    { kind: TrancheKind.Core,  apy: 800,  label: "core" },
+    { kind: TrancheKind.Alpha, apy: 1500, label: "alpha" },
   ];
 
   for (const p of params) {

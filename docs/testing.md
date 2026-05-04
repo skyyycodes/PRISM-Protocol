@@ -5,7 +5,7 @@ This document serves as the definitive engineering specification for the verific
 ---
 
 ## 1. Introduction: Structured Credit Verification
-Testing PRISM is fundamentally different from testing a standard DEX or yield aggregator. We are managing a multi-layered risk waterfall where a single rounding error or state-transition failure can lead to the total collapse of senior investor protection. 
+Testing PRISM is fundamentally different from testing a standard DEX or yield aggregator. We are managing a multi-layered risk waterfall where a single rounding error or state-transition failure can lead to the total collapse of Prime holder protection. 
 
 Our testing objective is to mathematically prove that the protocol preserves value across all borrower lifecycles and market conditions, ensuring that **risk is always correctly priced and distributed.**
 
@@ -16,8 +16,8 @@ We follow a strict **Invariant-First** philosophy. A test only passes if the sys
 
 1.  **Capital Preservation**: `Sum(Reserves) + Sum(Loans) + Sum(LossBucket) == Sum(InitialDeposits) + Sum(InterestPaid)`.
 2.  **NAV Consistency**: The Net Asset Value of a tranche must always equal `(Tranche_Assets / Tranche_Shares)`.
-3.  **Waterfall Integrity**: Senior tranches must be filled to their target APY before any yield flows to junior tranches.
-4.  **Risk Priority**: Junior tranches must be depleted to zero before any loss is applied to senior tranches.
+3.  **Waterfall Integrity**: Prime tranches must be filled to their target APY before any yield flows to junior tranches.
+4.  **Risk Priority**: Alpha and Core must be depleted to zero before any loss is applied to Prime.
 
 ---
 
@@ -82,7 +82,7 @@ Tracking the movement of every lamport and token unit.
 | **4** | `InitLoan` | Maturity timestamp and principal limits. | Maturity in the past. |
 | **5** | `Deposit` | 1:1 Share pricing / liquidity entry. | Under-collateralized minting. |
 | **6** | `Disburse` | Liquidity exit to authorized borrower. | Fund leakage to non-borrower. |
-| **7** | `AccrueYield` | Waterfall priority (Senior -> Junior). | Junior yield leak. |
+| **7** | `AccrueYield` | Waterfall priority (Prime -> Core -> Alpha). | Alpha yield leak. |
 | **8** | `Repay` | Debt closure and reserve replenishment. | Double repayment / over-recovery. |
 | **9** | `Withdraw` | Share burning and NAV-based payout. | Bank run / liquidity starvation. |
 
@@ -131,15 +131,15 @@ In extreme default scenarios, the suite validates that the system remains operat
 ### Yield Distribution Logic
 ```rust
 fn distribute_yield(amount):
-    let senior_due = calculate_target(tranche_prime);
-    let paid_senior = min(amount, senior_due);
-    let remaining = amount - paid_senior;
+    let prime_due = calculate_target(tranche_prime);
+    let paid_prime = min(amount, prime_due);
+    let remaining = amount - paid_prime;
     
-    let mezz_due = calculate_target(tranche_core);
-    let paid_mezz = min(remaining, mezz_due);
+    let core_due = calculate_target(tranche_core);
+    let paid_core = min(remaining, core_due);
     
-    let equity_surplus = remaining - paid_mezz;
-    allocate(tranche_alpha, equity_surplus);
+    let alpha_surplus = remaining - paid_core;
+    allocate(tranche_alpha, alpha_surplus);
 ```
 
 ### NAV Calculation
@@ -163,7 +163,7 @@ fn update_nav(vault):
 ## 11. Final Validation Checklist
 *   [ ] All 15 tests return `Success`.
 *   [ ] Balance Deltas match expected mathematical outcomes to the 6th decimal.
-*   [ ] Senior Tranche NAV is always $\geq 1.00$.
+*   [ ] Prime Tranche NAV is always $\geq 1.00$.
 *   [ ] Loss Bucket is untouched during "Happy Path" scenarios.
 *   [ ] Administrator Pause flag blocks `Deposit` and `Withdraw` calls.
 

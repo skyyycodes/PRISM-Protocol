@@ -58,7 +58,7 @@ const fieldNotes = [
     date: "APR 2026",
     title: "What a tranche AMM actually prices.",
     excerpt:
-      "Tranche swaps expose the market's appetite for senior protection, junior yield, and post-event repricing.",
+      "Tranche swaps expose the market's appetite for Prime protection, Core yield, Alpha upside, and post-event repricing.",
     href: `${docsBase}risk-market-layer`,
   },
 ];
@@ -205,7 +205,7 @@ export default function BlogPage() {
 
           <div className="mt-8 grid max-w-3xl grid-cols-3 gap-px border border-white/10 bg-white/10 lg:mt-6">
             {[
-              ["Prime", "senior protection"],
+              ["Prime", "protected capital"],
               ["Core", "balanced yield"],
               ["Alpha", "first-loss risk"],
             ].map(([label, value]) => (
