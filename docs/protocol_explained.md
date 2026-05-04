@@ -68,7 +68,7 @@ PRISM is designed for **undercollateralized or real-world credit**. This means:
 
 ### 1.4 The Core Innovation: Structured Finance On-Chain
 
-PRISM brings the mechanics of structured finance — specifically Collateralized Loan Obligations (CLOs) and Asset-Backed Securities (ABS) — on-chain. In traditional structured finance, a bank packages a pool of loans, slices them into risk tranches, and sells them to different investors. Senior tranches get paid first and are the safest; junior tranches get paid last and are the riskiest but highest-yielding.
+PRISM brings the mechanics of structured finance — specifically Collateralized Loan Obligations (CLOs) and Asset-Backed Securities (ABS) — on-chain. In traditional structured finance, a bank packages a pool of loans, slices them into risk tranches, and sells them to different investors. Prime tranches get paid first and are the safest; junior tranches get paid last and are the riskiest but highest-yielding.
 
 This works very well as a risk distribution mechanism, but in traditional finance it's opaque, expensive, and inaccessible to retail. PRISM makes the same mechanics:
 
@@ -112,24 +112,24 @@ Vault {
 
 Every vault has exactly three tranches. These represent three different risk-return profiles within the same pool of capital. Every dollar of investor capital flows into one of these three layers.
 
-**Senior Tranche (Prime)**
+**Prime Tranche**
 - Lowest risk
 - Lowest yield (target: 5% APY in initial implementation)
 - First to be paid in any profit distribution
 - Last to absorb losses
 - Designed for risk-averse capital — pension funds, conservative allocators, stablecoin yield seekers
 
-**Mezzanine Tranche (Core)**
+**Core Tranche**
 - Medium risk
-- Medium yield (target: 10% APY)
+- Medium yield (target: 8% APY)
 - Paid second in profit distribution
-- Absorbs losses only after equity is wiped out
+- Absorbs losses only after Alpha is wiped out
 - Designed for yield-seekers who understand credit risk but want a floor
 
-**Equity Tranche (Alpha)**
+**Alpha Tranche**
 - Highest risk
-- Highest yield potential (uncapped, residual)
-- Paid last in profit distribution (receives whatever remains after senior and mezz are paid)
+- Highest yield target (15% APY)
+- Paid last in profit distribution
 - First to absorb any losses
 - Designed for risk-on capital that wants maximum upside in well-performing pools
 
@@ -143,7 +143,7 @@ Critical properties:
 
 1. **Token count does not change after minting** (unless more deposits come in or redemptions occur). There is no rebasing.
 2. **Token price (NAV per share) changes** as the underlying assets appreciate or depreciate.
-3. **Each tranche has its own token** — Senior tokens, Mezz tokens, Equity tokens are distinct SPL token mints with different prices.
+3. **Each tranche has its own token** — Prime tokens, Core tokens, Alpha tokens are distinct SPL token mints with different prices.
 
 When you deposit, you get tokens. When you redeem, you burn those tokens and receive the USDC equivalent of your current NAV. Your profit or loss is the difference between entry NAV and exit NAV.
 
@@ -174,18 +174,18 @@ NAV_per_share increases
 
 **Numerical Example:**
 
-| Event | Total Assets (Senior) | Shares Outstanding | NAV/share |
+| Event | Total Assets (Prime) | Shares Outstanding | NAV/share |
 |---|---|---|---|
 | User A deposits 1,000 USDC | 1,000 | 1,000 | 1.000 |
 | User B deposits 1,000 USDC | 2,000 | 2,000 | 1.000 |
-| Yield of 200 USDC distributed to Senior | 2,200 | 2,000 | 1.100 |
+| Yield of 200 USDC distributed to Prime | 2,200 | 2,000 | 1.100 |
 | User A redeems 1,000 shares | 1,100 returned, 1,100 assets remain | 1,000 | 1.100 |
 
 User A entered at NAV 1.0, exited at NAV 1.1 — a 10% return, purely through price appreciation of their tokens. No new tokens were ever created.
 
 **NAV after a loss:**
 
-If 400 USDC of losses cascade up to the Senior tranche:
+If 400 USDC of losses cascade up to the Prime tranche:
 
 ```
 Total_Assets_in_Tranche: 2,200 → 1,800
@@ -204,9 +204,9 @@ The waterfall is the core financial mechanic of PRISM. It defines the priority o
 ```
 Incoming cashflow: $X
 
-Step 1: Pay Senior tranche to its target APY
-Step 2: Pay Mezzanine tranche to its target APY (with whatever remains)
-Step 3: All residual cashflow goes to Equity tranche (uncapped upside)
+Step 1: Pay Prime tranche to its 5% target APY
+Step 2: Pay Core tranche to its 8% target APY
+Step 3: Pay Alpha tranche to its 15% target APY
 ```
 
 **Visualized:**
@@ -216,12 +216,12 @@ Borrower Repayment: $1,000 principal + $100 interest
 
 WATERFALL ENTRY: $100 yield
 
-→ Senior allocation: $50 (5% APY on $1,000 Senior TVL)
-  → NAV of Senior tokens increases
-→ Mezzanine allocation: $40 (remaining after Senior, up to 10% APY target)
-  → NAV of Mezz tokens increases
-→ Equity allocation: $10 (all residual)
-  → NAV of Equity tokens increases (most per-dollar if small pool)
+→ Prime allocation: $50 (5% APY on $1,000 Prime TVL)
+  → NAV of Prime tokens increases
+→ Core allocation: $32 (up to 8% APY target)
+  → NAV of Core tokens increases
+→ Alpha allocation: $18 (remaining yield toward the 15% APY target)
+  → NAV of Alpha tokens increases
 ```
 
 **On loss (borrower defaults):**
@@ -231,16 +231,16 @@ The loss cascade is the mirror image of the profit waterfall — but it flows fr
 ```
 Default amount: $D
 
-Step 1: Equity tranche absorbs first
-  → If D < Equity TVL: only equity holders are impacted
-  → If D > Equity TVL: Equity is wiped to zero, remainder cascades up
+Step 1: Alpha tranche absorbs first
+  → If D < Alpha TVL: only Alpha holders are impacted
+  → If D > Alpha TVL: Alpha is wiped to zero, remainder cascades up
 
-Step 2: Mezzanine tranche absorbs
-  → If remaining D < Mezz TVL: Mezz absorbs remainder
-  → If remaining D > Mezz TVL: Mezz wiped, remainder cascades to Senior
+Step 2: Core tranche absorbs
+  → If remaining D < Core TVL: Core absorbs remainder
+  → If remaining D > Core TVL: Core wiped, remainder cascades to Prime
 
-Step 3: Senior tranche absorbs only if both Equity and Mezz are insufficient
-  → Senior holders are protected by two full layers beneath them
+Step 3: Prime tranche absorbs only if both Alpha and Core are insufficient
+  → Prime holders are protected by two full layers beneath them
 ```
 
 ### 2.6 Loss Cascade: Full Example
@@ -249,53 +249,53 @@ Step 3: Senior tranche absorbs only if both Equity and Mezz are insufficient
 
 | Tranche | TVL | APY Target |
 |---|---|---|
-| Senior | $10,000 | 5% |
-| Mezzanine | $5,000 | 10% |
-| Equity | $2,000 | Residual |
+| Prime | $10,000 | 5% |
+| Core | $5,000 | 8% |
+| Alpha | $2,000 | 15% |
 | **Total** | **$17,000** | |
 
 **Scenario A: $1,500 default**
 
 ```
 Loss = $1,500
-Equity TVL = $2,000
+Alpha TVL = $2,000
 
-Equity absorbs $1,500 → Equity TVL drops to $500
-Mezz impact: ZERO
-Senior impact: ZERO
+Alpha absorbs $1,500 → Alpha TVL drops to $500
+Core impact: ZERO
+Prime impact: ZERO
 ```
 
-Senior and Mezz investors don't even know there was a default. Their NAV is unchanged. Equity investors just lost 75% of their TVL.
+Prime and Core investors don't even know there was a default. Their NAV is unchanged. Alpha investors just lost 75% of their TVL.
 
 **Scenario B: $3,000 default**
 
 ```
 Loss = $3,000
-Equity TVL = $2,000 → WIPED. Equity holders: 100% loss.
+Alpha TVL = $2,000 → WIPED. Alpha holders: 100% loss.
 
 Remaining loss = $3,000 - $2,000 = $1,000
-Mezz TVL = $5,000 → Absorbs $1,000 → Mezz TVL drops to $4,000
+Core TVL = $5,000 → Absorbs $1,000 → Core TVL drops to $4,000
 
-Senior impact: ZERO
+Prime impact: ZERO
 ```
 
-Mezz investors lose 20% of their TVL. Senior investors remain at 100% NAV.
+Core investors lose 20% of their TVL. Prime investors remain at 100% NAV.
 
 **Scenario C: $9,000 default**
 
 ```
 Loss = $9,000
-Equity TVL = $2,000 → WIPED.
+Alpha TVL = $2,000 → WIPED.
 Remaining: $7,000
 
-Mezz TVL = $5,000 → WIPED.
+Core TVL = $5,000 → WIPED.
 Remaining: $2,000
 
-Senior TVL = $10,000 → Absorbs $2,000 → Drops to $8,000
-Senior NAV drops by 20%.
+Prime TVL = $10,000 → Absorbs $2,000 → Drops to $8,000
+Prime NAV drops by 20%.
 ```
 
-This is the worst-case scenario for Senior holders. They only get impacted when losses exceed the combined buffer of the two tranches below them.
+This is the worst-case scenario for Prime holders. They only get impacted when losses exceed the combined buffer of the two tranches below them.
 
 ---
 
@@ -317,7 +317,7 @@ A user connects their Solana wallet (Phantom, Backpack, Solflare) to the PRISM f
 The user sees a list of available vaults, each representing a different credit pool. Vaults differ in:
 - Asset type (SME loans, invoice financing, trade credit)
 - Geography / jurisdiction
-- Risk profile (distribution of Senior/Mezz/Equity capital)
+- Risk profile (distribution of Prime/Core/Alpha capital)
 - Average maturity of underlying loans
 - Historical yield performance
 
@@ -328,12 +328,12 @@ The user sees a list of available vaults, each representing a different credit p
 
 #### Step 3: Choosing a Tranche
 
-Within a vault, the user selects their tranche: Senior, Mezzanine, or Equity. This is the most important decision — it determines their yield ceiling, their loss exposure, and their priority in the waterfall.
+Within a vault, the user selects their tranche: Prime, Core, or Alpha. This is the most important decision — it determines their yield ceiling, their loss exposure, and their priority in the waterfall.
 
 The frontend should present:
 - Current NAV per share for the chosen tranche
 - Historical yield vs. target APY
-- Current Equity buffer (how much must default before this tranche is impacted)
+- Current Alpha buffer (how much must default before this tranche is impacted)
 - Outstanding loan portfolio quality metrics
 
 **What happens internally:**
@@ -354,11 +354,11 @@ The user inputs a USDC amount and approves the transaction. The smart contract:
 **Example:**
 ```
 User deposits: 5,000 USDC
-Current NAV (Senior): 1.05 (after some yield has accrued)
-Shares minted: 5,000 / 1.05 = 4,761.9 Senior tokens
+Current NAV (Prime): 1.05 (after some yield has accrued)
+Shares minted: 5,000 / 1.05 = 4,761.9 Prime tokens
 ```
 
-The user now holds 4,761.9 Senior tokens. These tokens represent their pro-rata claim on the Senior tranche of this vault.
+The user now holds 4,761.9 Prime tokens. These tokens represent their pro-rata claim on the Prime tranche of this vault.
 
 #### Step 5: Receiving Tokens
 
@@ -396,7 +396,7 @@ When the user wants to exit, they call the `withdraw` instruction:
 
 **Example continuing from Step 4:**
 ```
-Tokens held: 4,761.9 Senior tokens
+Tokens held: 4,761.9 Prime tokens
 Entry NAV: 1.05
 Exit NAV (6 months later): 1.1025 (approximately 5% APY)
 USDC received: 4,761.9 * 1.1025 = 5,248.95 USDC
@@ -519,7 +519,7 @@ If a borrower misses a payment and the maturity date passes without full repayme
 1. The admin (or automated oracle) marks `loan.status = Defaulted`
 2. The unrecovered principal is calculated: `loss = principal - amount_repaid`
 3. `allocate_loss` is called on-chain
-4. Loss cascades down through tranches starting from Equity (see Section 2.6)
+4. Loss cascades down through tranches starting from Alpha (see Section 2.6)
 5. `nav_per_share` for affected tranches is updated downward
 6. Recovery process begins off-chain (legal, asset seizure, etc.)
 
@@ -540,7 +540,7 @@ All money in PRISM flows in two directions at different times. Understanding thi
 
 **Direction 2: Yield & Principal Out (Return)**
 ```
-[Borrower] → Repayment → [Vault Reserve] → Waterfall → [Senior] → [Mezz] → [Equity]
+[Borrower] → Repayment → [Vault Reserve] → Waterfall → [Prime] → [Core] → [Alpha]
                                                        → User redemption on exit
 ```
 
@@ -576,19 +576,19 @@ This is mechanically identical to how index fund NAVs work. You don't receive di
 
 ```
 Day 1:
-  Senior total_assets: 100,000 USDC
-  Senior total_shares: 100,000
-  Senior NAV: 1.000
+  Prime total_assets: 100,000 USDC
+  Prime total_shares: 100,000
+  Prime NAV: 1.000
 
-Day 30 (after $416 of yield distributed to Senior — ~5% APY on 100k over 1 month):
-  Senior total_assets: 100,416 USDC
-  Senior total_shares: 100,000 (unchanged)
-  Senior NAV: 1.00416
+Day 30 (after $416 of yield distributed to Prime — ~5% APY on 100k over 1 month):
+  Prime total_assets: 100,416 USDC
+  Prime total_shares: 100,000 (unchanged)
+  Prime NAV: 1.00416
 
 Day 365:
-  Senior total_assets: 105,000 USDC (assuming perfect 5% APY)
-  Senior total_shares: 100,000
-  Senior NAV: 1.050
+  Prime total_assets: 105,000 USDC (assuming perfect 5% APY)
+  Prime total_shares: 100,000
+  Prime NAV: 1.050
 ```
 
 ### 5.4 Distribution Mechanics
@@ -598,32 +598,33 @@ The `distribute_yield` function runs the waterfall:
 ```
 Total yield available: Y
 
-Senior allocation:
-  senior_target_yield = senior_total_assets * senior_apy * (days_elapsed / 365)
-  senior_allocation = min(Y, senior_target_yield)
-  Y_remaining = Y - senior_allocation
+Prime allocation:
+  prime_target_yield = prime_total_assets * prime_apy * (days_elapsed / 365)
+  prime_allocation = min(Y, prime_target_yield)
+  Y_remaining = Y - prime_allocation
 
-Mezz allocation:
-  mezz_target_yield = mezz_total_assets * mezz_apy * (days_elapsed / 365)
-  mezz_allocation = min(Y_remaining, mezz_target_yield)
-  Y_remaining = Y_remaining - mezz_allocation
+Core allocation:
+  core_target_yield = core_total_assets * core_apy * (days_elapsed / 365)
+  core_allocation = min(Y_remaining, core_target_yield)
+  Y_remaining = Y_remaining - core_allocation
 
-Equity allocation:
-  equity_allocation = Y_remaining (all residual)
+Alpha allocation:
+  alpha_target_yield = alpha_total_assets * alpha_apy * (days_elapsed / 365)
+  alpha_allocation = min(Y_remaining, alpha_target_yield)
 ```
 
 The allocations are then applied to each tranche's `total_assets`:
 ```
-senior.total_assets += senior_allocation
-mezz.total_assets += mezz_allocation
-equity.total_assets += equity_allocation
+prime.total_assets += prime_allocation
+core.total_assets += core_allocation
+alpha.total_assets += alpha_allocation
 ```
 
 And NAV is recalculated for each tranche.
 
 ### 5.5 The Loss Bucket (First-Loss Reserve)
 
-The Loss Bucket is a separate reserve within the vault funded by the protocol treasury or senior equity holders at vault inception. It acts as a buffer that absorbs losses before they reach the Equity tranche. Think of it as a deductible on the credit pool.
+The Loss Bucket is a separate reserve within the vault funded by the protocol treasury or dedicated backstop capital at vault inception. It acts as a buffer that absorbs losses before they reach the Alpha tranche. Think of it as a deductible on the credit pool.
 
 ```
 Loss occurs: $L
@@ -635,10 +636,10 @@ Step 0: Check Loss Bucket
   else:
     remaining_loss = L - loss_bucket
     loss_bucket = 0
-    → cascade remaining_loss through tranches (Equity → Mezz → Senior)
+    → cascade remaining_loss through tranches (Alpha → Core → Prime)
 ```
 
-This mechanism gives Senior and Mezz holders an additional layer of protection that isn't part of the investor capital structure — it's protocol-provided insurance.
+This mechanism gives Prime and Core holders an additional layer of protection that isn't part of the investor capital structure — it's protocol-provided insurance.
 
 ---
 
@@ -652,7 +653,7 @@ A tranche token is a programmable, transferable claim on a specific layer of a s
 - A yield receipt (interest is not paid out — it accrues into NAV)
 
 It is:
-- An equity-like ownership share of a tranche's asset pool
+- An ownership-like share of a tranche's asset pool
 - Priced continuously at NAV
 - Freely transferable (it's an SPL token — can be sent, traded, or used in other protocols)
 - Redeemable for USDC at current NAV when the vault has liquidity
@@ -700,13 +701,13 @@ Since total_shares is constant and the numerator decreases, NAV falls.
 
 **Starting state:**
 ```
-Senior pool: 500,000 USDC total assets
-Senior shares outstanding: 500,000
-Senior NAV: 1.000
+Prime pool: 500,000 USDC total assets
+Prime shares outstanding: 500,000
+Prime NAV: 1.000
 Target APY: 5%
 ```
 
-**Month 1: $2,083 yield distributed to Senior (5% / 12 months on 500k)**
+**Month 1: $2,083 yield distributed to Prime (5% / 12 months on 500k)**
 ```
 total_assets: 502,083
 total_shares: 500,000
@@ -731,7 +732,7 @@ total_shares: 549,792.5
 NAV: 1.008503
 ```
 
-**Month 4: Default — $30,000 loss cascades to Senior (after Equity+Mezz exhausted)**
+**Month 4: Default — $30,000 loss cascades to Prime (after Alpha+Core exhausted)**
 ```
 total_assets: 554,383 - 30,000 = 524,383
 total_shares: 549,792.5
@@ -774,76 +775,76 @@ This is why structured finance exists. It's not financial engineering for its ow
 The tranche structure creates a mathematically precise risk-return tradeoff:
 
 ```
-Expected Return: Senior < Mezz < Equity
-Expected Loss Probability: Senior < Mezz < Equity
-Yield Target: Senior (5%) < Mezz (10%) < Equity (Residual)
-Protection Buffer: Senior (Mezz + Equity buffer) > Mezz (Equity buffer) > Equity (none)
+Expected Return: Prime < Core < Alpha
+Expected Loss Probability: Prime < Core < Alpha
+Yield Target: Prime (5%) < Core (8%) < Alpha (15%)
+Protection Buffer: Prime (Core + Alpha buffer) > Core (Alpha buffer) > Alpha (none)
 ```
 
-The Equity tranche is the most volatile:
-- If the pool performs well → Equity captures all excess yield above Senior and Mezz targets
-- If the pool performs poorly → Equity absorbs all losses first
+The Alpha tranche is the most volatile:
+- If the pool performs well → Alpha receives the highest target yield
+- If the pool performs poorly → Alpha absorbs all losses first
 
-This means Equity is the "first-loss piece" — the riskiest but also the one incentivized to care most about pool performance.
+This means Alpha is the "first-loss piece" — the riskiest but also the one incentivized to care most about pool performance.
 
 ### 7.3 Payment Priority: Full Detail
 
 **Scenario: Pool has $1,000 of yield to distribute**
 
 Pool TVL breakdown:
-- Senior: $1,000,000 (5% APY target → needs $50,000/yr → $4,167/month)
-- Mezz: $500,000 (10% APY target → needs $50,000/yr → $4,167/month)
-- Equity: $200,000 (residual)
+- Prime: $1,000,000 (5% APY target → needs $50,000/yr → $4,167/month)
+- Core: $500,000 (8% APY target → needs $40,000/yr → $3,333/month)
+- Alpha: $200,000 (15% APY target → needs $30,000/yr → $2,500/month)
 
 Monthly distribution of $1,000:
 
 ```
-Senior demand: $4,167 (monthly share of 5% on $1M)
+Prime demand: $4,167 (monthly share of 5% on $1M)
 Available: $1,000
-→ Senior gets: $1,000 (100% of available — doesn't even cover target)
-→ Mezz gets: $0
-→ Equity gets: $0
+→ Prime gets: $1,000 (100% of available — doesn't even cover target)
+→ Core gets: $0
+→ Alpha gets: $0
 
-Result: Senior partially funded (24% of target)
-        Mezz unfunded (deficit accumulates)
-        Equity unfunded
+Result: Prime partially funded (24% of target)
+        Core unfunded
+        Alpha unfunded
 ```
 
 Monthly distribution of $10,000:
 
 ```
-Senior demand: $4,167
-→ Senior gets: $4,167
+Prime demand: $4,167
+→ Prime gets: $4,167
 → Remaining: $5,833
 
-Mezz demand: $4,167
-→ Mezz gets: $4,167
-→ Remaining: $1,666
+Core demand: $3,333
+→ Core gets: $3,333
+→ Remaining: $2,500
 
-Equity gets: $1,666 (all residual)
+Alpha demand: $2,500
+→ Alpha gets: $2,500
 ```
 
-Equity's effective yield: $1,666 / $200,000 * 12 months = 10% APY
-(Higher than Mezz because of smaller TVL capturing residual!)
+Alpha's effective yield: $2,500 / $200,000 * 12 months = 15% APY
 
 Monthly distribution of $20,000:
 
 ```
-Senior gets: $4,167
-Mezz gets: $4,167
-Equity gets: $11,666
-Equity effective APY: $11,666 / $200,000 * 12 = 70% APY
+Prime gets: $4,167
+Core gets: $4,167
+Alpha gets: $11,666
+Alpha effective APY: $11,666 / $200,000 * 12 = 70% APY
 ```
 
-This is the power of the Equity tranche in an outperforming pool.
+This is the power of the Alpha tranche in an outperforming pool.
 
 ### 7.4 Loss Absorption: Detailed Example
 
 **Setup:**
 ```
-Senior TVL: 10,000 USDC (NAV: 1.0, shares: 10,000)
-Mezz TVL: 5,000 USDC (NAV: 1.0, shares: 5,000)
-Equity TVL: 2,000 USDC (NAV: 1.0, shares: 2,000)
+Prime TVL: 10,000 USDC (NAV: 1.0, shares: 10,000)
+Core TVL: 5,000 USDC (NAV: 1.0, shares: 5,000)
+Alpha TVL: 2,000 USDC (NAV: 1.0, shares: 2,000)
 Total: 17,000 USDC
 Loans outstanding: 15,000 USDC
 ```
@@ -852,14 +853,14 @@ Loans outstanding: 15,000 USDC
 
 ```
 Loss: $800
-Equity TVL before: 2,000
-Equity TVL after: 1,200
-Equity NAV: 1,200 / 2,000 = 0.600
+Alpha TVL before: 2,000
+Alpha TVL after: 1,200
+Alpha NAV: 1,200 / 2,000 = 0.600
 
-Mezz NAV: 1.000 (unchanged)
-Senior NAV: 1.000 (unchanged)
+Core NAV: 1.000 (unchanged)
+Prime NAV: 1.000 (unchanged)
 
-Equity holders: 40% loss on their investment
+Alpha holders: 40% loss on their investment
 Everyone else: no impact
 ```
 
@@ -867,36 +868,36 @@ Everyone else: no impact
 
 ```
 Loss: $1,500
-Equity TVL: 1,200 (remaining from last default)
-Equity absorbs: 1,200 → wiped to ZERO
-Equity NAV: 0 (100% loss from original investment)
+Alpha TVL: 1,200 (remaining from last default)
+Alpha absorbs: 1,200 → wiped to ZERO
+Alpha NAV: 0 (100% loss from original investment)
 
 Remaining loss: $1,500 - $1,200 = $300
-Mezz TVL: 5,000 → absorbs $300 → drops to 4,700
-Mezz NAV: 4,700 / 5,000 = 0.940
+Core TVL: 5,000 → absorbs $300 → drops to 4,700
+Core NAV: 4,700 / 5,000 = 0.940
 
-Senior NAV: 1.000 (still unchanged)
+Prime NAV: 1.000 (still unchanged)
 ```
 
-Equity holders are fully wiped. Mezz holders lost 6%. Senior holders: no impact.
+Alpha holders are fully wiped. Core holders lost 6%. Prime holders: no impact.
 
 **Default 3: $6,000 catastrophic default (extremely unlikely scenario)**
 
 ```
 Loss: $6,000
-Equity: already wiped (contributes 0)
-Mezz TVL: 4,700 → wiped to ZERO (absorbs 4,700)
+Alpha: already wiped (contributes 0)
+Core TVL: 4,700 → wiped to ZERO (absorbs 4,700)
 Remaining loss: $6,000 - $4,700 = $1,300
 
-Senior TVL: 10,000 → absorbs $1,300 → drops to 8,700
-Senior NAV: 8,700 / 10,000 = 0.870
+Prime TVL: 10,000 → absorbs $1,300 → drops to 8,700
+Prime NAV: 8,700 / 10,000 = 0.870
 
-Equity: 100% loss (already gone)
-Mezz: 100% loss
-Senior: 13% loss
+Alpha: 100% loss (already gone)
+Core: 100% loss
+Prime: 13% loss
 ```
 
-Even in catastrophic default scenarios, Senior holders retain most of their capital because of the two full tranche buffers beneath them.
+Even in catastrophic default scenarios, Prime holders retain most of their capital because of the two full tranche buffers beneath them.
 
 ---
 
@@ -904,9 +905,9 @@ Even in catastrophic default scenarios, Senior holders retain most of their capi
 
 ### 8.1 What If All Borrowers Repay?
 
-**Technically:** All loans transition from `Active` to `Repaid`. Principal and interest flow back to the Vault Reserve. Yield is distributed via waterfall. All tranches see NAV appreciation according to their target APY (Equity may see higher if there's excess yield).
+**Technically:** All loans transition from `Active` to `Repaid`. Principal and interest flow back to the Vault Reserve. Yield is distributed via waterfall. All tranches see NAV appreciation according to their target APY.
 
-**Impact on users:** All investors exit at a profit. Senior: ~5% APY. Mezz: ~10% APY. Equity: whatever residual is, potentially well above 10%.
+**Impact on users:** All investors exit at a profit. Prime: ~5% APY. Core: ~8% APY. Alpha: ~15% APY when the waterfall is fully funded.
 
 **Impact on tokens:** All tranche tokens appreciate to their maximum NAV for the period. No tokens are burned until users request withdrawal.
 
@@ -914,58 +915,58 @@ Even in catastrophic default scenarios, Senior holders retain most of their capi
 
 ### 8.2 What If Some Borrowers Default (Moderate Scenario)?
 
-**Technically:** Loss cascade is triggered for each defaulted loan. The `allocate_loss` instruction runs, deducting from tranches from bottom up. Equity NAV drops first, then Mezz if Equity is insufficient.
+**Technically:** Loss cascade is triggered for each defaulted loan. The `allocate_loss` instruction runs, deducting from tranches from bottom up. Alpha NAV drops first, then Core if Alpha is insufficient.
 
 **Impact on users:**
-- Equity holders see NAV decline proportionally to their share of loss absorption
-- Mezz holders may be partially impacted if Equity is wiped
-- Senior holders are insulated (likely unaffected in moderate scenarios)
+- Alpha holders see NAV decline proportionally to their share of loss absorption
+- Core holders may be partially impacted if Alpha is wiped
+- Prime holders are insulated (likely unaffected in moderate scenarios)
 
-**Impact on tokens:** Equity tokens fall in price. Mezz tokens may fall. Senior tokens remain stable. AMM prices for the affected tranche tokens will also fall, reflecting secondary market pricing of the impaired tranche.
+**Impact on tokens:** Alpha tokens fall in price. Core tokens may fall. Prime tokens remain stable. AMM prices for the affected tranche tokens will also fall, reflecting secondary market pricing of the impaired tranche.
 
 ### 8.3 What If Many Borrowers Default (Severe Scenario)?
 
-**Technically:** Sequential loss cascades wipe Equity, then Mezz, then begin impacting Senior. If Senior NAV drops below a threshold, the protocol admin may pause the vault to prevent further withdrawals while recovery is pursued.
+**Technically:** Sequential loss cascades wipe Alpha, then Core, then begin impacting Prime. If Prime NAV drops below a threshold, the protocol admin may pause the vault to prevent further withdrawals while recovery is pursued.
 
 **Impact on users:**
-- Equity: full loss
-- Mezz: full or partial loss
-- Senior: partial loss (still better than equity/mezz, but capital is impaired)
+- Alpha: full loss
+- Core: full or partial loss
+- Prime: partial loss (still better than Core/Alpha, but capital is impaired)
 
 **Impact on tokens:** All tranche token NAVs are below 1.0. The AMM for these tokens will be deeply distressed — buyers may not exist, or will only buy at large discounts. This represents a genuine credit event for the pool.
 
-**Protocol response:** Recovery agents (legal, off-chain) pursue defaulted borrowers. Any recovery flows back into the vault as a `recover_loss` injection, which re-appreciates NAVs in reverse cascade order (Senior first in loss recovery — this compensates them for having been impacted last in a severe scenario).
+**Protocol response:** Recovery agents (legal, off-chain) pursue defaulted borrowers. Any recovery flows back into the vault as a `recover_loss` injection, which re-appreciates NAVs in reverse cascade order (Prime first in loss recovery — this compensates them for having been impacted last in a severe scenario).
 
 ### 8.4 What If Yield Is Lower Than Expected?
 
 **Technically:** Distributed yield is less than what's needed to hit APY targets. The waterfall still runs but allocation falls short of targets.
 
 **Impact on users:**
-- Senior: paid first — will receive close to target APY if total yield covers their allocation
-- Mezz: paid second — may receive partial APY if yield is thin
-- Equity: receives residual — may receive nothing if yield barely covers Senior + Mezz
+- Prime: paid first — will receive close to target APY if total yield covers their allocation
+- Core: paid second — may receive partial APY if yield is thin
+- Alpha: receives yield after Prime and Core — may receive nothing if yield barely covers those earlier tranches
 
-**Impact on tokens:** NAV appreciation is slower than projected. Equity tokens in particular may see minimal appreciation or even stagnation if there's a persistent yield shortfall.
+**Impact on tokens:** NAV appreciation is slower than projected. Alpha tokens in particular may see minimal appreciation or even stagnation if there's a persistent yield shortfall.
 
 **Example:**
 ```
 Expected monthly yield: $10,000
 Actual monthly yield: $3,000
 
-Senior target: $4,167 → Gets $3,000 (72% of target)
-Mezz gets: $0
-Equity gets: $0
+Prime target: $4,167 → Gets $3,000 (72% of target)
+Core gets: $0
+Alpha gets: $0
 ```
 
-Equity holders earned nothing for the month. Senior holders earned a partial return. No permanent loss — just delayed yield.
+Alpha holders earned nothing for the month. Prime holders earned a partial return. No permanent loss — just delayed yield.
 
 ### 8.5 What If Yield Is Higher Than Expected?
 
-**Technically:** Excess yield exists after Senior and Mezz targets are fully covered. All excess flows to Equity.
+**Technically:** Higher yield lets the waterfall fully fund Prime, Core, and Alpha targets.
 
-**Impact on users:** Equity holders receive outsized returns. Senior and Mezz are capped at their targets — they don't benefit from outperformance. This is the designed asymmetry.
+**Impact on users:** Alpha holders receive the highest target yield. Prime and Core remain lower-risk, lower-target tranches by design.
 
-**Impact on tokens:** Equity token NAV surges. Senior and Mezz appreciate steadily at their target rates.
+**Impact on tokens:** Alpha token NAV surges. Prime and Core appreciate steadily at their target rates.
 
 ### 8.6 What If a User Exits Early?
 
@@ -1183,9 +1184,9 @@ fn withdraw(amount: u64) {
 ```
 Scenario: 100% of loans default, loss bucket exhausted, all three tranches wiped
 
-Equity NAV: 0
-Mezz NAV: 0
-Senior NAV: 0
+Alpha NAV: 0
+Core NAV: 0
+Prime NAV: 0
 
 All tranche tokens are now worthless.
 The vault is insolvent.
@@ -1199,27 +1200,27 @@ The vault is insolvent.
 
 **Definition:** A specific tranche's `total_assets` reaches zero due to loss absorption.
 
-**When Equity is wiped:**
+**When Alpha is wiped:**
 ```
-equity.total_assets = 0
-equity.nav_per_share = 0
-All equity tokens are now worth 0 USDC.
-equity.total_shares still exists on-chain (non-zero).
+alpha.total_assets = 0
+alpha.nav_per_share = 0
+All Alpha tokens are now worth 0 USDC.
+alpha.total_shares still exists on-chain (non-zero).
 ```
 
 **Post-wipeout behavior:**
-- No new withdrawals from equity are permitted (you'd receive 0 USDC anyway)
+- No new withdrawals from Alpha are permitted (you'd receive 0 USDC anyway)
 - No new deposits should be accepted to a wiped tranche (or if accepted, they go in at NAV 0 which is undefined behavior)
-- The vault should pause the wiped tranche and potentially request equity recapitalization before re-opening
+- The vault should pause the wiped tranche and potentially request Alpha recapitalization before re-opening
 
 **Recapitalization path:**
 ```
-Protocol treasury injects new capital into equity tranche
-Sets equity.total_assets = recapitalization_amount
-Mints new equity tokens at a new reference NAV
+Protocol treasury injects new capital into Alpha tranche
+Sets alpha.total_assets = recapitalization_amount
+Mints new Alpha tokens at a new reference NAV
 ```
 
-This effectively resets the equity tranche — existing equity holders are already fully wiped, and new equity capital sets a new baseline.
+This effectively resets the Alpha tranche — existing Alpha holders are already fully wiped, and new Alpha capital sets a new baseline.
 
 ### 9.6 Liquidity Crunch
 
@@ -1384,59 +1385,59 @@ pub fn distribute_cashflow(
     amount: u64
 ) -> Result<()> {
     let vault = &mut ctx.accounts.vault;
-    let senior = &mut ctx.accounts.senior_tranche;
-    let mezz = &mut ctx.accounts.mezz_tranche;
-    let equity = &mut ctx.accounts.equity_tranche;
+    let prime = &mut ctx.accounts.prime_tranche;
+    let core = &mut ctx.accounts.core_tranche;
+    let alpha = &mut ctx.accounts.alpha_tranche;
 
     let mut remaining = amount;
 
-    // ─── STEP 1: PAY SENIOR ───────────────────────────────────────────────
-    let senior_target = calculate_periodic_yield(
-        senior.total_assets,
-        senior.apy_bps,
+    // --- STEP 1: PAY PRIME ------------------------------------------------
+    let prime_target = calculate_periodic_yield(
+        prime.total_assets,
+        prime.apy_bps,
         vault.last_distribution_timestamp,
     )?;
 
-    let senior_allocation = remaining.min(senior_target);
+    let prime_allocation = remaining.min(prime_target);
     
-    senior.total_assets = senior.total_assets
-        .checked_add(senior_allocation)
+    prime.total_assets = prime.total_assets
+        .checked_add(prime_allocation)
         .ok_or(ErrorCode::MathOverflow)?;
     
     remaining = remaining
-        .checked_sub(senior_allocation)
+        .checked_sub(prime_allocation)
         .ok_or(ErrorCode::MathUnderflow)?;
 
-    update_nav(senior)?;
+    update_nav(prime)?;
 
-    // ─── STEP 2: PAY MEZZ ────────────────────────────────────────────────
+    // --- STEP 2: PAY CORE -------------------------------------------------
     if remaining > 0 {
-        let mezz_target = calculate_periodic_yield(
-            mezz.total_assets,
-            mezz.apy_bps,
+        let core_target = calculate_periodic_yield(
+            core.total_assets,
+            core.apy_bps,
             vault.last_distribution_timestamp,
         )?;
 
-        let mezz_allocation = remaining.min(mezz_target);
+        let core_allocation = remaining.min(core_target);
         
-        mezz.total_assets = mezz.total_assets
-            .checked_add(mezz_allocation)
+        core.total_assets = core.total_assets
+            .checked_add(core_allocation)
             .ok_or(ErrorCode::MathOverflow)?;
         
         remaining = remaining
-            .checked_sub(mezz_allocation)
+            .checked_sub(core_allocation)
             .ok_or(ErrorCode::MathUnderflow)?;
 
-        update_nav(mezz)?;
+        update_nav(core)?;
     }
 
-    // ─── STEP 3: PAY EQUITY (ALL RESIDUAL) ───────────────────────────────
+    // --- STEP 3: PAY ALPHA ------------------------------------------------
     if remaining > 0 {
-        equity.total_assets = equity.total_assets
+        alpha.total_assets = alpha.total_assets
             .checked_add(remaining)
             .ok_or(ErrorCode::MathOverflow)?;
         
-        update_nav(equity)?;
+        update_nav(alpha)?;
     }
 
     // Update last distribution timestamp
@@ -1472,15 +1473,15 @@ fn calculate_periodic_yield(
 ### 10.5 Loss Allocation
 
 ```rust
-/// Allocate a credit loss through the cascade: Equity → Mezz → Senior
+/// Allocate a credit loss through the cascade: Alpha → Core → Prime
 pub fn allocate_loss(
     ctx: Context<AllocateLoss>,
     loss_amount: u64
 ) -> Result<()> {
     let vault = &mut ctx.accounts.vault;
-    let senior = &mut ctx.accounts.senior_tranche;
-    let mezz = &mut ctx.accounts.mezz_tranche;
-    let equity = &mut ctx.accounts.equity_tranche;
+    let prime = &mut ctx.accounts.prime_tranche;
+    let core = &mut ctx.accounts.core_tranche;
+    let alpha = &mut ctx.accounts.alpha_tranche;
 
     let mut remaining_loss = loss_amount;
 
@@ -1497,46 +1498,46 @@ pub fn allocate_loss(
         return Ok(()); // Loss fully absorbed by bucket, no tranche impact
     }
 
-    // ─── STEP 1: EQUITY ABSORBS ──────────────────────────────────────────
-    let equity_absorption = equity.total_assets.min(remaining_loss);
-    equity.total_assets = equity.total_assets
-        .checked_sub(equity_absorption)
+    // --- STEP 1: ALPHA ABSORBS -------------------------------------------
+    let alpha_absorption = alpha.total_assets.min(remaining_loss);
+    alpha.total_assets = alpha.total_assets
+        .checked_sub(alpha_absorption)
         .ok_or(ErrorCode::MathUnderflow)?;
     remaining_loss = remaining_loss
-        .checked_sub(equity_absorption)
+        .checked_sub(alpha_absorption)
         .ok_or(ErrorCode::MathUnderflow)?;
     
-    update_nav(equity)?;
+    update_nav(alpha)?;
 
     if remaining_loss == 0 {
         return Ok(());
     }
 
-    // ─── STEP 2: MEZZ ABSORBS ────────────────────────────────────────────
-    let mezz_absorption = mezz.total_assets.min(remaining_loss);
-    mezz.total_assets = mezz.total_assets
-        .checked_sub(mezz_absorption)
+    // --- STEP 2: CORE ABSORBS --------------------------------------------
+    let core_absorption = core.total_assets.min(remaining_loss);
+    core.total_assets = core.total_assets
+        .checked_sub(core_absorption)
         .ok_or(ErrorCode::MathUnderflow)?;
     remaining_loss = remaining_loss
-        .checked_sub(mezz_absorption)
+        .checked_sub(core_absorption)
         .ok_or(ErrorCode::MathUnderflow)?;
     
-    update_nav(mezz)?;
+    update_nav(core)?;
 
     if remaining_loss == 0 {
         return Ok(());
     }
 
-    // ─── STEP 3: SENIOR ABSORBS (WORST CASE) ─────────────────────────────
-    let senior_absorption = senior.total_assets.min(remaining_loss);
-    senior.total_assets = senior.total_assets
-        .checked_sub(senior_absorption)
+    // --- STEP 3: PRIME ABSORBS (WORST CASE) ------------------------------
+    let prime_absorption = prime.total_assets.min(remaining_loss);
+    prime.total_assets = prime.total_assets
+        .checked_sub(prime_absorption)
         .ok_or(ErrorCode::MathUnderflow)?;
     remaining_loss = remaining_loss
-        .checked_sub(senior_absorption)
+        .checked_sub(prime_absorption)
         .ok_or(ErrorCode::MathUnderflow)?;
     
-    update_nav(senior)?;
+    update_nav(prime)?;
 
     // If remaining_loss > 0 at this point, the vault is insolvent
     if remaining_loss > 0 {
@@ -1717,8 +1718,9 @@ pub fn swap(
 | `DEFAULT_GRACE_PERIOD` | `2_592_000` | 30 days in seconds |
 | `SECONDS_PER_YEAR` | `31_536_000` | 365 days |
 | `AMM_FEE_BPS` | `30` | 0.30% swap fee |
-| `SENIOR_APY_BPS` | `500` | 5.00% target APY for Senior |
-| `MEZZ_APY_BPS` | `1_000` | 10.00% target APY for Mezzanine |
+| `PRIME_APY_BPS` | `500` | 5.00% target APY for Prime |
+| `CORE_APY_BPS` | `800` | 8.00% target APY for Core |
+| `ALPHA_APY_BPS` | `1_500` | 15.00% target APY for Alpha |
 
 ---
 
@@ -1742,7 +1744,7 @@ Vault (PDA: ["vault", vault_id])
 
 Tranche (PDA: ["tranche", vault_id, tranche_type])
 ├── vault_id: u64
-├── tranche_type: TrancheType (Senior/Mezz/Equity)
+├── tranche_type: TrancheType (Prime/Core/Alpha)
 ├── total_assets: u64
 ├── total_shares: u64
 ├── nav_per_share: u64

@@ -3,70 +3,130 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { ChevronDown, Menu, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { ConnectWalletButton } from "./connect-wallet-button";
+import { TestnetFaucetButton } from "./testnet-faucet-button";
 
 const NAV_LINKS = [
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Borrow", href: "/borrower" },
-  { label: "Tranches", href: "/deposit" },
-  { label: "Markets", href: "/trade" },
-  { label: "Analytics", href: "/analytics" },
-  { label: "Admin", href: "/admin" },
-  { label: "Docs", href: "/" },
+  { label: "Overview", href: "/dashboard" },
+  { label: "Earn", href: "/earn" },
+  { label: "Protect", href: "/protect" },
+  { label: "Trade", href: "/trade" },
+  { label: "Docs", href: "https://docs.prismprotocol.dev/" },
 ] as const;
 
 export function AppHeader() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const appScroller = document.querySelector<HTMLElement>("[data-app-scroll]");
+      const scrollTop =
+        appScroller?.scrollTop ??
+        window.scrollY ??
+        document.documentElement.scrollTop ??
+        document.body.scrollTop ??
+        0;
+
+      setIsScrolled(scrollTop > 20);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    document.addEventListener("scroll", handleScroll, true);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("scroll", handleScroll, true);
+    };
+  }, [pathname]);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50">
-      <nav aria-label="Primary" className="mx-auto max-w-[1400px]">
-        <div className="flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
+    <header
+      className={[
+        "fixed z-50 transition-all duration-500",
+        isScrolled ? "left-4 right-4 top-4" : "left-0 right-0 top-0",
+      ].join(" ")}
+    >
+      <nav
+        aria-label="Primary"
+        className={[
+          "mx-auto transition-all duration-500",
+          isScrolled || mobileMenuOpen
+            ? "max-w-[1200px] rounded-2xl border border-foreground/10 bg-background/80 shadow-lg backdrop-blur-xl"
+            : "max-w-[1400px] bg-transparent",
+        ].join(" ")}
+      >
+        <div
+          className={[
+            "flex items-center justify-between gap-4 px-6 transition-all duration-500 lg:px-8",
+            isScrolled ? "h-14" : "h-20",
+          ].join(" ")}
+        >
           <Link
             href="/dashboard"
             aria-label="PRISM Protocol home"
-            className="group flex min-w-0 items-center gap-2 sm:gap-3"
+            className="group flex min-w-0 items-center gap-3"
           >
-            <span className="relative h-11 w-11 shrink-0 overflow-hidden">
+            <span
+              className={[
+                "relative shrink-0 overflow-hidden transition-all duration-500",
+                isScrolled ? "h-8 w-8" : "h-11 w-11",
+              ].join(" ")}
+            >
               <Image
                 src="/logos/prism.png"
                 alt="PRISM logo"
                 width={240}
                 height={160}
                 priority
-                className="absolute left-1/2 top-[54%] h-36 w-[13.5rem] max-w-none -translate-x-1/2 -translate-y-1/2 object-contain"
+                className={[
+                  "absolute left-1/2 top-[54%] max-w-none -translate-x-1/2 -translate-y-1/2 object-contain transition-all duration-500",
+                  isScrolled ? "h-28 w-[10.5rem]" : "h-36 w-[13.5rem]",
+                ].join(" ")}
               />
             </span>
-            <span className="font-display text-2xl tracking-tight text-white">
+            <span
+              className={[
+                "font-display tracking-tight transition-all duration-500",
+                isScrolled ? "text-xl text-foreground" : "text-2xl text-white",
+              ].join(" ")}
+            >
               PRISM
             </span>
-            <span className="mt-1 hidden font-mono text-xs leading-4 text-white/60 sm:inline">
+            <span
+              className={[
+                "hidden font-mono transition-all duration-500 sm:inline",
+                isScrolled ? "mt-0.5 text-[10px] text-muted-foreground" : "mt-1 text-xs text-white/60",
+              ].join(" ")}
+            >
               PROTOCOL
-            </span>
-            <span className="ml-2 hidden rounded-full border border-purple-400/30 bg-purple-400/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-purple-300 sm:inline">
-              Devnet
             </span>
           </Link>
 
-          <div className="hidden items-center gap-10 md:flex">
+          <div className="hidden items-center gap-8 md:flex lg:gap-10">
             {NAV_LINKS.map((link) => {
-              const active = pathname === link.href;
+              const external = link.href.startsWith("http");
+              const hrefPath = link.href.split("#")[0];
+              const active = !external && pathname === hrefPath;
               return (
                 <Link
                   key={link.href}
                   href={link.href}
+                  target={external ? "_blank" : undefined}
+                  rel={external ? "noreferrer" : undefined}
                   className={[
-                    "group relative text-sm font-medium transition-colors",
-                    active ? "text-white" : "text-white/70 hover:text-white",
+                    "group relative text-sm transition-colors duration-300",
+                    isScrolled ? "text-foreground/70 hover:text-foreground" : "text-white/70 hover:text-white",
                   ].join(" ")}
                 >
                   {link.label}
                   <span
                     className={[
-                      "absolute -bottom-1 left-0 h-px bg-white transition-all",
+                      "absolute -bottom-1 left-0 h-px transition-all duration-300",
+                      isScrolled ? "bg-foreground" : "bg-white",
                       active ? "w-full" : "w-0 group-hover:w-full",
                     ].join(" ")}
                   />
@@ -75,42 +135,63 @@ export function AppHeader() {
             })}
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              className="hidden items-center gap-2 rounded-md border border-white/10 bg-transparent px-3 py-1.5 text-xs text-white/70 transition-colors hover:bg-white/10 hover:text-white md:inline-flex"
-              aria-label="Switch vault"
-            >
-              <span className="font-mono">Vault 0</span>
-              <ChevronDown className="h-3.5 w-3.5" />
-            </button>
-
+          <div className="hidden items-center gap-3 md:flex">
+            <TestnetFaucetButton />
             <ConnectWalletButton />
+          </div>
 
+          <div className="flex items-center gap-2 md:hidden">
+            <TestnetFaucetButton />
+            <ConnectWalletButton />
             <button
               type="button"
               onClick={() => setMobileMenuOpen((value) => !value)}
               aria-label="Toggle menu"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-white/80 transition-colors hover:bg-white/10 md:hidden"
+              className={[
+                "flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/30 backdrop-blur transition-colors duration-500 hover:bg-white/10",
+                isScrolled || mobileMenuOpen ? "text-foreground" : "text-white",
+              ].join(" ")}
             >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              <span className="relative h-4 w-5" aria-hidden="true">
+                <span
+                  className={[
+                    "absolute left-0 top-0 h-px w-5 bg-current transition-transform",
+                    mobileMenuOpen ? "translate-y-2 rotate-45" : "",
+                  ].join(" ")}
+                />
+                <span
+                  className={[
+                    "absolute left-0 top-2 h-px w-5 bg-current transition-opacity",
+                    mobileMenuOpen ? "opacity-0" : "opacity-100",
+                  ].join(" ")}
+                />
+                <span
+                  className={[
+                    "absolute left-0 top-4 h-px w-5 bg-current transition-transform",
+                    mobileMenuOpen ? "-translate-y-2 -rotate-45" : "",
+                  ].join(" ")}
+                />
+              </span>
             </button>
           </div>
         </div>
 
         <div
           className={[
-            "mx-4 overflow-hidden rounded-lg border border-white/10 bg-black/95 shadow-2xl backdrop-blur transition-all duration-300 md:hidden",
+            "mx-6 overflow-hidden rounded-2xl border border-white/10 bg-background/90 shadow-2xl backdrop-blur-xl transition-all duration-500 md:hidden",
             mobileMenuOpen ? "max-h-96 opacity-100" : "max-h-0 border-transparent opacity-0",
           ].join(" ")}
         >
           <div className="grid gap-1 p-2">
             {NAV_LINKS.map((link) => {
-              const active = pathname === link.href;
+              const external = link.href.startsWith("http");
+              const active = !external && pathname === link.href;
               return (
                 <Link
                   key={link.href}
                   href={link.href}
+                  target={external ? "_blank" : undefined}
+                  rel={external ? "noreferrer" : undefined}
                   onClick={() => setMobileMenuOpen(false)}
                   className={[
                     "rounded-md px-3 py-3 text-sm transition-colors",

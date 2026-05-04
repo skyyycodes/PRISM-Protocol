@@ -78,7 +78,7 @@ pub struct Tranche {
     pub vault: Pubkey,
     pub kind: TrancheKind,                  // Prime | Core | Alpha
     pub mint: Pubkey,                       // pPRIME / pCORE / pALPHA
-    pub target_apy_bps: u16,                // Prime: 500 (5%), Core: 1200, Alpha: residual
+    pub target_apy_bps: u16,                // Prime: 500 (5%), Core: 800 (8%), Alpha: 1500 (15%)
     pub total_assets: u64,                  // USDC backing this tranche, 1e6 base units
     pub total_supply: u64,                  // pTRANCHE tokens outstanding
     pub nav_per_share_q: u128,              // Q64.64 fixed point for precision
@@ -217,7 +217,7 @@ Pure constant-product (`x * y = k`). Does not know about NAV. The premium / disc
      remaining -= prime_take
      core_take = min(core.target_apy_share_for_period, remaining)
      remaining -= core_take
-     alpha_take = remaining   // residual = excess returns flow to Alpha
+     alpha_take = remaining   // remaining yield flows to Alpha
 3. Each tranche: total_assets += its take → nav_per_share recomputed
 4. Tranche.last_nav_update_ts = now
 5. Vault.last_yield_timestamp = now

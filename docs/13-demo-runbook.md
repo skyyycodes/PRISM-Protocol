@@ -173,7 +173,7 @@ Each phase below has the **action** (what you do on screen) and the **say** (voi
 **Say:**
 > *"The borrower pays a coupon — 100 USDC over 30 days. Watch the waterfall."*
 > [pause for animation]
-> *"Prime gets paid first up to its target rate. Core gets paid next. Alpha takes whatever's left over — that's the residual."*
+> *"Prime targets 5%, Core targets 8%, and Alpha targets 15%. Yield flows through that priority order."*
 
 ### Phase 4 — Trade #1 (0:50 → 1:05)
 

@@ -39,13 +39,13 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
       },
       senior: {
         role: 'senior',
-        label: 'Senior Investor',
+        label: 'Prime Investor',
         description: 'Prime tranche capital with priority protection',
         keypair: fromSecret(seniorSecret as number[]),
       },
       junior: {
         role: 'junior',
-        label: 'Junior Investor',
+        label: 'Alpha Investor',
         description: 'Alpha tranche first-loss capital and upside',
         keypair: fromSecret(juniorSecret as number[]),
       },

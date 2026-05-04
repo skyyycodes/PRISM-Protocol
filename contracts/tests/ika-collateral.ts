@@ -211,8 +211,8 @@ describe("ika-collateral", () => {
     // Tranches
     for (const [kind, apy] of [
       [TrancheKind.Prime, 500],
-      [TrancheKind.Core, 1200],
-      [TrancheKind.Alpha, 0],
+      [TrancheKind.Core, 800],
+      [TrancheKind.Alpha, 1500],
     ] as [TrancheKind, number][]) {
       const [tranchePda] = getTranchePda(vaultPda, kind, program.programId);
       const [mintPda] = getTrancheMintPda(vaultPda, kind, program.programId);
@@ -568,8 +568,8 @@ describe("ika-collateral", () => {
 
       for (const [kind, apy] of [
         [TrancheKind.Prime, 500],
-        [TrancheKind.Core, 1200],
-        [TrancheKind.Alpha, 0],
+        [TrancheKind.Core, 800],
+        [TrancheKind.Alpha, 1500],
       ] as [TrancheKind, number][]) {
         const [tranchePda] = getTranchePda(vaultPda2, kind, program.programId);
         const [mintPda] = getTrancheMintPda(vaultPda2, kind, program.programId);

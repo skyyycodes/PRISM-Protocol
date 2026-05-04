@@ -22,8 +22,8 @@ Simulation must occur on **Localnet** to allow for instant state resets and mult
 
 ### Multi-Wallet Simulation
 To test the "Structured" part of Structured Credit, you must simulate at least three distinct roles:
-1.  **Senior Investor (User A)**: Low risk appetite.
-2.  **Junior Investor (User B)**: High risk appetite.
+1.  **Prime Investor (User A)**: Low risk appetite.
+2.  **Alpha Investor (User B)**: High risk appetite.
 3.  **Borrower (User C)**: The capital consumer.
 
 **Recommendation**: Use a browser extension that supports multiple accounts (e.g., Phantom or Solflare) or a custom testing harness that cycles through a set of local secret keys.
@@ -53,7 +53,7 @@ The testing harness requires these minimal functional "blocks":
 *   **Verification**: User A's share value should increase by 10 USDC; User B's by 20 USDC.
 
 ### Case 2: The First-Loss Waterfall
-*   **Setup**: User A (Senior) and User B (Equity) both fund a loan.
+*   **Setup**: User A (Prime) and User B (Alpha) both fund a loan.
 *   **Action**: Borrower defaults, returning only 50% of the principal.
 *   **Verification**: User B's tokens should drop to **0 value**. User A's tokens should remain at **1.00 value** (protected by User B's loss).
 
@@ -85,7 +85,7 @@ Tranche Ownership: 66.6%
 ### Verification Checklist:
 *   [ ] **Money Conservation**: Did the total USDC in the system increase/decrease incorrectly?
 *   [ ] **NAV Precision**: Does `Total_Assets / Total_Shares` match the UI display to 6 decimals?
-*   [ ] **Priority Check**: Did the Junior tranche gain value before the Senior target was met? (Should be NO).
+*   [ ] **Priority Check**: Did the Junior tranche gain value before the Prime target was met? (Should be NO).
 
 ---
 
@@ -111,7 +111,7 @@ The harness must specifically test the frontend's reaction to:
 
 A simulation run is considered **SUCCESSFUL** if and only if:
 1.  **Zero Value Creation**: No USDC was "spawned" out of thin air.
-2.  **Waterfall Integrity**: Senior investors were never diluted by junior losses.
+2.  **Waterfall Integrity**: Prime investors were never diluted by junior losses.
 3.  **State Parity**: The On-Chain data matches the UI data 100%.
 
 ---
@@ -120,10 +120,10 @@ A simulation run is considered **SUCCESSFUL** if and only if:
 
 ```javascript
 async function runDefaultScenario() {
-  await connectWallet("Investor_Senior");
+  await connectWallet("Investor_Prime");
   await deposit(1000, "PRIME");
   
-  await connectWallet("Investor_Equity");
+  await connectWallet("Investor_Alpha");
   await deposit(500, "ALPHA");
   
   await connectWallet("Borrower");

@@ -473,7 +473,7 @@ export function ActionPanel() {
         const [tranche] = getTranchePda(vault, kind, programs.core.programId);
         if (await programs.core.account.tranche.fetchNullable(tranche)) continue;
         await programs.core.methods
-          .initializeTranche(kind, kind === TrancheKind.Prime ? 500 : kind === TrancheKind.Core ? 1200 : 0)
+          .initializeTranche(kind, kind === TrancheKind.Prime ? 500 : kind === TrancheKind.Core ? 800 : 1500)
           .accounts({
             admin: admin.publicKey,
             config,

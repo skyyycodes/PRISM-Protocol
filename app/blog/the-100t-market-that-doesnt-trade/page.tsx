@@ -38,19 +38,19 @@ const tranches = [
     name: "Prime",
     token: "pPRIME",
     description:
-      "The senior layer. Lowest risk, paid first, and last to absorb losses.",
+      "The protected layer. Lowest risk, paid first, and last to absorb losses.",
   },
   {
     name: "Core",
     token: "pCORE",
     description:
-      "The mezzanine layer. Balanced risk and yield. It only takes losses once Alpha is fully wiped.",
+      "The balanced layer. Balanced risk and yield. It only takes losses once Alpha is fully wiped.",
   },
   {
     name: "Alpha",
     token: "pALPHA",
     description:
-      "The equity layer. Highest risk, highest upside, and first in line to absorb defaults.",
+      "The first-loss layer. Highest risk, highest upside, and first in line to absorb defaults.",
   },
 ];
 

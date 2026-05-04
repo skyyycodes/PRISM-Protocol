@@ -91,6 +91,24 @@
   html {
     scroll-behavior: smooth;
   }
+  [data-app-scroll] {
+    scrollbar-color: #2a2530 #030006;
+    scrollbar-width: thin;
+  }
+  [data-app-scroll]::-webkit-scrollbar {
+    width: 12px;
+  }
+  [data-app-scroll]::-webkit-scrollbar-track {
+    background: #030006;
+  }
+  [data-app-scroll]::-webkit-scrollbar-thumb {
+    background: #2a2530;
+    border: 3px solid #030006;
+    border-radius: 999px;
+  }
+  [data-app-scroll]::-webkit-scrollbar-thumb:hover {
+    background: #3a3440;
+  }
 }
 
 @layer utilities {

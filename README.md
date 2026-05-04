@@ -43,7 +43,7 @@ Instead of tokenizing every loan into a fragmented market, PRISM pools credit an
 Credit pool
   -> Prime tranche   lowest risk, paid first, absorbs losses last
   -> Core tranche    balanced risk and yield
-  -> Alpha tranche   residual upside, first-loss capital
+  -> Alpha tranche   15% target yield, first-loss capital
 
 Each tranche
   -> NAV accounting
@@ -78,7 +78,7 @@ The live demo is designed around one clear credit-market story:
 4. Distribute yield through the waterfall.
 5. Trade tranche tokens on the AMM.
 6. Trigger a credit event.
-7. Watch Alpha absorb losses first, Core absorb residual losses, and Prime remain protected.
+7. Watch Alpha absorb losses first, Core absorb remaining losses, and Prime remain protected.
 8. Watch the market reprice risk through AMM exits.
 
 The hero moment:
@@ -260,8 +260,8 @@ Key values:
 | Yield event | 100 USDC |
 | Default loss | 6,500 USDC |
 | Prime target APY | 5% |
-| Core target APY | 12% |
-| Alpha target APY | residual |
+| Core target APY | 8% |
+| Alpha target APY | 15% |
 | AMM fee | 30 bps |
 
 The default scenario is designed so Alpha gets wiped, Core takes a visible hit, and Prime stays protected.
@@ -337,4 +337,3 @@ The goal is not to ship another lending app.
 The goal is to prove a primitive:
 
 > A continuous, liquid market for credit risk.
-

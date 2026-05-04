@@ -63,12 +63,12 @@ const prismLayers = [
   {
     name: "Core",
     color: "border-[#fbbf24]/40 text-[#fbbf24]",
-    body: "Intermediate risk exposure. Paid second and absorbs residual losses after Alpha.",
+    body: "Intermediate risk exposure. Paid second and absorbs remaining losses after Alpha.",
   },
   {
     name: "Alpha",
     color: "border-[#eca8d6]/40 text-[#eca8d6]",
-    body: "Residual upside exposure. Paid last and acts as first-loss capital.",
+    body: "15% target-yield exposure. Paid last and acts as first-loss capital.",
   },
 ];
 

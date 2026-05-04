@@ -134,7 +134,7 @@ Given:
 Distribution:
   prime_take = min(prime_target, Y); Y -= prime_take
   core_take   = min(core_target,   Y); Y -= core_take
-  alpha_take = Y                      // residual = excess returns to Alpha
+  alpha_take = Y                      // remaining yield flows to Alpha
 ```
 
 **Sequence**
@@ -160,12 +160,12 @@ Admin/Switchboard    PRISM Program          Vault USDC Reserve     Tranche[3]
 
 **State changes (locked demo numbers, period 30d)**
 
-Tranche sizes per §8.5: Prime 10,000 @ 5%, Core 4,500 @ 12%, Alpha 5,000 (residual).
+Tranche sizes per §8.5: Prime 10,000 @ 5%, Core 4,500 @ 8%, Alpha 5,000 @ 15%.
 
 ```
 prime_target = 10,000 × 0.05 × 30/365 = ~41.1
-core_target   =  4,500 × 0.12 × 30/365 = ~44.4
-alpha_take   = 100 - 41.1 - 44.4      = ~14.5
+core_target  =  4,500 × 0.08 × 30/365 = ~29.6
+alpha_take   = 100 - 41.1 - 29.6      = ~29.3
 ```
 
 | Tranche | Take | total_assets before | after | NAV before | NAV after |

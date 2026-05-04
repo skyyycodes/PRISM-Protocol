@@ -124,7 +124,7 @@ So the natural Cloak fit isn't the waterfall — it's elsewhere.
 | **Core tranche total** | **4,500 USDC** | 3K LP + 0.5K MM + 1K admin |
 | **Alpha tranche total** | **5,000 USDC** | 2K LP + 2K MM + 1K admin |
 | **Vault total** | **19,500 USDC** | sum of three tranches |
-| Yield event | 100 USDC over 30 days | covers Prime 5% + Core 12% targets |
+| Yield event | 100 USDC over 30 days | covers Prime 5%, Core 8%, and part of Alpha's 15% target |
 | Default loss | 6,500 USDC | wipes Alpha, hits Core ~32% |
 | Prime AMM pool | 5,000 + 5,000 | deep — Prime swap feels stable |
 | Core AMM pool | 1,000 + 1,000 | thin — allows visible repricing |

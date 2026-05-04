@@ -29,7 +29,7 @@ export function ConnectWalletButton() {
       <button
         type="button"
         onClick={() => setVisible(true)}
-        className="inline-flex h-10 w-10 items-center justify-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 text-sm font-semibold text-pink-300 transition-colors hover:bg-pink-500/20 md:h-12 md:w-auto md:px-7"
+        className="inline-flex h-11 w-11 items-center justify-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 text-sm font-semibold text-pink-200 shadow-[0_10px_24px_rgba(236,72,153,0.12)] transition-colors hover:bg-pink-500/20 md:w-auto md:px-5"
         aria-label="Connect wallet"
       >
         <Wallet className="h-4 w-4" />
@@ -45,7 +45,7 @@ export function ConnectWalletButton() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-10 w-10 items-center justify-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 text-sm font-semibold text-pink-200 transition-colors hover:bg-pink-500/20 md:h-12 md:w-auto md:px-5"
+        className="flex h-11 w-11 items-center justify-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 text-sm font-semibold text-pink-200 shadow-[0_10px_24px_rgba(236,72,153,0.12)] transition-colors hover:bg-pink-500/20 md:w-auto md:px-4"
         aria-label="Wallet menu"
       >
         {wallet?.adapter.icon ? (

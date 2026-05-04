@@ -220,8 +220,8 @@ export function AdminPanel() {
     try {
       const trancheParams = [
         { kind: TrancheKind.Prime, apy: 500,  pda: p.tranches.prime, mint: p.mints.prime, label: 'Prime' },
-        { kind: TrancheKind.Core,  apy: 1200, pda: p.tranches.core,  mint: p.mints.core,  label: 'Core'  },
-        { kind: TrancheKind.Alpha, apy: 0,    pda: p.tranches.alpha, mint: p.mints.alpha, label: 'Alpha' },
+        { kind: TrancheKind.Core,  apy: 800,  pda: p.tranches.core,  mint: p.mints.core,  label: 'Core'  },
+        { kind: TrancheKind.Alpha, apy: 1500, pda: p.tranches.alpha, mint: p.mints.alpha, label: 'Alpha' },
       ];
       for (const t of trancheParams) {
         const existing = await core.account.tranche.fetchNullable(t.pda);
@@ -761,8 +761,8 @@ export function AdminPanel() {
         <div className="flex gap-3">
           {[
             { kind: TrancheKind.Prime, label: 'Prime', apy: '5%', color: 'sky' },
-            { kind: TrancheKind.Core, label: 'Core', apy: '12%', color: 'amber' },
-            { kind: TrancheKind.Alpha, label: 'Alpha', apy: 'Residual', color: 'rose' },
+            { kind: TrancheKind.Core, label: 'Core', apy: '8%', color: 'amber' },
+            { kind: TrancheKind.Alpha, label: 'Alpha', apy: '15%', color: 'rose' },
           ].map((t) => (
             <button
               key={t.label}

@@ -238,8 +238,8 @@ Creates three tranche accounts and their SPL token mints:
 | Tranche | Kind enum | Target APY | Risk |
 |---|---|---|---|
 | Prime | `0` | 5% (500 bps) | Lowest — paid first in waterfall |
-| Core | `1` | 12% (1200 bps) | Middle |
-| Alpha | `2` | Residual | Highest — absorbs losses first |
+| Core | `1` | 8% (800 bps) | Middle |
+| Alpha | `2` | 15% (1500 bps) | Highest — absorbs losses first |
 
 Each tranche has a `TrancheMint` (SPL token). LP deposits receive tranche tokens representing their share.
 
