@@ -322,10 +322,22 @@ function ProtocolAtGlance({ data }: { data: PrismData }) {
 
 function HowPrismWorks() {
   const node = 'rounded border border-white/10 bg-black/35 px-5 py-4 text-center';
+  const links = [
+    { label: 'Read the docs', href: 'https://docs.prismprotocol.dev/', external: true },
+    { label: 'Developer integration', href: '/', external: false },
+    { label: 'Explore vaults', href: '/earn', external: false },
+  ];
 
   return (
     <section className="mt-16">
-      <SectionTitle title="How PRISM works" action={<Link href="/">Read the docs {'->'}</Link>} />
+      <SectionTitle
+        title="How PRISM works"
+        action={
+          <Link href="https://docs.prismprotocol.dev/" target="_blank" rel="noreferrer">
+            Read the docs {'->'}
+          </Link>
+        }
+      />
       <Card className="p-6">
         <div className="grid gap-3 xl:grid-cols-[1fr_36px_1fr_36px_1.1fr_36px_1fr_36px_0.68fr] xl:items-center">
           <div className={node}>
@@ -377,9 +389,15 @@ function HowPrismWorks() {
             Underlying credit positions generate cashflow that flows into the vault. Cashflow pays tranches from the top down: Prime first, then Core, then Alpha. When losses occur they are absorbed from the bottom up: Alpha first, then Core, finally Prime.
           </p>
           <div className="grid gap-3">
-            {['Read the docs', 'Developer integration', 'Explore vaults'].map((item) => (
-              <Link key={item} href="/" className="flex items-center justify-between rounded border border-white/10 bg-black/35 px-4 py-3 text-sm text-white hover:bg-white/[0.06]">
-                {item}
+            {links.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                target={item.external ? '_blank' : undefined}
+                rel={item.external ? 'noreferrer' : undefined}
+                className="flex items-center justify-between rounded border border-white/10 bg-black/35 px-4 py-3 text-sm text-white hover:bg-white/[0.06]"
+              >
+                {item.label}
                 <ArrowRight className="h-4 w-4" />
               </Link>
             ))}
