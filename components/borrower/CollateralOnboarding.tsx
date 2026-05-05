@@ -17,8 +17,16 @@ import {
 import { fromBase64 } from '@mysten/sui/utils';
 // @ts-ignore
 import { Transaction } from '@mysten/sui/transactions';
+import { QRCodeCanvas } from 'qrcode.react';
 
-import { IKA_CHAIN, IkaChain, createIkaDwallet, type IkaDkgStep } from '@/app/lib/ika';
+import { 
+  IKA_CHAIN, 
+  IkaChain, 
+  createIkaDwallet, 
+  getDWalletAddress,
+  type IkaDkgStep 
+} from '@/app/lib/ika';
+import { Progress } from '@/components/ui/progress';
 import {
   useIkaCollateralAccount,
   useAttachIkaCollateral,
@@ -78,6 +86,8 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
   const [oracleKey, setOracleKey] = useState(TEST_ORACLE_PUBKEY);
   const [isCreatingDwallet, setIsCreatingDwallet] = useState(false);
   const [currentDkgStep, setCurrentDkgStep] = useState<IkaDkgStep | null>(null);
+  const [depositAddress, setDepositAddress] = useState<string>('');
+  const [isFetchingAddress, setIsFetchingAddress] = useState(false);
 
   // ── Sui Wallet state ──────────────────────────────────────────────────────
   const currentAccount = useCurrentAccount();
@@ -122,6 +132,18 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
     const cached = localStorage.getItem('prism_ika_dwallet');
     if (cached) setDwalletIdHex(cached);
   }, []);
+
+  // Fetch deposit address when collateral is Pending
+  useEffect(() => {
+    if (collateral?.status === 'Pending') {
+      const dwalletObjectId = '0x' + Buffer.from(collateral.dwalletId).toString('hex');
+      setIsFetchingAddress(true);
+      getDWalletAddress(dwalletObjectId, collateral.chainId as IkaChain)
+        .then(setDepositAddress)
+        .catch(err => console.error('Failed to fetch deposit address:', err))
+        .finally(() => setIsFetchingAddress(false));
+    }
+  }, [collateral?.status, collateral?.dwalletId, collateral?.chainId]);
 
   if (!connected) {
     return (
@@ -185,15 +207,83 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
 
         {collateral.status === 'Pending' && (
           <div className="space-y-4">
-            <div className="rounded-lg bg-white/[0.04] border border-white/5 p-4 flex gap-3">
-              <div className="h-2 w-2 rounded-full bg-yellow-400 mt-1 animate-pulse" />
-              <p className="text-xs text-white/50 leading-5">
-                Waiting for IKA oracle to confirm your on-chain lock.
-                Click Verify once your BTC/ETH transaction is confirmed.
-              </p>
+            <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/[0.03] p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-semibold text-yellow-500">
+                  <div className="h-1.5 w-1.5 rounded-full bg-yellow-500 animate-pulse" />
+                  Phase 3 — Funding & Monitoring
+                </div>
+                {isFetchingAddress && <div className="h-3 w-3 animate-spin rounded-full border border-yellow-500/20 border-t-yellow-500" />}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-6">
+                <div className="flex-1 space-y-4">
+                  <p className="text-xs text-white/50 leading-relaxed">
+                    To finalize your collateral, send your {CHAIN_LABELS[collateral.chainId as IkaChain]} to the decentralized vault address below.
+                  </p>
+
+                  <div className="space-y-2">
+                    <div className="text-[10px] uppercase tracking-wider text-white/30 font-medium">Deposit Address</div>
+                    <div className="flex items-center gap-2 rounded-lg border border-white/5 bg-black/20 p-3">
+                      <span className="flex-1 font-mono text-[11px] text-white/80 break-all">
+                        {depositAddress || 'Fetching address...'}
+                      </span>
+                      <button
+                        onClick={() => {
+                          if (depositAddress) {
+                            navigator.clipboard.writeText(depositAddress);
+                            toast.success('Address copied');
+                          }
+                        }}
+                        className="p-1.5 text-white/20 hover:text-yellow-500 transition-colors"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-[10px] uppercase tracking-wider">
+                      <span className="text-white/30 font-medium">Monitoring Status</span>
+                      <span className="text-yellow-500 animate-pulse">Active</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Progress value={isPolling ? 66 : 33} className="h-1.5 bg-white/5" />
+                      <div className="flex justify-between text-[9px] text-white/20 font-mono">
+                        <span>Waiting for Tx</span>
+                        <span>Confirming</span>
+                        <span>Verified</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {depositAddress && (
+                  <div className="shrink-0 flex flex-col items-center gap-2">
+                    <div className="p-2.5 rounded-xl bg-white border border-white/10 shadow-xl shadow-black/50">
+                      <QRCodeCanvas
+                        value={depositAddress}
+                        size={120}
+                        level="H"
+                        includeMargin={false}
+                        imageSettings={{
+                          src: '/favicon.ico',
+                          x: undefined,
+                          y: undefined,
+                          height: 24,
+                          width: 24,
+                          excavate: true,
+                        }}
+                      />
+                    </div>
+                    <span className="text-[9px] text-white/30 uppercase tracking-widest font-semibold mt-1">Scan to Fund</span>
+                  </div>
+                )}
+              </div>
             </div>
+
             <button
-              disabled={isPolling}
+              disabled={isPolling || !depositAddress}
               onClick={async () => {
                 try {
                   const sig = await verify({
