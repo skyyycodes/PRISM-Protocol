@@ -20,8 +20,10 @@ import {
   Wallet,
 } from 'lucide-react';
 
-import { TRANCHE_CONFIG, TrancheKind } from '@/app/lib/constants';
+import { Q64_ONE, TRANCHE_CONFIG, TrancheKind } from '@/app/lib/constants';
 import { formatNavQ, formatUsdc, shortKey, stateName, toBigInt } from '@/app/lib/format';
+import { useDeposit } from '@/hooks/useDeposit';
+import { useUserPosition } from '@/hooks/useUserPosition';
 import { useVaultState } from '@/hooks/useVaultState';
 
 const TRANCHE_ORDER = [TrancheKind.Prime, TrancheKind.Core, TrancheKind.Alpha] as const;
@@ -551,39 +553,99 @@ export function PrismOverview() {
   );
 }
 
+function TrancheDepositRow({ tranche }: { tranche: PrismData['tranches'][number] }) {
+  const meta = TRANCHE_META[tranche.kind];
+  const { connected } = useWallet();
+  const deposit = useDeposit();
+  const { data: positions } = useUserPosition();
+  const [amount, setAmount] = useState('');
+
+  const myBalance = positions?.find((p) => p.kind === tranche.kind)?.balance ?? 0n;
+  const myUsdValue = myBalance > 0n
+    ? (myBalance * tranche.navPerShareQ) / Q64_ONE
+    : 0n;
+
+  function handleDeposit() {
+    const usd = parseFloat(amount);
+    if (isNaN(usd) || usd <= 0) return;
+    deposit.mutate(
+      { trancheKind: tranche.kind, usdcAmount: BigInt(Math.round(usd * 1_000_000)) },
+      { onSuccess: () => setAmount('') },
+    );
+  }
+
+  return (
+    <div className="grid gap-5 p-7 lg:grid-cols-[minmax(170px,0.9fr)_160px_130px_minmax(220px,1fr)_180px] lg:items-center">
+      <div className="flex items-start gap-4">
+        <span className="mt-1 h-12 w-1 rounded" style={{ backgroundColor: meta.color }} />
+        <div>
+          <Eyebrow><span style={{ color: meta.color }}>{meta.label}</span></Eyebrow>
+          <p className="mt-2 text-sm text-white/50">{meta.copy}</p>
+        </div>
+      </div>
+
+      <div>
+        <div className="font-mono text-sm text-white">${formatUsdc(tranche.totalAssets, 2)} / {meta.allocation}% alloc</div>
+        <div className="mt-3 h-1.5 rounded-full bg-white/10">
+          <div className="h-full rounded-full" style={{ width: `${meta.allocation}%`, backgroundColor: meta.color }} />
+        </div>
+      </div>
+
+      <div>
+        <Eyebrow>Target APY</Eyebrow>
+        <div className="mt-2 font-mono text-3xl text-white" style={{ color: tranche.kind === TrancheKind.Alpha ? meta.color : undefined }}>
+          {meta.apy}
+        </div>
+      </div>
+
+      <p className="text-sm leading-6 text-white/50">{meta.risk}</p>
+
+      <div className="space-y-2">
+        {connected ? (
+          <>
+            <div className="flex gap-1.5">
+              <input
+                type="number"
+                min="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleDeposit()}
+                placeholder="USDC amount"
+                className="w-full min-w-0 rounded border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-white/25"
+              />
+              <button
+                disabled={deposit.isPending || !amount}
+                onClick={handleDeposit}
+                className={cx(
+                  'shrink-0 rounded border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-40',
+                  tranche.kind === TrancheKind.Alpha
+                    ? 'border-white bg-white text-black hover:bg-white/90'
+                    : 'border-white/12 bg-black/35 text-white hover:bg-white/10',
+                )}
+              >
+                {deposit.isPending ? '…' : 'Deposit'}
+              </button>
+            </div>
+            {myBalance > 0n && (
+              <p className="text-xs text-white/40">
+                Your position: {formatUsdc(myBalance, 2)} p{meta.shortLabel} ≈ ${formatUsdc(myUsdValue, 2)}
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-xs text-white/30">Connect wallet to deposit</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function TrancheRows({ data }: { data: PrismData }) {
   return (
     <div className="divide-y divide-white/10">
-      {data.tranches.map((tranche) => {
-        const meta = TRANCHE_META[tranche.kind];
-        return (
-          <div key={tranche.key} className="grid gap-5 p-7 lg:grid-cols-[minmax(170px,0.9fr)_160px_130px_minmax(220px,1fr)_140px] lg:items-center">
-            <div className="flex items-start gap-4">
-              <span className="mt-1 h-12 w-1 rounded" style={{ backgroundColor: meta.color }} />
-              <div>
-                <Eyebrow><span style={{ color: meta.color }}>{meta.label}</span></Eyebrow>
-                <p className="mt-2 text-sm text-white/50">{meta.copy}</p>
-              </div>
-            </div>
-            <div>
-              <div className="font-mono text-sm text-white">${formatUsdc(tranche.totalAssets, 2)} / {meta.allocation}% alloc</div>
-              <div className="mt-3 h-1.5 rounded-full bg-white/10">
-                <div className="h-full rounded-full" style={{ width: `${meta.allocation}%`, backgroundColor: meta.color }} />
-              </div>
-            </div>
-            <div>
-              <Eyebrow>Target APY</Eyebrow>
-              <div className="mt-2 font-mono text-3xl text-white" style={{ color: tranche.kind === TrancheKind.Alpha ? meta.color : undefined }}>
-                {meta.apy}
-              </div>
-            </div>
-            <p className="text-sm leading-6 text-white/50">{meta.risk}</p>
-            <Link href="/dashboard" className={cx('inline-flex h-10 min-w-[132px] items-center justify-center rounded border px-5 text-sm', tranche.kind === TrancheKind.Alpha ? 'border-white bg-white text-black' : 'border-white/12 bg-black/35 text-white')}>
-              Deposit {'->'}
-            </Link>
-          </div>
-        );
-      })}
+      {data.tranches.map((tranche) => (
+        <TrancheDepositRow key={tranche.key} tranche={tranche} />
+      ))}
     </div>
   );
 }

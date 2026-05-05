@@ -1,5 +1,5 @@
 {
-  "address": "GGb2hHKWGxFT72wFDMtyLrqCj9yQaE8etpPTw1p26BKp",
+  "address": "3A4Cjb4YQw2vqhUj4PkVAKu11MbemnUfSaFXHxwcdV9F",
   "metadata": {
     "name": "prism_core",
     "version": "0.1.0",
@@ -37,8 +37,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  50
+                  103
                 ]
               }
             ]
@@ -240,8 +239,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  50
+                  103
                 ]
               }
             ]
@@ -452,8 +450,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  50
+                  103
                 ]
               }
             ]
@@ -563,8 +560,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  50
+                  103
                 ]
               }
             ]
@@ -624,8 +620,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  50
+                  103
                 ]
               }
             ]
@@ -740,8 +735,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  50
+                  103
                 ]
               }
             ]
@@ -838,8 +832,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  50
+                  103
                 ]
               }
             ]
@@ -912,8 +905,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  50
+                  103
                 ]
               }
             ]
@@ -1020,8 +1012,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  50
+                  103
                 ]
               }
             ]
@@ -1123,8 +1114,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  50
+                  103
                 ]
               }
             ]
@@ -1209,8 +1199,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  50
+                  103
                 ]
               }
             ]
@@ -1305,8 +1294,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  50
+                  103
                 ]
               }
             ]
@@ -1412,8 +1400,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  50
+                  103
                 ]
               }
             ]
@@ -1597,8 +1584,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  50
+                  103
                 ]
               }
             ]
@@ -1646,8 +1632,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  50
+                  103
                 ]
               }
             ]
@@ -1724,8 +1709,7 @@
                   110,
                   102,
                   105,
-                  103,
-                  50
+                  103
                 ]
               }
             ]
@@ -2258,16 +2242,10 @@
         "fields": [
           {
             "name": "loan",
-            "docs": [
-              "The Loan PDA this collateral secures."
-            ],
             "type": "pubkey"
           },
           {
             "name": "dwallet_id",
-            "docs": [
-              "IKA dWallet identifier (32-byte key on the IKA / dWallet Network)."
-            ],
             "type": {
               "array": [
                 "u8",
@@ -2277,16 +2255,10 @@
           },
           {
             "name": "chain_id",
-            "docs": [
-              "Chain where the real asset lives: 0 = BTC, 1 = ETH."
-            ],
             "type": "u8"
           },
           {
             "name": "collateral_amount_usd",
-            "docs": [
-              "USD value of locked collateral in micro-USD (1 USD = 1_000_000)."
-            ],
             "type": "u64"
           },
           {
@@ -2299,16 +2271,10 @@
           },
           {
             "name": "oracle_pubkey",
-            "docs": [
-              "Ed25519 public key of the IKA oracle that must sign the attestation."
-            ],
             "type": "pubkey"
           },
           {
             "name": "locked_ts",
-            "docs": [
-              "Unix timestamp when the oracle confirmed the lock (0 until Locked)."
-            ],
             "type": "i64"
           },
           {

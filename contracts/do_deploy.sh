@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # Run from WSL: bash /mnt/c/Users/manov/Desktop/code/PRISM-Protocol/contracts/do_deploy.sh
 
 set -e
