@@ -578,7 +578,7 @@ function TrancheRows({ data }: { data: PrismData }) {
               </div>
             </div>
             <p className="text-sm leading-6 text-white/50">{meta.risk}</p>
-            <Link href="/dashboard" className={cx('inline-flex h-10 min-w-[132px] items-center justify-center rounded border px-5 text-sm', tranche.kind === TrancheKind.Alpha ? 'border-white bg-white text-black' : 'border-white/12 bg-black/35 text-white')}>
+            <Link href={`/dashboard?tranche=${TRANCHE_CONFIG[tranche.kind].key}`} className={cx('inline-flex h-10 min-w-[132px] items-center justify-center rounded border px-5 text-sm', tranche.kind === TrancheKind.Alpha ? 'border-white bg-white text-black' : 'border-white/12 bg-black/35 text-white')}>
               Deposit {'->'}
             </Link>
           </div>

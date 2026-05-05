@@ -10,10 +10,12 @@ import {
 import { useConnection } from '@solana/wallet-adapter-react';
 import { Keypair, SYSVAR_RENT_PUBKEY, SystemProgram } from '@solana/web3.js';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'next/navigation';
 import {
   AlertTriangle,
   Banknote,
   Flame,
+  Info,
   Landmark,
   Play,
   RotateCcw,
@@ -21,6 +23,7 @@ import {
   TrendingDown,
   WalletCards,
 } from 'lucide-react';
+import * as React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -51,6 +54,7 @@ import {
 import { buildPrograms } from '@/app/lib/program';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import mmSecret from '@/contracts/keys/mm.json';
 import { useIdentity } from '@/hooks/useIdentity';
 import { useSimulationActions } from '@/hooks/useSimulationActions';
@@ -63,6 +67,21 @@ function bn(value: bigint) {
 
 function mmKeypair() {
   return Keypair.fromSecretKey(Uint8Array.from(mmSecret as number[]));
+}
+
+function InfoTip({ children }: { children: React.ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button type="button" className="text-white/40 transition-colors hover:text-white/80" aria-label="More info">
+          <Info className="h-3.5 w-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-[280px] bg-black/95 text-xs leading-5 text-white/85 ring-1 ring-white/10">
+        {children}
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
 function formatError(error: unknown) {
@@ -86,6 +105,15 @@ export function ActionPanel() {
   const { addEntry } = useSimulationLog();
   const { registerActions } = useSimulationActions();
   const vaultState = useVaultState();
+  const searchParams = useSearchParams();
+  const trancheParam = searchParams?.get('tranche');
+
+  useEffect(() => {
+    if (trancheParam === 'prime') identity.setRole('senior');
+    else if (trancheParam === 'alpha') identity.setRole('junior');
+    else if (trancheParam === 'core') identity.setRole('senior');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trancheParam]);
   const [depositAmount, setDepositAmount] = useState('100.000000');
   const [withdrawShares, setWithdrawShares] = useState('1.000000');
   const [yieldAmount, setYieldAmount] = useState(formatUsdc(DEFAULT_DEMO_YIELD_AMOUNT));
@@ -189,23 +217,57 @@ export function ActionPanel() {
       const usdcMint = vaultState.data?.usdcMint ?? USDC_MINT;
       const [tranche] = getTranchePda(common.vault, investorTranche, common.core.programId);
       const [mint] = getTrancheMintPda(common.vault, investorTranche, common.core.programId);
+      const userUsdcAta = await getAssociatedTokenAddress(usdcMint, identity.keypair.publicKey);
+      const userTrancheAta = await getAssociatedTokenAddress(mint, identity.keypair.publicKey);
+
+      const accountsToCheck = {
+        user: identity.keypair.publicKey,
+        config: common.config,
+        vault: common.vault,
+        tranche,
+        trancheMint: mint,
+        userUsdcAta,
+        vaultUsdcReserve: common.reserve,
+        userTrancheAta,
+      };
+      console.group('[deposit] preflight');
+      console.log('VAULT_ID', VAULT_ID);
+      console.log('investorTranche kind', investorTranche, '(0=Prime,1=Core,2=Alpha)');
+      console.log('amount (micro-USDC)', amount.toString());
+      console.log('usdcMint (effective)', usdcMint.toBase58());
+      console.log('USDC_MINT (constant)', USDC_MINT.toBase58());
+      console.log('signer pubkey', identity.keypair.publicKey.toBase58());
+      console.log('core programId', common.core.programId.toBase58());
+      for (const [k, v] of Object.entries(accountsToCheck)) {
+        console.log(' ', k, v.toBase58());
+      }
+      const infos = await connection.getMultipleAccountsInfo(Object.values(accountsToCheck));
+      Object.keys(accountsToCheck).forEach((k, i) => {
+        const info = infos[i];
+        console.log(
+          ` exists? ${k}=`,
+          info ? `YES owner=${info.owner.toBase58()} dataLen=${info.data.length}` : 'NO',
+        );
+      });
+      console.groupEnd();
+
       const signature = await common.core.methods
         .deposit(investorTranche, bn(amount))
         .accounts({
-          user: identity.keypair.publicKey,
-          config: common.config,
-          vault: common.vault,
-          tranche,
-          trancheMint: mint,
-          userUsdcAta: await getAssociatedTokenAddress(usdcMint, identity.keypair.publicKey),
-          vaultUsdcReserve: common.reserve,
-          userTrancheAta: await getAssociatedTokenAddress(mint, identity.keypair.publicKey),
+          ...accountsToCheck,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
         .signers([identity.keypair])
-        .rpc({ commitment: 'confirmed' });
+        .rpc({ commitment: 'confirmed' })
+        .catch((err: unknown) => {
+          console.error('[deposit] rpc error', err);
+          if (err && typeof err === 'object' && 'logs' in err) {
+            console.error('[deposit] tx logs', (err as { logs?: string[] }).logs);
+          }
+          throw err;
+        });
       const after = await snapshot(identity.keypair, investorTranche);
       recordSuccess(
         `${identity.label} Deposit (${formatUsdc(amount)} USDC -> ${investorTrancheConfig.label})`,
@@ -589,7 +651,13 @@ export function ActionPanel() {
     <section className="rounded-lg border border-white/10 bg-black/30 p-5" aria-label="Action panel">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-white">Action Panel</div>
+          <div className="flex items-center gap-2 text-sm font-semibold text-white">
+            Action Panel
+            <InfoTip>
+              Sends real on-chain transactions to the PRISM contracts on Solana devnet, signed by the demo keypair for the active role.
+              Switch role in the sidebar to act as a different participant.
+            </InfoTip>
+          </div>
           <p className="mt-1 text-xs text-white/45">{identity.label} signed transactions only.</p>
         </div>
         <span className="rounded-md bg-white/10 px-2 py-1 font-mono text-[10px] uppercase text-white/60">
@@ -603,7 +671,12 @@ export function ActionPanel() {
             <div className="flex items-center gap-2 text-sm font-medium text-white">
               <Landmark className="h-4 w-4 text-white/50" />
               {investorTrancheConfig.label} tranche entry
+              <InfoTip>
+                Deposits USDC into the {investorTrancheConfig.label} tranche and mints p{investorTrancheConfig.label.toUpperCase()} tokens 1:1 at NAV.
+                These tokens represent your share of the tranche and accrue yield as the waterfall pays down. First deposit mints 1:1; later deposits mint <code className="rounded bg-white/10 px-1">amount / nav_per_share</code>.
+              </InfoTip>
             </div>
+            <p className="mt-1 text-xs text-white/45">Amount in USDC (6 decimals). You will receive p{investorTrancheConfig.label.toUpperCase()} tranche tokens.</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
               <Input value={depositAmount} onChange={(event) => setDepositAmount(event.target.value)} />
               <Button disabled={busy} onClick={() => deposit.mutate()} className="w-full gap-2 sm:w-auto">
@@ -616,7 +689,13 @@ export function ActionPanel() {
             <div className="flex items-center gap-2 text-sm font-medium text-white">
               <Banknote className="h-4 w-4 text-white/50" />
               Withdraw or emergency exit
+              <InfoTip>
+                Two exit paths.
+                <strong className="block pt-1">Withdraw</strong> burns p-tokens at the contract and pulls USDC straight from the vault reserve at current NAV — fails if the reserve is short.
+                <strong className="block pt-1">AMM Exit</strong> swaps p-tokens for USDC on the secondary pool — always available, but you take market price (which can be below NAV after a credit event).
+              </InfoTip>
             </div>
+            <p className="mt-1 text-xs text-white/45">First field: shares to redeem. Second field: shares to swap on the AMM.</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
               <Input value={withdrawShares} onChange={(event) => setWithdrawShares(event.target.value)} />
               <Button disabled={busy} variant="secondary" onClick={() => withdraw.mutate()} className="w-full sm:w-auto">
@@ -635,7 +714,14 @@ export function ActionPanel() {
       {identity.role === 'borrower' ? (
         <div className="mt-5 space-y-5">
           <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-            <div className="text-sm font-medium text-white">Loan lifecycle</div>
+            <div className="flex items-center gap-2 text-sm font-medium text-white">
+              Loan lifecycle
+              <InfoTip>
+                <strong className="block">Disburse</strong> moves USDC out of the vault reserve into the borrower wallet — turns deposits into a productive loan position.
+                <strong className="block pt-1">Repay</strong> sends USDC back into the vault. Combine with <em>Accrue Yield</em> from the admin to model coupon payments flowing through the waterfall.
+              </InfoTip>
+            </div>
+            <p className="mt-1 text-xs text-white/45">USDC amount. Disburse pulls from vault reserve; Repay pushes back in.</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
               <Input value={loanAmount} onChange={(event) => setLoanAmount(event.target.value)} />
               <Button disabled={busy} onClick={() => disburse.mutate()} className="w-full sm:w-auto">
@@ -655,14 +741,23 @@ export function ActionPanel() {
             <div className="flex items-center gap-2 text-sm font-medium text-white">
               <Play className="h-4 w-4 text-white/50" />
               Protocol operations
+              <InfoTip>
+                Admin-only triggers that drive the demo arc.
+                <strong className="block pt-1">Accrue Yield</strong> injects coupon income — distributed top-down: Prime → Core → Alpha.
+                <strong className="block pt-1">Trigger Default</strong> burns USDC into the loss bucket — losses cascade bottom-up: Alpha → Core → Prime.
+                <strong className="block pt-1">Market Reaction</strong> simulates AMM repricing after a credit event.
+                <strong className="block pt-1">Initialize</strong> idempotently sets up config, vault, tranches, loan, and AMM pools.
+              </InfoTip>
             </div>
+            <p className="mt-1 text-xs text-white/45">USDC amount for the next yield distribution.</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
               <Input value={yieldAmount} onChange={(event) => setYieldAmount(event.target.value)} />
               <Button disabled={busy} onClick={() => accrueYield.mutate()} className="w-full sm:w-auto">
                 Accrue Yield
               </Button>
             </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+            <p className="mt-3 text-xs text-white/45">USDC loss to realize on the loan. Cascades up from Alpha.</p>
+            <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_auto]">
               <Input value={lossAmount} onChange={(event) => setLossAmount(event.target.value)} />
               <Button disabled={busy} variant="destructive" onClick={() => triggerDefault.mutate()} className="w-full gap-2 sm:w-auto">
                 <ShieldAlert className="h-4 w-4" />
