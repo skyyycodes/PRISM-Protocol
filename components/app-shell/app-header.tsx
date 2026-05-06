@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { label: "Earn", href: "/earn" },
   { label: "Protect", href: "/protect" },
   { label: "Trade", href: "/trade" },
+  { label: "Borrow", href: "/borrower" },
   { label: "Docs", href: "https://docs.prismprotocol.dev/" },
 ] as const;
 
@@ -19,6 +20,7 @@ export function AppHeader() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const isFloatingHeader = isScrolled || mobileMenuOpen;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -47,14 +49,14 @@ export function AppHeader() {
     <header
       className={[
         "fixed z-50 transition-all duration-500",
-        isScrolled ? "left-4 right-4 top-4" : "left-0 right-0 top-0",
+        isFloatingHeader ? "left-4 right-4 top-4" : "left-0 right-0 top-0",
       ].join(" ")}
     >
       <nav
         aria-label="Primary"
         className={[
           "mx-auto transition-all duration-500",
-          isScrolled || mobileMenuOpen
+          isFloatingHeader
             ? "max-w-[1200px] rounded-2xl border border-foreground/10 bg-background/80 shadow-lg backdrop-blur-xl"
             : "max-w-[1400px] bg-transparent",
         ].join(" ")}
@@ -62,7 +64,7 @@ export function AppHeader() {
         <div
           className={[
             "flex items-center justify-between gap-4 px-6 transition-all duration-500 lg:px-8",
-            isScrolled ? "h-14" : "h-20",
+            isFloatingHeader ? "h-14" : "h-20",
           ].join(" ")}
         >
           <Link
@@ -73,7 +75,7 @@ export function AppHeader() {
             <span
               className={[
                 "relative shrink-0 overflow-hidden transition-all duration-500",
-                isScrolled ? "h-8 w-8" : "h-11 w-11",
+                isFloatingHeader ? "h-8 w-8" : "h-11 w-11",
               ].join(" ")}
             >
               <Image
@@ -84,14 +86,14 @@ export function AppHeader() {
                 priority
                 className={[
                   "absolute left-1/2 top-[54%] max-w-none -translate-x-1/2 -translate-y-1/2 object-contain transition-all duration-500",
-                  isScrolled ? "h-28 w-[10.5rem]" : "h-36 w-[13.5rem]",
+                  isFloatingHeader ? "h-28 w-[10.5rem]" : "h-36 w-[13.5rem]",
                 ].join(" ")}
               />
             </span>
             <span
               className={[
                 "font-display tracking-tight transition-all duration-500",
-                isScrolled ? "text-xl text-foreground" : "text-2xl text-white",
+                isFloatingHeader ? "text-xl text-foreground" : "text-2xl text-white",
               ].join(" ")}
             >
               PRISM
@@ -99,18 +101,20 @@ export function AppHeader() {
             <span
               className={[
                 "hidden font-mono transition-all duration-500 sm:inline",
-                isScrolled ? "mt-0.5 text-[10px] text-muted-foreground" : "mt-1 text-xs text-white/60",
+                isFloatingHeader ? "mt-0.5 text-[10px] text-muted-foreground" : "mt-1 text-xs text-white/60",
               ].join(" ")}
             >
               PROTOCOL
             </span>
           </Link>
 
-          <div className="hidden items-center gap-8 md:flex lg:gap-10">
+          <div className="hidden items-center gap-6 md:flex lg:gap-8">
             {NAV_LINKS.map((link) => {
               const external = link.href.startsWith("http");
               const hrefPath = link.href.split("#")[0];
-              const active = !external && pathname === hrefPath;
+              const active =
+                !external &&
+                (pathname === hrefPath || (hrefPath !== "/dashboard" && pathname.startsWith(`${hrefPath}/`)));
               return (
                 <Link
                   key={link.href}
@@ -119,14 +123,14 @@ export function AppHeader() {
                   rel={external ? "noreferrer" : undefined}
                   className={[
                     "group relative text-sm transition-colors duration-300",
-                    isScrolled ? "text-foreground/70 hover:text-foreground" : "text-white/70 hover:text-white",
+                    isFloatingHeader ? "text-foreground/70 hover:text-foreground" : "text-white/70 hover:text-white",
                   ].join(" ")}
                 >
                   {link.label}
                   <span
                     className={[
                       "absolute -bottom-1 left-0 h-px transition-all duration-300",
-                      isScrolled ? "bg-foreground" : "bg-white",
+                      isFloatingHeader ? "bg-foreground" : "bg-white",
                       active ? "w-full" : "w-0 group-hover:w-full",
                     ].join(" ")}
                   />
@@ -149,7 +153,7 @@ export function AppHeader() {
               aria-label="Toggle menu"
               className={[
                 "flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/30 backdrop-blur transition-colors duration-500 hover:bg-white/10",
-                isScrolled || mobileMenuOpen ? "text-foreground" : "text-white",
+                isFloatingHeader ? "text-foreground" : "text-white",
               ].join(" ")}
             >
               <span className="relative h-4 w-5" aria-hidden="true">
@@ -185,7 +189,10 @@ export function AppHeader() {
           <div className="grid gap-1 p-2">
             {NAV_LINKS.map((link) => {
               const external = link.href.startsWith("http");
-              const active = !external && pathname === link.href;
+              const hrefPath = link.href.split("#")[0];
+              const active =
+                !external &&
+                (pathname === hrefPath || (hrefPath !== "/dashboard" && pathname.startsWith(`${hrefPath}/`)));
               return (
                 <Link
                   key={link.href}
