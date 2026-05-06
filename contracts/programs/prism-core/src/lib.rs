@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("3A4Cjb4YQw2vqhUj4PkVAKu11MbemnUfSaFXHxwcdV9F");
+declare_id!("CRzsHoHgdrK7HC2GoGsfxiEJtHP2sPSWY7SgrwqK9ao4");
 
 pub mod errors;
 pub mod events;
@@ -124,6 +124,13 @@ pub mod prism_core {
     /// ed25519 native-program instruction containing the oracle's signature.
     pub fn verify_ika_collateral(ctx: Context<VerifyIkaCollateral>) -> Result<()> {
         instructions::verify_ika_collateral_handler(ctx)
+    }
+
+    /// Atomic: verify oracle attestation AND disburse loan in one tx.
+    /// Callable by the borrower — no admin required after loan origination.
+    /// The tx must include an Ed25519 precompile instruction before this one.
+    pub fn verify_and_disburse(ctx: Context<VerifyAndDisburse>) -> Result<()> {
+        instructions::verify_and_disburse_handler(ctx)
     }
 
     pub fn release_ika_collateral(ctx: Context<ReleaseIkaCollateral>) -> Result<()> {

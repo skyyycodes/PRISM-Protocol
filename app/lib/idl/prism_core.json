@@ -1,6 +1,7 @@
 {
-  "address": "3A4Cjb4YQw2vqhUj4PkVAKu11MbemnUfSaFXHxwcdV9F",
+  "address": "CRzsHoHgdrK7HC2GoGsfxiEJtHP2sPSWY7SgrwqK9ao4",
   "metadata": {
+    
     "name": "prism_core",
     "version": "0.1.0",
     "spec": "0.1.0",
@@ -145,6 +146,24 @@
           ],
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "loan"
@@ -1594,6 +1613,149 @@
       "args": []
     },
     {
+      "name": "verify_and_disburse",
+      "docs": [
+        "Atomic: verify oracle attestation AND disburse loan in one tx.",
+        "Callable by the borrower — no admin required after loan origination.",
+        "The tx must include an Ed25519 precompile instruction before this one."
+      ],
+      "discriminator": [
+        240,
+        62,
+        157,
+        54,
+        110,
+        177,
+        175,
+        200
+      ],
+      "accounts": [
+        {
+          "name": "borrower",
+          "docs": [
+            "Borrower initiates — no admin needed after loan origination."
+          ],
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.id",
+                "account": "Vault"
+              }
+            ]
+          },
+          "relations": [
+            "loan"
+          ]
+        },
+        {
+          "name": "loan",
+          "writable": true
+        },
+        {
+          "name": "ika_collateral",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  107,
+                  97,
+                  95,
+                  99,
+                  111,
+                  108,
+                  108,
+                  97,
+                  116,
+                  101,
+                  114,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loan"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_usdc_reserve",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  101,
+                  114,
+                  118,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "borrower_usdc_ata",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "verify_ika_collateral",
       "docs": [
         "Must be called as instruction index 1 in a tx where index 0 is an",
@@ -2037,6 +2199,11 @@
       "code": 6018,
       "name": "CollateralAlreadyLocked",
       "msg": "Collateral already locked; cannot re-verify"
+    },
+    {
+      "code": 6019,
+      "name": "OracleNotAllowlisted",
+      "msg": "Oracle public key is not in the global allowlist"
     }
   ],
   "types": [

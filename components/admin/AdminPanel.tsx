@@ -40,6 +40,7 @@ import {
 } from '@/app/lib/pda';
 import prismCoreIdl from '@/app/lib/idl/prism_core.json';
 import prismAmmIdl from '@/app/lib/idl/prism_amm.json';
+import { buildPrograms } from '@/app/lib/program';
 
 import {
   useIkaCollateralAccount,
@@ -79,8 +80,13 @@ export function AdminPanel() {
 
   const [activeMode, setActiveMode] = useState<'auto' | 'manual'>('auto');
 
-  // Track collateral for the current test loan (ID 0 in vault 0)
-  const pdas = getPdas();
+  // Track collateral for the most recent approved loan
+  const lastApprovedLoan = applications
+    .filter(a => a.status === 'approved' && a.loanId !== undefined)
+    .sort((a, b) => b.submittedAt - a.submittedAt)[0];
+  
+  const currentLoanId = lastApprovedLoan?.loanId ?? 0;
+  const pdas = getPdas(currentLoanId);
   const { data: ikaCollateral } = useIkaCollateralAccount(pdas.loan);
   const ikaStatus = ikaCollateral?.status;
 
@@ -102,18 +108,11 @@ export function AdminPanel() {
 
   function getPrograms() {
     const admin = getAdminKeypair();
-    const adminWallet = {
-      publicKey: admin.publicKey,
-      signTransaction: async <T extends Parameters<AnchorProvider['sendAndConfirm']>[0]>(tx: T) => { (tx as any).partialSign?.(admin); return tx; },
-      signAllTransactions: async <T extends Parameters<AnchorProvider['sendAndConfirm']>[0]>(txs: T[]) => txs,
-    };
-    const provider = new AnchorProvider(connection, adminWallet as any, { commitment: 'confirmed' });
-    const core = new Program(prismCoreIdl as Idl, provider) as any;
-    const amm = new Program(prismAmmIdl as Idl, provider) as any;
+    const { core, amm } = buildPrograms(connection, admin);
     return { core, amm, adminKeypair: admin };
   }
 
-  function getPdas() {
+  function getPdas(loanId: number = 0) {
     const [config] = getConfigPda(PRISM_CORE_PROGRAM_ID);
     const [vault] = getVaultPda(VAULT_ID, PRISM_CORE_PROGRAM_ID);
     const [trancheP] = getTranchePda(vault, TrancheKind.Prime, PRISM_CORE_PROGRAM_ID);
@@ -124,7 +123,7 @@ export function AdminPanel() {
     const [mintA] = getTrancheMintPda(vault, TrancheKind.Alpha, PRISM_CORE_PROGRAM_ID);
     const [reserve] = getVaultReservePda(vault, PRISM_CORE_PROGRAM_ID);
     const [lossBucket] = getLossBucketPda(vault, PRISM_CORE_PROGRAM_ID);
-    const [loan] = getLoanPda(vault, 0, PRISM_CORE_PROGRAM_ID);
+    const [loan] = getLoanPda(vault, loanId, PRISM_CORE_PROGRAM_ID);
     const [poolP] = getPoolPda(mintP, PRISM_AMM_PROGRAM_ID);
     const [poolC] = getPoolPda(mintC, PRISM_AMM_PROGRAM_ID);
     const [poolA] = getPoolPda(mintA, PRISM_AMM_PROGRAM_ID);
@@ -140,18 +139,19 @@ export function AdminPanel() {
   // ── Individual Step Functions ──────────────────────────────────────────
 
   async function setupGlobalConfig() {
-    const { core } = getPrograms();
+    const { core, adminKeypair } = getPrograms();
     const p = getPdas();
-    const admin = wallet!.publicKey;
+    const admin = adminKeypair.publicKey;
     setStep(0, 'running');
     try {
       console.log('Using config PDA:', p.config.toBase58());
+      const TEST_ORACLE = new PublicKey('5nmEq5cNc9yXpK1ySrb4XH65zccBvRK2hwKnEJePjcrf');
       const existing = await core.account.globalConfig.fetchNullable(p.config);
       if (existing) {
         addLog('Global config already exists — skipping');
       } else {
         await core.methods
-          .initializeGlobalConfig(0, [admin])
+          .initializeGlobalConfig(0, [admin, TEST_ORACLE])
           .accounts({ admin, config: p.config, usdcMint: USDC_MINT, systemProgram: SystemProgram.programId })
           .rpc({ commitment: 'confirmed' });
         addLog('✓ Global config initialized');
@@ -167,9 +167,9 @@ export function AdminPanel() {
   }
 
   async function setupVault() {
-    const { core } = getPrograms();
+    const { core, adminKeypair } = getPrograms();
     const p = getPdas();
-    const admin = wallet!.publicKey;
+    const admin = adminKeypair.publicKey;
     setStep(1, 'running');
     try {
       const existing = await core.account.vault.fetchNullable(p.vault);
@@ -213,9 +213,9 @@ export function AdminPanel() {
   }
 
   async function setupTranches() {
-    const { core } = getPrograms();
+    const { core, adminKeypair } = getPrograms();
     const p = getPdas();
-    const admin = wallet!.publicKey;
+    const admin = adminKeypair.publicKey;
     setStep(2, 'running');
     try {
       const trancheParams = [
@@ -283,9 +283,9 @@ export function AdminPanel() {
   }
 
   async function setupAmmPools() {
-    const { amm } = getPrograms();
+    const { amm, adminKeypair } = getPrograms();
     const p = getPdas();
-    const admin = wallet!.publicKey;
+    const admin = adminKeypair.publicKey;
     setStep(4, 'running');
     try {
       const poolEntries = [
@@ -354,9 +354,9 @@ export function AdminPanel() {
   async function deposit(kind: TrancheKind, label: string, amountUsdc: string) {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
+      const { core, adminKeypair } = getPrograms();
       const p = getPdas();
-      const admin = wallet.publicKey;
+      const admin = adminKeypair.publicKey;
       const amount = BigInt(parseFloat(amountUsdc) * 1_000_000);
 
       const tranchePda = kind === TrancheKind.Prime ? p.tranches.prime : kind === TrancheKind.Core ? p.tranches.core : p.tranches.alpha;
@@ -392,9 +392,9 @@ export function AdminPanel() {
   async function accrueYield() {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
+      const { core, adminKeypair } = getPrograms();
       const p = getPdas();
-      const admin = wallet.publicKey;
+      const admin = adminKeypair.publicKey;
       const adminUsdcAta = await getAssociatedTokenAddress(USDC_MINT, admin);
       const amount = new BN(parseFloat(params.yieldAmount) * 1_000_000);
 
@@ -425,15 +425,32 @@ export function AdminPanel() {
   async function disburseLoan() {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
-      const p = getPdas();
-      const admin = wallet.publicKey;
-      const borrowerUsdcAta = await getAssociatedTokenAddress(USDC_MINT, admin);
+      const { core, adminKeypair } = getPrograms();
+      const p = getPdas(currentLoanId);
+      const admin = adminKeypair.publicKey;
+      
+      const borrowerPubkey = new PublicKey(lastApprovedLoan!.borrowerPubkey);
+      const borrowerUsdcAta = await getAssociatedTokenAddress(USDC_MINT, borrowerPubkey);
+      
+      const instructions = [];
+      const ataInfo = await connection.getAccountInfo(borrowerUsdcAta);
+      if (!ataInfo) {
+        addLog('Borrower USDC account not found — adding create instruction');
+        instructions.push(
+          createAssociatedTokenAccountInstruction(
+            admin, // Admin pays for creation
+            borrowerUsdcAta,
+            borrowerPubkey,
+            USDC_MINT
+          )
+        );
+      }
+
       // Check for IKA collateral
       const [ikaCollateralPda] = getIkaCollateralPda(p.loan);
       const ikaAcc = await core.account.ikaCollateral.fetchNullable(ikaCollateralPda);
 
-      await (core.methods as any)
+      const sig = await (core.methods as any)
         .disburseLoan()
         .accounts({
           admin,
@@ -445,8 +462,9 @@ export function AdminPanel() {
           tokenProgram: TOKEN_PROGRAM_ID,
           ikaCollateral: ikaAcc ? ikaCollateralPda : null,
         })
+        .preInstructions(instructions)
         .rpc({ commitment: 'confirmed' });
-      addLog('✓ Loan disbursed — USDC sent to borrower (admin wallet)');
+      addLog(`✓ Loan ${currentLoanId} disbursed. Tx: ${sig}`);
       toast.success('Loan disbursed');
     } catch (e: any) {
       addLog(`✗ Disburse: ${e.message}`);
@@ -457,9 +475,9 @@ export function AdminPanel() {
   async function repayLoan() {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
-      const p = getPdas();
-      const admin = wallet.publicKey;
+      const { core, adminKeypair } = getPrograms();
+      const p = getPdas(currentLoanId);
+      const admin = adminKeypair.publicKey;
       const amount = new BN(parseFloat(params.repayAmount) * 1_000_000);
       const borrowerUsdcAta = await getAssociatedTokenAddress(USDC_MINT, admin);
       await (core.methods as any)
@@ -476,7 +494,7 @@ export function AdminPanel() {
           systemProgram: SystemProgram.programId,
         })
         .rpc({ commitment: 'confirmed' });
-      addLog(`✓ Repaid ${params.repayAmount} USDC — reserve restored`);
+      addLog(`✓ Repaid ${params.repayAmount} USDC for Loan ${currentLoanId}`);
       toast.success('Loan repaid');
     } catch (e: any) {
       addLog(`✗ Repay: ${e.message}`);
@@ -501,6 +519,7 @@ export function AdminPanel() {
       const apr = parseInt(params.loanApr) * 100;
       const maturity = new BN(Math.floor(Date.now() / 1000) + maturityDays * 24 * 60 * 60);
       const [loanPda] = getLoanPda(p.vault, nextLoanId, PRISM_CORE_PROGRAM_ID);
+      console.log(`Originating loan ID ${nextLoanId} at PDA: ${loanPda.toBase58()}`);
       await core.methods
         .initializeLoan(nextLoanId, principal, apr, maturity, borrower)
         .accounts({ admin: adminKeypair.publicKey, config: p.config, vault: p.vault, loan: loanPda, systemProgram: SystemProgram.programId })
@@ -518,9 +537,9 @@ export function AdminPanel() {
   async function triggerDefault() {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
+      const { core, adminKeypair } = getPrograms();
       const p = getPdas();
-      const admin = wallet.publicKey;
+      const admin = adminKeypair.publicKey;
 
       const vaultAccount = await core.account.vault.fetch(p.vault);
       const seq: number = vaultAccount.creditEventSeq ?? 0;
@@ -583,9 +602,9 @@ export function AdminPanel() {
   async function liquidateCollateral() {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
+      const { core, adminKeypair } = getPrograms();
       const p = getPdas();
-      const admin = wallet.publicKey;
+      const admin = adminKeypair.publicKey;
       const [ikaCollateralPda] = getIkaCollateralPda(p.loan);
       await core.methods
         .liquidateIkaCollateral()
@@ -834,8 +853,15 @@ export function AdminPanel() {
           {/* Loan Lifecycle */}
           <div className="space-y-3 p-4 rounded-lg bg-blue-500/5 border border-blue-500/10 md:col-span-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Loan Lifecycle</h3>
+              <h3 className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">
+                Loan Lifecycle {lastApprovedLoan && `· ID ${currentLoanId}`}
+              </h3>
               <div className="flex items-center gap-4">
+                {lastApprovedLoan && (
+                  <span className="text-[9px] text-blue-400/70 font-mono">
+                    Borrower: {lastApprovedLoan.borrowerPubkey.slice(0, 8)}… · ${lastApprovedLoan.requestedUSDC.toLocaleString()}
+                  </span>
+                )}
                 <span className="text-[10px] text-blue-400/50 italic">Disburse → Repay</span>
                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/5 border border-white/10">
                   <span className="text-[9px] text-white/30 uppercase font-bold">Collateral:</span>
@@ -849,28 +875,12 @@ export function AdminPanel() {
               </div>
             </div>
             <div className="flex items-end gap-3">
-              <div className="flex-1 space-y-1">
-                <label className="text-[10px] text-white/30 uppercase">Repay Amount (USDC)</label>
-                <input
-                  type="text"
-                  value={params.repayAmount}
-                  onChange={(e) => setParams(p => ({ ...p, repayAmount: e.target.value }))}
-                  className="w-full bg-black/20 border border-blue-500/20 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500/50"
-                />
-              </div>
               <button
                 onClick={disburseLoan}
                 disabled={!wallet}
-                className="px-4 py-1.5 rounded bg-blue-500/20 border border-blue-500/30 text-blue-200 text-xs font-semibold hover:bg-blue-500/30 transition-all disabled:opacity-40 whitespace-nowrap"
+                className="w-full py-1.5 rounded bg-blue-500/20 border border-blue-500/30 text-blue-200 text-xs font-semibold hover:bg-blue-500/30 transition-all disabled:opacity-40 whitespace-nowrap"
               >
                 Disburse Loan
-              </button>
-              <button
-                onClick={repayLoan}
-                disabled={!wallet}
-                className="px-4 py-1.5 rounded bg-indigo-500/20 border border-indigo-500/30 text-indigo-200 text-xs font-semibold hover:bg-indigo-500/30 transition-all disabled:opacity-40 whitespace-nowrap"
-              >
-                Repay Loan
               </button>
             </div>
             {ikaStatus === 'Locked' && (
@@ -954,8 +964,9 @@ export function AdminPanel() {
             {applications
               .filter(a => a.status === 'pending')
               .map((app, idx) => {
-                // Start from 1 — loan ID 0 is reserved for the admin setup/demo loan
-                const nextId = 1 + applications.filter(a => a.status === 'approved').length + idx;
+                // Use Unix timestamp (seconds) as loan ID — unique across sessions and redeploys,
+                // fits in u32 until year 2106. Offset by idx so two pending apps get different IDs.
+                const nextId = (Math.floor(Date.now() / 1000) + idx) >>> 0;
                 return (
                   <div key={app.id} className="rounded-lg border border-yellow-500/10 bg-black/20 p-3 space-y-2">
                     <div className="flex items-start justify-between gap-2">

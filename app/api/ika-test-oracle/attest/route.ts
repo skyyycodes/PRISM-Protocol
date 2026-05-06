@@ -1,30 +1,25 @@
 /**
  * Local test oracle for IKA collateral verification.
  *
- * Simulates the IKA oracle by signing the 81-byte attestation message with a
- * fixed devnet test keypair.  Use this during development before the real IKA
- * oracle endpoint is live.
+ * Signs the 81-byte attestation message with the key from IKA_TEST_ORACLE_SECRET_SEED
+ * (defaults to a fixed dev seed if unset). The pubkey must be in the GlobalConfig
+ * oracle_allowlist — set IKA_TEST_ORACLE_SECRET_SEED to the admin keypair seed so it
+ * matches the [admin] allowlist created during setup.
  *
- * Setup:
- *   Set NEXT_PUBLIC_IKA_ORACLE_URL=http://localhost:3000/api/ika-test-oracle in .env.local
- *   When attaching collateral in the UI, use TEST_ORACLE_PUBKEY as the oracle public key.
- *
- * Production:
- *   Change NEXT_PUBLIC_IKA_ORACLE_URL to the real IKA oracle and remove this file.
+ * Production: change NEXT_PUBLIC_IKA_ORACLE_URL to the real IKA oracle endpoint.
  */
 
 import { createPrivateKey, createPublicKey, sign } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { PublicKey } from '@solana/web3.js';
 
-// Fixed 32-byte seed for the test oracle keypair.
-// Derived Solana base58 pubkey: 5nmEq5cNc9yXpK1ySrb4XH65zccBvRK2hwKnEJePjcrf
-const TEST_SEED = Buffer.from(
-  'fc0dfc6881aee8d6af913f60fff07ab0b1ec16427573ab6d33b3825df3a52820',
-  'hex',
-);
+// Resolve signing seed: env var first, fixed fallback for CI/zero-config dev.
+const seedHex =
+  process.env.IKA_TEST_ORACLE_SECRET_SEED ??
+  'fc0dfc6881aee8d6af913f60fff07ab0b1ec16427573ab6d33b3825df3a52820';
 
-// PKCS#8 DER header for an Ed25519 private key (OID 1.3.101.112).
+const TEST_SEED = Buffer.from(seedHex, 'hex');
+
 const PKCS8_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex');
 const oraclePrivateKey = createPrivateKey({
   key: Buffer.concat([PKCS8_PREFIX, TEST_SEED]),

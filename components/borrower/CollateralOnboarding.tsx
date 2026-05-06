@@ -34,9 +34,12 @@ import {
   useReleaseIkaCollateral,
   useLoanAccount,
 } from '@/hooks/useIkaCollateral';
+import { PRISM_CORE_PROGRAM_ID } from '@/app/lib/constants';
 import { getVaultPda, getLoanPda } from '@/app/lib/pda';
 
-const TEST_ORACLE_PUBKEY = '5nmEq5cNc9yXpK1ySrb4XH65zccBvRK2hwKnEJePjcrf';
+// Must match a key in the GlobalConfig oracle_allowlist.
+// Corresponds to IKA_TEST_ORACLE_SECRET_SEED in .env.local — currently the admin keypair.
+const TEST_ORACLE_PUBKEY = 'qJnBaWcB2Yvd2MSf1s2XweMEd91RHgdG88ad8cAmbDK';
 
 const CHAIN_LABELS: Record<IkaChain, string> = {
   [IKA_CHAIN.BTC]: 'Bitcoin',
@@ -68,8 +71,8 @@ interface Props {
 export function CollateralOnboarding({ vaultId, loanId }: Props) {
   const { connected } = useWallet();
 
-  const [vaultPda] = getVaultPda(vaultId);
-  const [loanPda] = getLoanPda(vaultPda, loanId);
+  const [vaultPda] = getVaultPda(Number(vaultId));
+  const [loanPda] = getLoanPda(vaultPda, Number(loanId));
 
   const { data: collateral, isLoading } = useIkaCollateralAccount(loanPda);
   const { data: loan } = useLoanAccount(loanPda);
@@ -87,6 +90,7 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
   const [isCreatingDwallet, setIsCreatingDwallet] = useState(false);
   const [currentDkgStep, setCurrentDkgStep] = useState<IkaDkgStep | null>(null);
   const [depositAddress, setDepositAddress] = useState<string>('');
+  const [depositAddressError, setDepositAddressError] = useState<string>('');
   const [isFetchingAddress, setIsFetchingAddress] = useState(false);
 
   // ── Sui Wallet state ──────────────────────────────────────────────────────
@@ -138,12 +142,86 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
     if (collateral?.status === 'Pending') {
       const dwalletObjectId = '0x' + Buffer.from(collateral.dwalletId).toString('hex');
       setIsFetchingAddress(true);
+      setDepositAddressError('');
       getDWalletAddress(dwalletObjectId, collateral.chainId as IkaChain)
-        .then(setDepositAddress)
-        .catch(err => console.error('Failed to fetch deposit address:', err))
+        .then(addr => { setDepositAddress(addr); setDepositAddressError(''); })
+        .catch(err => {
+          const msg = err instanceof Error ? err.message : String(err);
+          setDepositAddressError(msg);
+          console.error('Failed to fetch deposit address:', err);
+        })
         .finally(() => setIsFetchingAddress(false));
     }
   }, [collateral?.status, collateral?.dwalletId, collateral?.chainId]);
+
+  // ── dWallet creation — defined before conditional returns so it's accessible
+  //    from both the "collateral exists" panel and the "attach form" below.
+  async function handleCreateDwallet() {
+    if (!currentAccount) {
+      toast.error('Connect your Sui wallet first');
+      return;
+    }
+    setIsCreatingDwallet(true);
+    setCurrentDkgStep('initializing');
+    try {
+      const signResult = await signPersonalMessage({
+        message: new TextEncoder().encode('PRISM Protocol IKA Seed'),
+      });
+      const sigBytes = fromBase64(signResult.signature);
+      const rootSeed = sigBytes.slice(0, 32);
+      const info = await createIkaDwallet(
+        suiAddress,
+        rootSeed as unknown as Uint8Array,
+        async (tx, client) => {
+          try {
+            console.log('PRISM: Serializing Sui transaction...', tx);
+            const txBytes = await tx.build({ client });
+            const cleanTx = Transaction.from(txBytes);
+            console.log('PRISM: Executing clean transaction...');
+            return await signAndExecuteTransaction({ transaction: cleanTx });
+          } catch (err: any) {
+            const errMsg = err.message || String(err);
+            if (errMsg.includes('abort code: 0') || errMsg.includes('dynamic_field::add')) {
+              console.warn('PRISM: Detected existing registration during simulation, proceeding...');
+              return { digest: 'ALREADY_REGISTERED' };
+            }
+            console.error('PRISM: Sui transaction failed:', err);
+            throw err;
+          }
+        },
+        (step) => {
+          setCurrentDkgStep(step);
+          if (step === 'registering_encryption_key') toast.info('Registering encryption key...');
+          if (step === 'running_dkg_wasm') toast.info('Computing DKG shares...');
+          if (step === 'submitting_sui_tx') toast.info('Submitting DKG request...');
+        },
+      );
+      const hex = Buffer.from(info.dwalletId).toString('hex');
+      setDwalletIdHex(hex);
+      localStorage.setItem('prism_ika_dwallet', hex);
+      toast.success(`dWallet created: ${info.dwalletObjectId.slice(0, 20)}…`);
+
+      // If we already have a collateral account on Solana, update it with the new dWallet ID.
+      if (collateral && collateral.status === 'Pending') {
+        console.log('PRISM: Updating Solana collateral registration with new dWallet ID:', hex);
+        toast.info('Updating Solana registration...');
+        attachMutation.mutate({
+          vaultId,
+          loanId,
+          dwallet: info,
+          chainId: collateral.chainId as IkaChain,
+          collateralAmountUsd: collateral.collateralAmountUsd,
+          oraclePubkey: collateral.oraclePubkey,
+        });
+      }
+    } catch (e: unknown) {
+      console.error('DKG Error:', e);
+      toast.error(e instanceof Error ? e.message : 'dWallet creation failed');
+    } finally {
+      setIsCreatingDwallet(false);
+      setCurrentDkgStep(null);
+    }
+  }
 
   if (!connected) {
     return (
@@ -206,7 +284,9 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
         </div>
 
         {collateral.status === 'Pending' && (
-          <div className="space-y-4">
+          <>
+
+            <div className="space-y-4">
             <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/[0.03] p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-semibold text-yellow-500">
@@ -224,22 +304,44 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
 
                   <div className="space-y-2">
                     <div className="text-[10px] uppercase tracking-wider text-white/30 font-medium">Deposit Address</div>
-                    <div className="flex items-center gap-2 rounded-lg border border-white/5 bg-black/20 p-3">
-                      <span className="flex-1 font-mono text-[11px] text-white/80 break-all">
-                        {depositAddress || 'Fetching address...'}
-                      </span>
-                      <button
-                        onClick={() => {
-                          if (depositAddress) {
-                            navigator.clipboard.writeText(depositAddress);
-                            toast.success('Address copied');
-                          }
-                        }}
-                        className="p-1.5 text-white/20 hover:text-yellow-500 transition-colors"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                    {depositAddressError ? (
+                      <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/[0.05] p-4 space-y-3">
+                        <p className="text-[11px] text-yellow-400/80 leading-relaxed font-mono">
+                          {depositAddressError}
+                        </p>
+                        {depositAddressError.includes('NetworkRejectedDKGVerification') && (
+                          <button
+                            onClick={handleCreateDwallet}
+                            disabled={isCreatingDwallet}
+                            className="flex items-center gap-2 rounded-lg bg-yellow-500/20 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-yellow-500 hover:bg-yellow-500/30 transition-all disabled:opacity-50"
+                          >
+                            {isCreatingDwallet ? (
+                              <div className="h-3 w-3 animate-spin rounded-full border-2 border-yellow-500/20 border-t-yellow-500" />
+                            ) : (
+                              'Re-create dWallet'
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 rounded-lg border border-white/5 bg-black/20 p-3">
+                        <span className="flex-1 font-mono text-[11px] text-white/80 break-all">
+                          {isFetchingAddress ? 'Fetching address…' : depositAddress || '—'}
+                        </span>
+                        <button
+                          onClick={() => {
+                            if (depositAddress) {
+                              navigator.clipboard.writeText(depositAddress);
+                              toast.success('Address copied');
+                            }
+                          }}
+                          disabled={!depositAddress}
+                          className="p-1.5 text-white/20 hover:text-yellow-500 transition-colors disabled:opacity-30"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-3">
@@ -258,7 +360,7 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
                   </div>
                 </div>
 
-                {depositAddress && (
+                {depositAddress && !depositAddressError && (
                   <div className="shrink-0 flex flex-col items-center gap-2">
                     <div className="p-2.5 rounded-xl bg-white border border-white/10 shadow-xl shadow-black/50">
                       <QRCodeCanvas
@@ -283,7 +385,7 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
             </div>
 
             <button
-              disabled={isPolling || !depositAddress}
+              disabled={isPolling}
               onClick={async () => {
                 try {
                   const sig = await verify({
@@ -309,7 +411,8 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
               )}
             </button>
           </div>
-        )}
+        </>
+      )}
 
         {collateral.status === 'Locked' && (
           <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-4 flex gap-3">
@@ -362,66 +465,6 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  async function handleCreateDwallet() {
-    if (!currentAccount) {
-      toast.error('Connect your Sui wallet first');
-      return;
-    }
-    
-    setIsCreatingDwallet(true);
-    setCurrentDkgStep('initializing');
-    
-    try {
-      // 1. Derive rootSeed by asking the wallet to sign a constant message.
-      const signResult = await signPersonalMessage({
-        message: new TextEncoder().encode('PRISM Protocol IKA Seed'),
-      });
-      
-      // signature is a base64 string. Decode it and use first 32 bytes as seed.
-      const sigBytes = fromBase64(signResult.signature);
-      const rootSeed = sigBytes.slice(0, 32); 
-
-      // 2. Run the DKG process.
-      const info = await createIkaDwallet(
-        suiAddress, 
-        rootSeed as unknown as Uint8Array,
-        async (tx, client) => {
-          try {
-            console.log('PRISM: Serializing Sui transaction...', tx);
-            const txBytes = await tx.build({ client });
-            const cleanTx = Transaction.from(txBytes);
-            console.log('PRISM: Executing clean transaction...');
-            return await signAndExecuteTransaction({ transaction: cleanTx });
-          } catch (err: any) {
-            const errMsg = err.message || String(err);
-            if (errMsg.includes('abort code: 0') || errMsg.includes('dynamic_field::add')) {
-              console.warn('PRISM: Detected existing registration during simulation, proceeding...');
-              return { digest: 'ALREADY_REGISTERED' };
-            }
-            console.error('PRISM: Sui transaction failed:', err);
-            throw err;
-          }
-        },
-        (step) => {
-          setCurrentDkgStep(step);
-          if (step === 'registering_encryption_key') toast.info('Registering encryption key...');
-          if (step === 'running_dkg_wasm') toast.info('Computing DKG shares...');
-          if (step === 'submitting_sui_tx') toast.info('Submitting DKG request...');
-        }
-      );
-
-      const hex = Buffer.from(info.dwalletId).toString('hex');
-      setDwalletIdHex(hex);
-      localStorage.setItem('prism_ika_dwallet', hex);
-      toast.success(`dWallet created: ${info.dwalletObjectId.slice(0, 20)}…`);
-    } catch (e: unknown) {
-      console.error('DKG Error:', e);
-      toast.error(e instanceof Error ? e.message : 'dWallet creation failed');
-    } finally {
-      setIsCreatingDwallet(false);
-      setCurrentDkgStep(null);
-    }
-  }
 
   function handleCopyAddress() {
     navigator.clipboard.writeText(suiAddress);
@@ -461,6 +504,12 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
 
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.02] backdrop-blur-sm p-6 space-y-8">
+      {/* Debug Info */}
+      <div className="p-2 bg-black/40 rounded border border-white/5 font-mono text-[8px] text-white/20 mb-4 break-all">
+        Vault: {vaultPda.toBase58()}<br/>
+        Loan: {loanPda.toBase58()} (ID: {loanId})<br/>
+        Prog: {PRISM_CORE_PROGRAM_ID.toBase58()}
+      </div>
       <div>
         <h3 className="text-lg font-semibold text-white">Attach IKA Collateral</h3>
         <p className="mt-2 text-xs text-white/50 leading-relaxed">

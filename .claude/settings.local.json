@@ -47,7 +47,12 @@
       "Bash(node -e \"const chunks=[]; process.stdin.on\\('data',c=>chunks.push\\(c\\)\\); process.stdin.on\\('end',\\(\\)=>{const d=JSON.parse\\(chunks.join\\(''\\)\\); const f=d.result[0].data.content.fields; const keys=Object.keys\\(f\\).filter\\(k=>k.includes\\('encrypt'\\)||k.includes\\('key'\\)||k.includes\\('Key'\\)\\); console.log\\(JSON.stringify\\(keys\\)\\); console.log\\(JSON.stringify\\(f[keys[0]],null,2\\)\\);}\\)\")",
       "Bash(node -e \"const chunks=[]; process.stdin.on\\('data',c=>chunks.push\\(c\\)\\); process.stdin.on\\('end',\\(\\)=>{const d=JSON.parse\\(chunks.join\\(''\\)\\); const f=d.result[0].data.content.fields; console.log\\(Object.keys\\(f\\).join\\('\\\\n'\\)\\);}\\)\")",
       "Bash(node -e \"const chunks=[]; process.stdin.on\\('data',c=>chunks.push\\(c\\)\\); process.stdin.on\\('end',\\(\\)=>{const d=JSON.parse\\(chunks.join\\(''\\)\\); const f=d.result[0].data.content.fields.value.fields; console.log\\(Object.keys\\(f\\).join\\('\\\\n'\\)\\); const encKey=f.dwallet_network_encryption_keys; console.log\\('enc_keys:', JSON.stringify\\(encKey,null,2\\)\\);}\\)\")",
-      "Bash(node -e \"const c=[]; process.stdin.on\\('data',d=>c.push\\(d\\)\\); process.stdin.on\\('end',\\(\\)=>{const r=JSON.parse\\(c.join\\(''\\)\\).result[0]; console.log\\('type:', r.data?.bcs?.dataType\\); console.log\\('bcsBytes len:', r.data?.bcs?.bcsBytes?.length\\); console.log\\('content type:', r.data?.content?.type\\);}\\)\")"
+      "Bash(node -e \"const c=[]; process.stdin.on\\('data',d=>c.push\\(d\\)\\); process.stdin.on\\('end',\\(\\)=>{const r=JSON.parse\\(c.join\\(''\\)\\).result[0]; console.log\\('type:', r.data?.bcs?.dataType\\); console.log\\('bcsBytes len:', r.data?.bcs?.bcsBytes?.length\\); console.log\\('content type:', r.data?.content?.type\\);}\\)\")",
+      "Bash(node -e \"const k=require\\('./target/deploy/prism_core-keypair.json'\\); const {PublicKey}=require\\('@solana/web3.js'\\); console.log\\('prism_core:', new PublicKey\\(k.slice\\(32\\)\\).toBase58\\(\\)\\)\")",
+      "Bash(python3 -c \"import json,base58; k=json.load\\(open\\('target/deploy/prism_core-keypair.json'\\)\\); print\\('prism_core:', base58.b58encode\\(bytes\\(k[32:]\\)\\).decode\\(\\)\\)\")",
+      "Bash(node -e \"const k=require\\('./target/deploy/prism_amm-keypair.json'\\); const {PublicKey}=require\\('@solana/web3.js'\\); console.log\\('prism_amm:', new PublicKey\\(k.slice\\(32\\)\\).toBase58\\(\\)\\)\")",
+      "Bash(node -e \"const k=require\\('./target/deploy/prism_core-keypair.json'\\); const {PublicKey}=require\\('@solana/web3.js'\\); console.log\\(new PublicKey\\(k.slice\\(32\\)\\).toBase58\\(\\)\\)\")",
+      "Bash(node *)"
     ]
   }
 }

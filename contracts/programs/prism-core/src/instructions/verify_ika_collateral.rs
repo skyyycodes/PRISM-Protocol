@@ -28,7 +28,7 @@ pub struct VerifyIkaCollateral<'info> {
 
     #[account(
         mut,
-        seeds = [b"ika_collateral", loan.key().as_ref()],
+        seeds = [b"ika_collateral_v2", loan.key().as_ref()],
         bump = ika_collateral.bump,
         constraint = ika_collateral.status == CollateralStatus::Pending
             @ PrismError::CollateralAlreadyLocked,
@@ -41,80 +41,87 @@ pub struct VerifyIkaCollateral<'info> {
 }
 
 pub fn verify_ika_collateral_handler(ctx: Context<VerifyIkaCollateral>) -> Result<()> {
-    // ── 1. Load the ed25519 instruction that must be ix 0 in this tx ─────────
-    let ix = ix_sysvar::load_instruction_at_checked(0, &ctx.accounts.instructions_sysvar)
-        .map_err(|_| PrismError::OracleSignatureInvalid)?;
+    let sysvar_info = &ctx.accounts.instructions_sysvar;
+    
+    // Scan the first 10 instructions to find the Ed25519 proof.
+    // This avoids the unreliable load_current_index_checked function.
+    let mut ed25519_ix = None;
+    for i in 0..10 {
+        if let Ok(ix) = ix_sysvar::load_instruction_at_checked(i, sysvar_info) {
+            if ix.program_id == ED25519_PROGRAM_ID {
+                ed25519_ix = Some(ix);
+                break;
+            }
+        }
+    }
 
-    require!(ix.program_id == ED25519_PROGRAM_ID, PrismError::OracleSignatureInvalid);
+    let ix = ed25519_ix.ok_or_else(|| {
+        msg!("Error: Ed25519 instruction not found in the first 10 instructions");
+        PrismError::OracleSignatureInvalid
+    })?;
 
-    // ── 2. Parse ed25519 instruction data ─────────────────────────────────────
-    // Layout: count(1) | pad(1) | SignatureOffsets×14 | sig(64) | pk(32) | msg(n)
-    // All offsets reference data within this same instruction (ix_index = 0xFFFF).
     let data = &ix.data;
-    require!(data.len() >= 16, PrismError::OracleSignatureInvalid); // header + one entry
-    require!(data[0] >= 1, PrismError::OracleSignatureInvalid);
+    require!(data.len() >= 16, PrismError::OracleSignatureInvalid);
+    
+    let pk_offset = u16::from_le_bytes(data[6..8].try_into().unwrap()) as usize;
+    let msg_offset = u16::from_le_bytes(data[10..12].try_into().unwrap()) as usize;
+    let msg_size = u16::from_le_bytes(data[12..14].try_into().unwrap()) as usize;
 
-    // Byte offsets for the FIRST signature entry (starts at data[2]).
-    let pk_offset =
-        u16::from_le_bytes(data[6..8].try_into().map_err(|_| PrismError::OracleSignatureInvalid)?)
-            as usize;
-    let msg_offset =
-        u16::from_le_bytes(data[10..12].try_into().map_err(|_| PrismError::OracleSignatureInvalid)?)
-            as usize;
-    let msg_size =
-        u16::from_le_bytes(data[12..14].try_into().map_err(|_| PrismError::OracleSignatureInvalid)?)
-            as usize;
+    let oracle_pk_bytes: [u8; 32] = data[pk_offset..pk_offset + 32].try_into().unwrap();
+    let msg_bytes = &data[msg_offset..msg_offset + msg_size];
 
-    require!(
-        data.len() >= pk_offset + 32 && data.len() >= msg_offset + msg_size,
-        PrismError::OracleSignatureInvalid
-    );
-
-    let oracle_pk_bytes: [u8; 32] = data[pk_offset..pk_offset + 32]
-        .try_into()
-        .map_err(|_| PrismError::OracleSignatureInvalid)?;
-    let msg = &data[msg_offset..msg_offset + msg_size];
-
-    // ── 3. Check that the oracle key is the one the borrower registered ───────
     let col = &ctx.accounts.ika_collateral;
-    let expected_oracle: [u8; 32] = col.oracle_pubkey.to_bytes();
-    require!(oracle_pk_bytes == expected_oracle, PrismError::OracleSignatureInvalid);
+    if oracle_pk_bytes != col.oracle_pubkey.to_bytes() {
+        msg!("Error: Oracle public key mismatch");
+        return Err(PrismError::OracleSignatureInvalid.into());
+    }
 
-    // ── 4. Validate the oracle message format and contents ────────────────────
-    require!(msg_size == MSG_LEN, PrismError::OracleSignatureInvalid);
-
-    // prefix
-    require!(&msg[0..8] == MSG_PREFIX, PrismError::OracleSignatureInvalid);
-
-    // dwallet_id
-    let attested_dwallet: [u8; 32] =
-        msg[8..40].try_into().map_err(|_| PrismError::OracleSignatureInvalid)?;
-    require!(attested_dwallet == col.dwallet_id, PrismError::DwalletIdMismatch);
-
-    // chain_id
-    require!(msg[40] == col.chain_id, PrismError::OracleSignatureInvalid);
-
-    // amount_usd
-    let attested_amount =
-        u64::from_le_bytes(msg[41..49].try_into().map_err(|_| PrismError::OracleSignatureInvalid)?);
+    // Defence-in-depth: re-check the allowlist even if attach already validated it.
+    // Protects against future oracle_pubkey mutation bugs or direct account writes.
+    let signing_key = Pubkey::from(oracle_pk_bytes);
     require!(
-        attested_amount >= col.collateral_amount_usd,
-        PrismError::InsufficientCollateral
+        ctx.accounts.config.oracle_allowlist.contains(&signing_key),
+        PrismError::OracleNotAllowlisted
     );
 
-    // loan pubkey
-    let attested_loan: [u8; 32] =
-        msg[49..81].try_into().map_err(|_| PrismError::OracleSignatureInvalid)?;
-    require!(
-        attested_loan == ctx.accounts.loan.key().to_bytes(),
-        PrismError::OracleSignatureInvalid
-    );
+    if msg_size != MSG_LEN {
+        msg!("Error: Message length mismatch. Expected {}, got {}", MSG_LEN, msg_size);
+        return Err(PrismError::OracleSignatureInvalid.into());
+    }
 
-    // ── 5. Mark collateral as Locked ──────────────────────────────────────────
+    if &msg_bytes[0..8] != MSG_PREFIX {
+        msg!("Error: Message prefix mismatch");
+        return Err(PrismError::OracleSignatureInvalid.into());
+    }
+
+    let attested_dwallet: [u8; 32] = msg_bytes[8..40].try_into().unwrap();
+    if attested_dwallet != col.dwallet_id {
+        msg!("Error: dWallet ID mismatch");
+        return Err(PrismError::DwalletIdMismatch.into());
+    }
+
+    if msg_bytes[40] != col.chain_id {
+        msg!("Error: Chain ID mismatch");
+        return Err(PrismError::OracleSignatureInvalid.into());
+    }
+
+    let attested_amount = u64::from_le_bytes(msg_bytes[41..49].try_into().unwrap());
+    if attested_amount < col.collateral_amount_usd {
+        msg!("Error: Insufficient collateral. Attested: {}, Required: {}", attested_amount, col.collateral_amount_usd);
+        return Err(PrismError::InsufficientCollateral.into());
+    }
+
+    let attested_loan: [u8; 32] = msg_bytes[49..81].try_into().unwrap();
+    if attested_loan != ctx.accounts.loan.key().to_bytes() {
+        msg!("Error: Loan pubkey mismatch in attestation");
+        return Err(PrismError::OracleSignatureInvalid.into());
+    }
+
+    // Success!
     let col = &mut ctx.accounts.ika_collateral;
     col.status = CollateralStatus::Locked;
     col.locked_ts = Clock::get()?.unix_timestamp;
-    col.collateral_amount_usd = attested_amount; // accept oracle's attested amount
+    col.collateral_amount_usd = attested_amount;
 
     Ok(())
 }
