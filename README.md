@@ -14,6 +14,7 @@ PRISM Protocol is a full-stack Solana credit-market demo built for the Solana Fr
 
 It combines:
 
+
 - An Anchor credit engine, `prism_core`
 - A separate Anchor AMM, `prism_amm`
 - SPL tranche tokens: `pPRIME`, `pCORE`, `pALPHA`
