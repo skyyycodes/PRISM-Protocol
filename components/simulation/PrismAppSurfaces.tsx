@@ -20,8 +20,10 @@ import {
   Wallet,
 } from 'lucide-react';
 
-import { TRANCHE_CONFIG, TrancheKind, USDC_MINT } from '@/app/lib/constants';
+import { Q64_ONE, TRANCHE_CONFIG, TrancheKind } from '@/app/lib/constants';
 import { formatNavQ, formatUsdc, shortKey, stateName, toBigInt } from '@/app/lib/format';
+import { useDeposit } from '@/hooks/useDeposit';
+import { useUserPosition } from '@/hooks/useUserPosition';
 import { useVaultState } from '@/hooks/useVaultState';
 
 const TRANCHE_ORDER = [TrancheKind.Prime, TrancheKind.Core, TrancheKind.Alpha] as const;
@@ -551,39 +553,99 @@ export function PrismOverview() {
   );
 }
 
+function TrancheDepositRow({ tranche }: { tranche: PrismData['tranches'][number] }) {
+  const meta = TRANCHE_META[tranche.kind];
+  const { connected } = useWallet();
+  const deposit = useDeposit();
+  const { data: positions } = useUserPosition();
+  const [amount, setAmount] = useState('');
+
+  const myBalance = positions?.find((p) => p.kind === tranche.kind)?.balance ?? 0n;
+  const myUsdValue = myBalance > 0n
+    ? (myBalance * tranche.navPerShareQ) / Q64_ONE
+    : 0n;
+
+  function handleDeposit() {
+    const usd = parseFloat(amount);
+    if (isNaN(usd) || usd <= 0) return;
+    deposit.mutate(
+      { trancheKind: tranche.kind, usdcAmount: BigInt(Math.round(usd * 1_000_000)) },
+      { onSuccess: () => setAmount('') },
+    );
+  }
+
+  return (
+    <div className="grid gap-5 p-7 lg:grid-cols-[minmax(170px,0.9fr)_160px_130px_minmax(220px,1fr)_180px] lg:items-center">
+      <div className="flex items-start gap-4">
+        <span className="mt-1 h-12 w-1 rounded" style={{ backgroundColor: meta.color }} />
+        <div>
+          <Eyebrow><span style={{ color: meta.color }}>{meta.label}</span></Eyebrow>
+          <p className="mt-2 text-sm text-white/50">{meta.copy}</p>
+        </div>
+      </div>
+
+      <div>
+        <div className="font-mono text-sm text-white">${formatUsdc(tranche.totalAssets, 2)} / {meta.allocation}% alloc</div>
+        <div className="mt-3 h-1.5 rounded-full bg-white/10">
+          <div className="h-full rounded-full" style={{ width: `${meta.allocation}%`, backgroundColor: meta.color }} />
+        </div>
+      </div>
+
+      <div>
+        <Eyebrow>Target APY</Eyebrow>
+        <div className="mt-2 font-mono text-3xl text-white" style={{ color: tranche.kind === TrancheKind.Alpha ? meta.color : undefined }}>
+          {meta.apy}
+        </div>
+      </div>
+
+      <p className="text-sm leading-6 text-white/50">{meta.risk}</p>
+
+      <div className="space-y-2">
+        {connected ? (
+          <>
+            <div className="flex gap-1.5">
+              <input
+                type="number"
+                min="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleDeposit()}
+                placeholder="USDC amount"
+                className="w-full min-w-0 rounded border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-white/25"
+              />
+              <button
+                disabled={deposit.isPending || !amount}
+                onClick={handleDeposit}
+                className={cx(
+                  'shrink-0 rounded border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-40',
+                  tranche.kind === TrancheKind.Alpha
+                    ? 'border-white bg-white text-black hover:bg-white/90'
+                    : 'border-white/12 bg-black/35 text-white hover:bg-white/10',
+                )}
+              >
+                {deposit.isPending ? '…' : 'Deposit'}
+              </button>
+            </div>
+            {myBalance > 0n && (
+              <p className="text-xs text-white/40">
+                Your position: {formatUsdc(myBalance, 2)} p{meta.shortLabel} ≈ ${formatUsdc(myUsdValue, 2)}
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-xs text-white/30">Connect wallet to deposit</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function TrancheRows({ data }: { data: PrismData }) {
   return (
     <div className="divide-y divide-white/10">
-      {data.tranches.map((tranche) => {
-        const meta = TRANCHE_META[tranche.kind];
-        return (
-          <div key={tranche.key} className="grid gap-5 p-7 lg:grid-cols-[minmax(170px,0.9fr)_160px_130px_minmax(220px,1fr)_140px] lg:items-center">
-            <div className="flex items-start gap-4">
-              <span className="mt-1 h-12 w-1 rounded" style={{ backgroundColor: meta.color }} />
-              <div>
-                <Eyebrow><span style={{ color: meta.color }}>{meta.label}</span></Eyebrow>
-                <p className="mt-2 text-sm text-white/50">{meta.copy}</p>
-              </div>
-            </div>
-            <div>
-              <div className="font-mono text-sm text-white">${formatUsdc(tranche.totalAssets, 2)} / {meta.allocation}% alloc</div>
-              <div className="mt-3 h-1.5 rounded-full bg-white/10">
-                <div className="h-full rounded-full" style={{ width: `${meta.allocation}%`, backgroundColor: meta.color }} />
-              </div>
-            </div>
-            <div>
-              <Eyebrow>Target APY</Eyebrow>
-              <div className="mt-2 font-mono text-3xl text-white" style={{ color: tranche.kind === TrancheKind.Alpha ? meta.color : undefined }}>
-                {meta.apy}
-              </div>
-            </div>
-            <p className="text-sm leading-6 text-white/50">{meta.risk}</p>
-            <Link href={`/earn/vault/0?tranche=${meta.label.toLowerCase()}`} className={cx('inline-flex h-10 min-w-[132px] items-center justify-center rounded border px-5 text-sm', tranche.kind === TrancheKind.Alpha ? 'border-white bg-white text-black' : 'border-white/12 bg-black/35 text-white')}>
-              Deposit {'->'}
-            </Link>
-          </div>
-        );
-      })}
+      {data.tranches.map((tranche) => (
+        <TrancheDepositRow key={tranche.key} tranche={tranche} />
+      ))}
     </div>
   );
 }
@@ -1175,173 +1237,6 @@ function PoolStatCard({
         {value}
       </div>
     </Card>
-  );
-}
-
-const DETAIL_TRANCHE_LABELS = {
-  [TrancheKind.Prime]: 'Prime',
-  [TrancheKind.Core]: 'Core',
-  [TrancheKind.Alpha]: 'Alpha',
-} as const;
-
-function titleCaseStatus(value: string) {
-  if (!value) return 'Unknown';
-  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
-}
-
-function detailPercent(value: string) {
-  const parsed = Number.parseFloat(value);
-  return Number.isFinite(parsed) ? `${parsed.toFixed(2)}%` : value;
-}
-
-function DetailPill({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'green' | 'blue' }) {
-  return (
-    <span
-      className={cx(
-        'inline-flex h-7 items-center rounded-full border px-3 text-xs font-medium',
-        tone === 'neutral' && 'border-white/10 bg-white/[0.04] text-white/55',
-        tone === 'green' && 'border-[#16a34a]/60 bg-[#16a34a]/10 text-[#86efac]',
-        tone === 'blue' && 'border-[#2d72ff]/50 bg-[#2d72ff]/10 text-[#9ec0ff]',
-      )}
-    >
-      {children}
-    </span>
-  );
-}
-
-function DetailMetric({
-  label,
-  value,
-  tone = 'default',
-}: {
-  label: string;
-  value: ReactNode;
-  tone?: 'default' | 'green' | 'red';
-}) {
-  return (
-    <div className="min-h-[76px] rounded-md border border-white/10 bg-black/35 px-4 py-4 shadow-[0_8px_24px_rgba(60,46,22,0.05)]">
-      <div className="text-xs text-white/45">{label}</div>
-      <div
-        className={cx(
-          'mt-2 break-words font-mono text-sm font-semibold text-white',
-          tone === 'green' && 'text-[#86efac]',
-          tone === 'red' && 'text-pink-300',
-        )}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function DetailAction({ children, href = '/dashboard' }: { children: ReactNode; href?: string }) {
-  return (
-    <Link
-      href={href}
-      className="inline-flex h-8 items-center justify-center rounded border border-white/10 bg-white/[0.045] px-3 text-xs text-white/60 transition-colors hover:border-white/25 hover:bg-white/[0.08] hover:text-white"
-    >
-      {children}
-    </Link>
-  );
-}
-
-function WaterfallAction() {
-  return (
-    <Link
-      href="/dashboard"
-      className="inline-flex h-11 items-center justify-center rounded-md bg-white px-5 text-sm font-semibold text-black transition-colors hover:bg-white/85"
-    >
-      Trigger Waterfall Distribution
-    </Link>
-  );
-}
-
-export function PrismVaultDetail({ vaultId }: { vaultId: string }) {
-  const data = usePrismData();
-  const status = titleCaseStatus(data.vaultStatus);
-  const originator = data.vaultLabel;
-  const underlying = shortKey(USDC_MINT);
-  const vaultAddress = data.vaultLabel === 'Vault #0' ? '0x658b99C350CfEDd8Acf33dB6782Ca99e44e98327' : data.vaultLabel;
-
-  return (
-    <PageFrame>
-      <section className="mx-auto w-full max-w-[1320px]">
-        <DataState data={data} />
-        <div className="mb-8 border-b border-white/10 pb-7">
-          <div className="flex flex-wrap items-center gap-3">
-            <Link href="/earn#vault-0" className="inline-flex items-center gap-1 text-sm text-white/50 transition-colors hover:text-white">
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Link>
-            <h1 className="text-2xl font-semibold tracking-normal text-white">Vault #{vaultId}</h1>
-            <DetailPill tone="green">{status}</DetailPill>
-            <DetailPill tone="blue">Live on Devnet</DetailPill>
-          </div>
-          <div className="mt-3 font-mono text-sm text-white/45">{vaultAddress}</div>
-        </div>
-
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <DetailMetric label="Status" value={status} />
-          <DetailMetric label="Originator" value={originator} />
-          <DetailMetric label="Underlying Asset" value={underlying} />
-          <DetailMetric label="Total Deposited" value={formatUsdc(data.vaultCapital, 2)} />
-          <DetailMetric label="Yield Received" value={formatUsdc(data.yieldDistributed, 2)} />
-          <DetailMetric label="Yield Distributed" value={formatUsdc(data.yieldDistributed, 2)} />
-          <DetailMetric label="Last Distribution" value={data.yieldDistributed > 0n ? 'Live' : 'N/A'} />
-        </section>
-
-        <section className="mt-7">
-          <h2 className="mb-3 text-sm font-medium text-white/55">AI Risk Assessment</h2>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <DetailMetric label="Risk Tier" value="AAA" tone="green" />
-            <DetailMetric label="Credit Score" value="0 / 1000" />
-            <DetailMetric label="Default Probability" value="0.00%" />
-            <DetailMetric label="Score Status" value="Stale" tone="red" />
-          </div>
-        </section>
-
-        <section className="mt-7">
-          <h2 className="mb-3 text-sm font-medium text-white/55">Tranches</h2>
-          <div className="space-y-3">
-            {data.tranches.map((tranche) => {
-              const meta = TRANCHE_META[tranche.kind];
-
-              return (
-                <article key={tranche.key} className="rounded-md border border-white/10 bg-black/35 px-4 py-4 shadow-[0_8px_24px_rgba(60,46,22,0.05)] transition-colors hover:border-white/18 hover:bg-white/[0.045]">
-                  <div className="grid gap-4 lg:grid-cols-[minmax(180px,1fr)_minmax(140px,1fr)_minmax(150px,1fr)_auto] lg:items-center">
-                    <div className="flex items-start gap-3">
-                      <span className="mt-1 h-10 w-1 rounded" style={{ backgroundColor: meta.color }} />
-                      <div>
-                        <h3 className="text-base font-medium text-white">{DETAIL_TRANCHE_LABELS[tranche.kind]}</h3>
-                        <div className="mt-4 text-xs text-white/45">Target APR</div>
-                        <div className="mt-1 font-mono text-sm text-white">{detailPercent(meta.apy)}</div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-white/45">Allocation</div>
-                      <div className="mt-1 font-mono text-sm text-white">{meta.allocation}%</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-white/45">Total Invested</div>
-                      <div className="mt-1 font-mono text-sm text-white">{formatUsdc(tranche.totalAssets, 2)}</div>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 lg:justify-end">
-                      <DetailAction>Invest</DetailAction>
-                      <DetailAction>Claim</DetailAction>
-                      <DetailAction>Withdraw</DetailAction>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-
-        <div className="mt-7 border-t border-white/10 pt-6">
-          <WaterfallAction />
-        </div>
-      </section>
-    </PageFrame>
   );
 }
 

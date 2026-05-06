@@ -6,6 +6,13 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    turbo: {
+      resolveAlias: {
+        buffer: 'buffer/',
+      },
+    },
+  },
 }
 
 export default nextConfig

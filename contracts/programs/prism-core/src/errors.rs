@@ -41,4 +41,8 @@ pub enum PrismError {
     InsufficientCollateral,
     #[msg("Collateral already locked; cannot re-verify")]
     CollateralAlreadyLocked,
+    #[msg("Oracle public key is not in the global allowlist")]
+    OracleNotAllowlisted,
+    #[msg("Collateral account is already active and cannot be re-attached")]
+    CollateralAlreadyActive,
 }

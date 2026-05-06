@@ -70,12 +70,14 @@ export function useIkaCollateralAccount(loanPubkey: PublicKey | null) {
       const [pda] = getIkaCollateralPda(loanPubkey);
       try {
         const acc = await program.account.ikaCollateral.fetch(pda);
+        const statusRaw = Object.keys(acc.status)[0];
+        const status = (statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1)) as IkaCollateralState['status'];
         return {
           loan: acc.loan,
           dwalletId: new Uint8Array(acc.dwalletId),
           chainId: acc.chainId,
           collateralAmountUsd: BigInt(acc.collateralAmountUsd.toString()),
-          status: Object.keys(acc.status)[0] as IkaCollateralState['status'],
+          status,
           oraclePubkey: acc.oraclePubkey,
           lockedTs: acc.lockedTs.toNumber(),
           bump: acc.bump,
@@ -110,9 +112,10 @@ export function useAttachIkaCollateral() {
       if (!wallet) throw new Error('Wallet not connected');
       const program = buildPrismCoreProgram(connection, wallet);
 
-      const [vaultPda] = getVaultPda(params.vaultId);
-      const [loanPda] = getLoanPda(vaultPda, params.loanId);
+      const [vaultPda] = getVaultPda(Number(params.vaultId));
+      const [loanPda] = getLoanPda(vaultPda, Number(params.loanId));
       const [ikaCollateralPda] = getIkaCollateralPda(loanPda);
+      const [configPda] = getConfigPda();
 
       await program.methods
         .attachIkaCollateral(
@@ -123,6 +126,7 @@ export function useAttachIkaCollateral() {
         )
         .accounts({
           borrower: wallet.publicKey,
+          config: configPda,
           loan: loanPda,
           ikaCollateral: ikaCollateralPda,
           systemProgram: SystemProgram.programId,
@@ -155,8 +159,8 @@ export function useVerifyIkaCollateral() {
       if (!wallet) throw new Error('Wallet not connected');
       const program = buildPrismCoreProgram(connection, wallet);
 
-      const [vaultPda] = getVaultPda(params.vaultId);
-      const [loanPda] = getLoanPda(vaultPda, params.loanId);
+      const [vaultPda] = getVaultPda(Number(params.vaultId));
+      const [loanPda] = getLoanPda(vaultPda, Number(params.loanId));
       const [configPda] = getConfigPda();
 
       // Poll IKA oracle until attestation is ready.
@@ -224,8 +228,8 @@ export function useReleaseIkaCollateral() {
       if (!wallet) throw new Error('Wallet not connected');
       const program = buildPrismCoreProgram(connection, wallet);
 
-      const [vaultPda] = getVaultPda(params.vaultId);
-      const [loanPda] = getLoanPda(vaultPda, params.loanId);
+      const [vaultPda] = getVaultPda(Number(params.vaultId));
+      const [loanPda] = getLoanPda(vaultPda, Number(params.loanId));
       const [ikaCollateralPda] = getIkaCollateralPda(loanPda);
 
       await program.methods

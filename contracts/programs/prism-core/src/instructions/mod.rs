@@ -11,6 +11,7 @@ pub mod pause;
 pub mod release_ika_collateral;
 pub mod repay_loan;
 pub mod trigger_credit_event;
+pub mod verify_and_disburse;
 pub mod verify_ika_collateral;
 pub mod withdraw;
 
@@ -27,5 +28,6 @@ pub use pause::*;
 pub use release_ika_collateral::*;
 pub use repay_loan::*;
 pub use trigger_credit_event::*;
+pub use verify_and_disburse::*;
 pub use verify_ika_collateral::*;
 pub use withdraw::*;

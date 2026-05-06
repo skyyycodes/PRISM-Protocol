@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 set -e
 
 [ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
@@ -38,8 +38,11 @@ echo "prism_amm:  $AMM_ID"
 
 echo ""
 echo "=== Step 3: Patch declare_id! and Anchor.toml ==="
-OLD_CORE="E3g9dfc7Azz9MZcM9vJPeWA8JKN3rrU7k35KBm5chcL6"
-OLD_AMM="4y3iZE8WSAJyMrUgnSCDmqzVQru63UF9YU5L74EaUJY3"
+# Read current IDs from source so re-runs work correctly
+OLD_CORE=$(grep -o 'declare_id!("[A-Za-z0-9]*")' "$CONTRACTS_DIR/programs/prism-core/src/lib.rs" | grep -o '"[A-Za-z0-9]*"' | tr -d '"')
+OLD_AMM=$(grep -o 'declare_id!("[A-Za-z0-9]*")' "$CONTRACTS_DIR/programs/prism-amm/src/lib.rs" | grep -o '"[A-Za-z0-9]*"' | tr -d '"')
+echo "Replacing core: $OLD_CORE -> $CORE_ID"
+echo "Replacing amm:  $OLD_AMM -> $AMM_ID"
 sed -i "s/$OLD_CORE/$CORE_ID/g" "$CONTRACTS_DIR/programs/prism-core/src/lib.rs"
 sed -i "s/$OLD_AMM/$AMM_ID/g"   "$CONTRACTS_DIR/programs/prism-amm/src/lib.rs"
 sed -i "s/$OLD_CORE/$CORE_ID/g" "$CONTRACTS_DIR/Anchor.toml"
@@ -47,27 +50,46 @@ sed -i "s/$OLD_AMM/$AMM_ID/g"   "$CONTRACTS_DIR/Anchor.toml"
 echo "IDs patched."
 
 echo ""
-echo "=== Step 4: Build ==="
+echo "=== Step 4: Copy keypairs to target/deploy (Anchor 1.x keypair check) ==="
+mkdir -p "$TARGET_DIR/deploy"
+cp "$CORE_KP" "$TARGET_DIR/deploy/prism_core-keypair.json"
+cp "$AMM_KP"  "$TARGET_DIR/deploy/prism_amm-keypair.json"
+echo "Keypairs copied."
+
+echo ""
+echo "=== Step 5: Build ==="
 cd "$CONTRACTS_DIR"
 "$ANCHOR" build
 
 echo ""
-echo "=== Step 5: Fresh deploy ==="
+echo "=== Step 6: Fresh deploy ==="
 solana program deploy "$TARGET_DIR/deploy/prism_core.so" \
-  --keypair "$CORE_KP" --url devnet --upgrade-authority "$ADMIN_KEY"
+  --keypair "$ADMIN_KEY" \
+  --program-id "$CORE_KP" \
+  --url devnet
 
 solana program deploy "$TARGET_DIR/deploy/prism_amm.so" \
-  --keypair "$AMM_KP" --url devnet --upgrade-authority "$ADMIN_KEY"
+  --keypair "$ADMIN_KEY" \
+  --program-id "$AMM_KP" \
+  --url devnet
 
 echo ""
-echo "=== Step 6: Sync IDL + constants ==="
+echo "=== Step 7: Sync IDL + constants + .env.local ==="
 cp "$TARGET_DIR/idl/prism_core.json" "$APP_DIR/lib/idl/prism_core.json"
 cp "$TARGET_DIR/idl/prism_amm.json"  "$APP_DIR/lib/idl/prism_amm.json"
 sed -i "s/$OLD_CORE/$CORE_ID/g" "$APP_DIR/lib/constants.ts"
 sed -i "s/$OLD_AMM/$AMM_ID/g"   "$APP_DIR/lib/constants.ts"
 
+ENV_FILE="/mnt/c/Users/manov/Desktop/code/PRISM-Protocol/.env.local"
+sed -i "s/$OLD_CORE/$CORE_ID/g" "$ENV_FILE"
+sed -i "s/$OLD_AMM/$AMM_ID/g"   "$ENV_FILE"
+echo "IDL, constants.ts, and .env.local updated."
+
 echo ""
 echo "=== DONE ==="
 echo "prism_core: $CORE_ID"
 echo "prism_amm:  $AMM_ID"
-echo "Restart dev server, then run Full Setup in /admin"
+echo ""
+echo "Next steps:"
+echo "  1. Restart dev server (bun dev)"
+echo "  2. Open /admin, connect your Phantom wallet, click Run Full Setup"

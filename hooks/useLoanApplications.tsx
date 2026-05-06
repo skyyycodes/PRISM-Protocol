@@ -22,6 +22,7 @@ interface ContextValue {
   approve: (id: string, loanId: number, aprBps: number) => void;
   reject: (id: string) => void;
   getByBorrower: (pubkey: string) => LoanApplication | undefined;
+  clearApplications: () => void;
 }
 
 const Ctx = createContext<ContextValue | null>(null);
@@ -65,12 +66,17 @@ export function LoanApplicationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getByBorrower = useCallback(
-    (pubkey: string) => applications.find((a) => a.borrowerPubkey === pubkey && a.status !== 'rejected'),
+    (pubkey: string) => [...applications].reverse().find((a) => a.borrowerPubkey === pubkey && a.status !== 'rejected'),
     [applications],
   );
 
+  const clearApplications = useCallback(() => {
+    setApplications([]);
+    localStorage.removeItem(LS_KEY);
+  }, []);
+
   return (
-    <Ctx.Provider value={{ applications, submit, approve, reject, getByBorrower }}>
+    <Ctx.Provider value={{ applications, submit, approve, reject, getByBorrower, clearApplications }}>
       {children}
     </Ctx.Provider>
   );

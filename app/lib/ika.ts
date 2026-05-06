@@ -13,6 +13,35 @@
  *        ix[1]  prism_core::verify_ika_collateral (reads ix[0] via instructions sysvar)
  */
 
+import { Buffer } from 'buffer';
+
+// Aggressive Buffer polyfill for 64-bit support in browser
+if (typeof window !== 'undefined') {
+  console.log('PRISM: Initializing Buffer polyfill...');
+  (window as any).Buffer = (window as any).Buffer || Buffer;
+  
+  const patch = (proto: any, name: string, fn: Function) => {
+    if (!proto[name]) {
+      Object.defineProperty(proto, name, {
+        value: fn,
+        writable: true,
+        configurable: true
+      });
+    }
+  };
+
+  patch(Buffer.prototype, 'writeBigUInt64LE', function(this: Buffer, value: bigint, offset: number = 0) {
+    const view = new DataView(this.buffer, this.byteOffset + offset, 8);
+    view.setBigUint64(0, value, true);
+    return offset + 8;
+  });
+
+  patch(Buffer.prototype, 'readBigUInt64LE', function(this: Buffer, offset: number = 0) {
+    const view = new DataView(this.buffer, this.byteOffset + offset, 8);
+    return view.getBigUint64(0, true);
+  });
+}
+
 import {
   Ed25519Program,
   PublicKey,
@@ -22,23 +51,27 @@ import {
 } from '@solana/web3.js';
 import { Program } from '@coral-xyz/anchor';
 
-// ─── IKA SDK (real, no mocks) ─────────────────────────────────────────────
-import {
-  IkaClient,
-  getNetworkConfig,
-  UserShareEncryptionKeys,
-  prepareDKGAsync,
-  coordinatorTransactions,
-  createRandomSessionIdentifier,
-  Curve,
-} from '@ika.xyz/sdk';
-import { decodeSuiPrivateKey } from '@mysten/sui/cryptography';
-import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
-import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
+// @ts-ignore
 import { Transaction as SuiTransaction } from '@mysten/sui/transactions';
+import * as bitcoin from 'bitcoinjs-lib';
+import { ECPairFactory } from 'ecpair';
+import * as ecc from 'tiny-secp256k1';
+import { ethers } from 'ethers';
+// @ts-ignore
+import type { SuiTransactionBlockResponse } from '@mysten/sui/jsonRpc';
+
+// Initialize ecc for bitcoinjs-lib
+bitcoin.initEccLib(ecc);
 
 import type { PrismCore } from './idl/prism_core';
 import { getIkaCollateralPda } from './pda';
+
+function normalizeSuiAddress(addr: string): string {
+  if (!addr) return '';
+  let s = addr.toLowerCase();
+  if (s.startsWith('0x')) s = s.slice(2);
+  return '0x' + s.padStart(64, '0');
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Network constants
@@ -52,19 +85,14 @@ export const IKA_CHAIN = {
 
 export type IkaChain = (typeof IKA_CHAIN)[keyof typeof IKA_CHAIN];
 
-/** secp256k1 is used by BTC and ETH dWallets. */
-const SECP256K1_CURVE = Curve.SECP256K1;
 const SECP256K1_CURVE_NUMBER = 0;
 
-/**
- * IKA testnet fullnode (Sui-compatible RPC endpoint).
- * Set NEXT_PUBLIC_IKA_FULLNODE_URL in .env to override.
- */
-const IKA_FULLNODE_URL =
-  process.env.NEXT_PUBLIC_IKA_FULLNODE_URL ?? 'https://fullnode.testnet.ika.xyz';
-
-const IKA_NETWORK =
-  (process.env.NEXT_PUBLIC_IKA_NETWORK as 'testnet' | 'mainnet') ?? 'testnet';
+export const IKA_NETWORK = (process.env.NEXT_PUBLIC_IKA_NETWORK as 'testnet' | 'mainnet') || 'testnet';
+export const IKA_FULLNODE_URL = process.env.NEXT_PUBLIC_IKA_FULLNODE_URL || 'https://sui-testnet-rpc.publicnode.com';
+// We'll use our proxy for client-side calls to avoid CORS issues
+const CLIENT_RPC_URL = typeof window !== 'undefined' 
+  ? `${window.location.protocol}//${window.location.host}/api/sui-proxy` 
+  : IKA_FULLNODE_URL;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Oracle attestation message encoding
@@ -179,6 +207,16 @@ export async function buildVerifyCollateralTx(
   const { signature, oraclePubkey, dwalletId, chainId, amountUsdMicro, loanPubkey } = attestation;
   const [ikaCollateralPda] = getIkaCollateralPda(loanPubkey);
   const message = buildAttestationMessage(dwalletId, chainId, amountUsdMicro, loanPubkey);
+  
+  console.log('PRISM DEBUG: Oracle Signature:', Buffer.from(signature).toString('hex'));
+  console.log('PRISM DEBUG: Attestation Message:', Buffer.from(message).toString('hex'));
+  console.log('PRISM DEBUG: Message Layout:', {
+    prefix: Buffer.from(message.slice(0, 8)).toString(),
+    dwalletId: Buffer.from(message.slice(8, 40)).toString('hex'),
+    chainId: message[40],
+    amount: Buffer.from(message.slice(41, 49)).readBigUInt64LE().toString(),
+    loan: new PublicKey(message.slice(49, 81)).toBase58()
+  });
 
   const ed25519Ix: TransactionInstruction = Ed25519Program.createInstructionWithPublicKey({
     publicKey: oraclePubkey.toBytes(),
@@ -213,135 +251,573 @@ export interface IkaDwalletInfo {
   dwalletObjectId: string;
 }
 
+export type IkaDkgStep =
+  | 'initializing'
+  | 'preparing_keys'
+  | 'registering_encryption_key'
+  | 'running_dkg_wasm'
+  | 'submitting_sui_tx'
+  | 'extracting_dwallet';
+
 /**
  * Create a new IKA dWallet using the 2PC-MPC DKG process.
  *
- * Prerequisites:
- *   - Sui keypair with SUI and IKA tokens for gas
- *   - NEXT_PUBLIC_IKA_FULLNODE_URL in .env (default: https://fullnode.testnet.ika.xyz)
- *   - NEXT_PUBLIC_IKA_NETWORK in .env (default: testnet)
- *
- * @param suiKeypair  Sui Ed25519Keypair that pays gas and owns the resulting dWallet
- * @param entropy     32 random bytes for DKG session uniqueness (use crypto.getRandomValues)
+ * @param address     Connected Sui address
+ * @param rootSeed    Seed for encryption keys (derived via signPersonalMessage in UI)
+ * @param signAndExecute Callback to execute Sui transactions via wallet
+ * @param onProgress  Optional callback for multi-step progress reporting
  */
 export async function createIkaDwallet(
-  suiKeypair: Ed25519Keypair,
-  entropy: Uint8Array,
+  address: string,
+  rootSeed: Uint8Array,
+  signAndExecute: (tx: SuiTransaction, client: any) => Promise<{ digest: string }>,
+  onProgress?: (step: IkaDkgStep) => void,
 ): Promise<IkaDwalletInfo> {
+  // Dynamic import — deferred so the SDK never loads on page load.
+  const {
+    IkaClient,
+    getNetworkConfig,
+    UserShareEncryptionKeys,
+    prepareDKG,
+    prepareDKGAsync,
+    IkaTransaction,
+    Curve,
+  } = await import('@ika.xyz/sdk');
+  // @ts-ignore
+  const { SuiJsonRpcClient } = await import('@mysten/sui/jsonRpc');
+  onProgress?.('initializing');
   const ikaConfig = getNetworkConfig(IKA_NETWORK);
-  const suiClient = new SuiJsonRpcClient({ url: IKA_FULLNODE_URL, network: IKA_NETWORK });
+  console.log('PRISM: createIkaDwallet ikaConfig:', JSON.stringify(ikaConfig, null, 2));
+  
+  const suiClient = new SuiJsonRpcClient({ url: CLIENT_RPC_URL, network: 'testnet' });
+
   const ikaClient = new IkaClient({ suiClient, config: ikaConfig, cache: true });
   await ikaClient.initialize();
 
-  // Derive deterministic user-share encryption keys from the keypair's seed.
-  const rootSeed = decodeSuiPrivateKey(suiKeypair.getSecretKey()).secretKey;
+  onProgress?.('preparing_keys');
+
+  let retryCount = 0;
   const userShareEncryptionKeys = await UserShareEncryptionKeys.fromRootSeedKey(
     rootSeed,
-    SECP256K1_CURVE,
+    Curve.SECP256K1,
   );
 
-  const senderAddress = suiKeypair.toSuiAddress();
+  const senderAddress = address;
+  const encKeyAddress = userShareEncryptionKeys.getSuiAddress();
+  console.log('PRISM: Using sender address:', senderAddress);
+  console.log('PRISM: Using encryption key address:', encKeyAddress);
 
-  // Register encryption key if not present (idempotent — safe to call twice).
-  const existingEncKey = await ikaClient.getActiveEncryptionKey(senderAddress).catch(() => null);
+  // Register encryption key if not present.
+  let existingEncKey = null;
+  
+  // 1. Resolve the encryption keys table ID dynamically.
+  let encryptionKeysTableId = '';
+  try {
+    const coordId = (ikaClient as any).ikaConfig.objects.ikaDWalletCoordinator.objectID;
+    const coordObj = await (suiClient as any).getObject({ id: coordId, objectId: coordId, options: { showContent: true } });
+    const innerId = (coordObj.data?.content as any)?.fields?.version?.fields?.value;
+    if (innerId) {
+      const innerObj = await (suiClient as any).getObject({ id: innerId, objectId: innerId, options: { showContent: true } });
+      const fields = (innerObj.data?.content as any)?.fields;
+      const userEncKeys = fields?.encryption_keys;
+      encryptionKeysTableId = userEncKeys?.fields?.id?.id;
+    }
+  } catch (err) {
+    console.warn('PRISM: Could not resolve encryption keys table ID dynamically:', err);
+  }
+
+  // 2. Try to find the key.
+  try {
+    console.log(`PRISM: Checking for existing encryption key for ${encKeyAddress}...`);
+    // Try SDK first
+    existingEncKey = await ikaClient.getActiveEncryptionKey(encKeyAddress);
+    console.log('PRISM: Existing encryption key found via SDK');
+  } catch (sdkErr: any) {
+    // If SDK fails with RangeError or not found, try manual lookup if we have the table ID
+    if (encryptionKeysTableId) {
+      try {
+        console.log('PRISM: SDK failed/RangeError, trying manual dynamic field lookup...');
+        const match = await suiClient.getDynamicFieldObject({
+          parentId: encryptionKeysTableId,
+          name: { type: 'address', value: encKeyAddress }
+        });
+        if (match.data) {
+          console.log('PRISM: Manual lookup found existing key:', match.data.objectId);
+          existingEncKey = { id: { id: match.data.objectId } };
+        }
+      } catch (manualErr) {
+        console.log('PRISM: Manual lookup also failed (normal if new user)');
+      }
+    }
+    
+    if (!existingEncKey) {
+      console.log('PRISM: No existing encryption key found. Proceeding to registration.');
+    }
+  }
+
   if (!existingEncKey) {
+    onProgress?.('registering_encryption_key');
+    console.log('PRISM: Starting encryption key registration...');
     const regTx = new SuiTransaction();
-    const coordRef = regTx.sharedObjectRef({
-      objectId: ikaConfig.objects.ikaDWalletCoordinator.objectID,
-      initialSharedVersion: ikaConfig.objects.ikaDWalletCoordinator.initialSharedVersion,
-      mutable: true,
-    });
-    const encKeySig = await userShareEncryptionKeys.getEncryptionKeySignature();
-    coordinatorTransactions.registerEncryptionKeyTx(
-      ikaConfig,
-      coordRef,
-      SECP256K1_CURVE_NUMBER,
-      userShareEncryptionKeys.encryptionKey,
-      encKeySig,
-      suiKeypair.getPublicKey().toRawBytes(),
-      regTx,
-    );
-    await suiClient.signAndExecuteTransaction({ transaction: regTx, signer: suiKeypair });
+    regTx.setSender(senderAddress);
+    
+    const ikaTx = new IkaTransaction({ ikaClient, transaction: regTx, userShareEncryptionKeys });
+    await ikaTx.registerEncryptionKey({ curve: Curve.SECP256K1 });
+    try {
+      console.log('PRISM: Starting encryption key registration transaction...');
+      const { digest: regDigest } = await signAndExecute(regTx, suiClient);
+      if (regDigest !== 'ALREADY_REGISTERED') {
+        await suiClient.waitForTransaction({ digest: regDigest });
+        console.log('PRISM: Encryption key registered successfully. Waiting 5s for consistency...');
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      } else {
+        console.warn('PRISM: Registration skipped (already exists).');
+      }
+    } catch (err: any) {
+      const errMsg = err.message || String(err);
+      console.log('PRISM: Caught registration error (raw):', err);
+      
+      // Aggressive check for any abort code 0 or dynamic field error.
+      const isAlreadyRegistered = 
+        errMsg.includes('abort code: 0') || 
+        errMsg.includes('dynamic_field::add') || 
+        errMsg.includes('AlreadyExists') ||
+        (err.toString && err.toString().includes('abort code: 0'));
+
+      if (isAlreadyRegistered) {
+        console.warn('PRISM: Detected existing registration via MoveAbort, continuing to DKG (after 2s delay)...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } else {
+        console.error('PRISM: Terminal registration error:', errMsg);
+        throw err;
+      }
+    }
+  } else {
+    console.log('PRISM: Skipping registration, encryption key already exists.');
   }
 
   // DKG: CPU-intensive WASM computation (runs in-browser / Node).
-  const networkEncKey = await ikaClient.getLatestNetworkEncryptionKey();
-  const dkgOutput = await prepareDKGAsync(
-    ikaClient,
-    SECP256K1_CURVE,
-    userShareEncryptionKeys,
-    entropy,
-    senderAddress,
-  );
+  onProgress?.('running_dkg_wasm');
 
-  // The encryption key address used in the DKG request is the Sui address
-  // that owns the registered encryption key.
-  const encKeyObj = await ikaClient.getActiveEncryptionKey(senderAddress);
-  const encKeyAddress = (encKeyObj as unknown as { id: { id: string } }).id.id;
+  // Fetch the network encryption key and protocol parameters together, then run the
+  // WASM DKG computation with the SAME key — this guarantees the key ID we pass to
+  // requestDWalletDKG matches what the WASM used, preventing NetworkRejectedDKGVerification.
+  let networkEncKey: any;
+  let networkKeyId: string | undefined;
+  let protocolPublicParameters: Uint8Array | undefined;
+  retryCount = 0;
+  while (retryCount < 3) {
+    try {
+      networkEncKey = await ikaClient.getLatestNetworkEncryptionKey();
+      console.log('PRISM: networkEncKey received:', JSON.stringify(networkEncKey, null, 2));
+
+      const rawId = (networkEncKey as any).id?.id || (networkEncKey as any).id || (networkEncKey as any).objectId || networkEncKey;
+      networkKeyId = typeof rawId === 'string' ? rawId : (rawId && typeof rawId === 'object' ? (rawId.id || rawId.objectId) : undefined);
+      
+      console.log('PRISM: networkKeyId resolved to:', networkKeyId);
+
+      if (!networkKeyId || typeof networkKeyId !== 'string') {
+        throw new Error(`Invalid Sui Object id: resolved to ${typeof networkKeyId} instead of string`);
+      }
+
+      try {
+        const systemId = ikaConfig.objects.ikaSystemObject.objectID;
+        const coordId = ikaConfig.objects.ikaDWalletCoordinator.objectID;
+        
+        console.log('PRISM: Fetching system & coordinator objects...');
+        const [systemObj, coordObj] = await Promise.all([
+          (suiClient as any).getObject({ id: systemId, objectId: systemId, options: { showContent: true, showType: true } }),
+          (suiClient as any).getObject({ id: coordId, objectId: coordId, options: { showContent: true, showType: true } })
+        ]);
+        
+        console.log('PRISM: ikaSystemObject full:', JSON.stringify(systemObj, null, 2));
+        console.log('PRISM: Coordinator full:', JSON.stringify(coordObj, null, 2));
+
+        // Try to find parameters in any of these objects
+        const findParams = (obj: any): any => {
+           if (!obj || typeof obj !== 'object') return null;
+           // Parameters are usually a large array of numbers (64+ bytes)
+           if (Array.isArray(obj) && obj.length >= 64 && obj.every(x => typeof x === 'number')) return obj;
+           for (const k in obj) {
+             const res = findParams(obj[k]);
+             if (res) return res;
+           }
+           return null;
+        };
+
+        const foundInSystem = findParams(systemObj);
+        const foundInCoord = findParams(coordObj);
+        
+        if (foundInSystem) {
+           console.log('PRISM: Found potential params in system object!');
+           protocolPublicParameters = new Uint8Array(foundInSystem);
+        } else if (foundInCoord) {
+           console.log('PRISM: Found potential params in coordinator object!');
+           protocolPublicParameters = new Uint8Array(foundInCoord);
+        }
+
+        if (!protocolPublicParameters) {
+          console.log('PRISM: Trying getProtocolPublicParameters as last SDK attempt...');
+          // SDK expects (dWallet?: DWallet, curve?: Curve). Pass undefined for dWallet to use configured/latest key.
+          protocolPublicParameters = await ikaClient.getProtocolPublicParameters(
+            undefined,
+            Curve.SECP256K1,
+          );
+        }
+      } catch (e1: any) {
+        console.warn('PRISM: Manual getProtocolPublicParameters failed, will attempt prepareDKGAsync later:', e1.message);
+        // We'll skip manual fetch and let prepareDKGAsync try later
+      }
+      break;
+    } catch (err) {
+      console.warn(`IKA: Attempt ${retryCount + 1} to fetch network key/params failed:`, err);
+      retryCount++;
+      if (retryCount === 3) throw err;
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+
+  let dkgOutput;
+  retryCount = 0;
+  while (retryCount < 3) {
+    try {
+      const entropy = crypto.getRandomValues(new Uint8Array(32));
+      
+      // If SDK-level fetch failed, try manual extraction from the DKG output object
+      if (!protocolPublicParameters && networkEncKey?.networkDKGOutputID) {
+        console.log('PRISM: Manual fetch failed, attempting extraction from networkDKGOutputID:', networkEncKey.networkDKGOutputID);
+        try {
+          const dkgObj = await (suiClient as any).getObject({ 
+            id: networkEncKey.networkDKGOutputID,
+            objectId: networkEncKey.networkDKGOutputID, 
+            options: { showContent: true } 
+          });
+          console.log('PRISM: networkDKGOutputID raw result:', JSON.stringify(dkgObj, null, 2));
+          
+          const fields = (dkgObj.data?.content as any)?.fields || (dkgObj.data as any)?.content?.fields || (dkgObj as any)?.content?.fields || (dkgObj as any)?.fields;
+          
+          // Try all known field names and common nesting patterns
+          const rawParams = 
+            fields?.public_parameters || 
+            fields?.protocol_parameters || 
+            fields?.params ||
+            fields?.value?.fields?.public_parameters ||
+            fields?.value?.fields?.protocol_parameters ||
+            // Reconfiguration pattern
+            fields?.network_dkg_public_output?.fields?.public_parameters;
+            
+          if (rawParams) {
+            console.log('PRISM: Successfully extracted public parameters manually.');
+            protocolPublicParameters = new Uint8Array(rawParams);
+          } else {
+             console.warn('PRISM: Could not find parameters in top-level fields, searching recursively...');
+             // Deep search for any Uint8Array of reasonable size (usually 64+ bytes for parameters)
+             const findParams = (obj: any): any => {
+               if (!obj || typeof obj !== 'object') return null;
+               if (Array.isArray(obj) && obj.length >= 64 && obj.every(x => typeof x === 'number')) return obj;
+               for (const k in obj) {
+                 const res = findParams(obj[k]);
+                 if (res) return res;
+               }
+               return null;
+             };
+             const found = findParams(fields);
+             if (found) {
+               console.log('PRISM: Found potential protocol parameters via deep search.');
+               protocolPublicParameters = new Uint8Array(found);
+             }
+          }
+        } catch (e) {
+          console.warn('PRISM: Manual extraction failed:', e);
+        }
+      }
+
+      if (protocolPublicParameters) {
+        console.log(`PRISM: Running DKG preparation (attempt ${retryCount + 1})...`);
+        dkgOutput = await prepareDKG(
+          protocolPublicParameters,
+          Curve.SECP256K1,
+          (userShareEncryptionKeys as any).encryptionKey,
+          entropy,
+          senderAddress,
+        );
+      } else {
+        console.log(`PRISM: Running DKG preparation (async SDK fallback, attempt ${retryCount + 1})...`);
+        // SDK prepareDKGAsync expects (ikaClient, curve, userShareEncryptionKeys object, bytesToHash, senderAddress)
+        dkgOutput = await prepareDKGAsync(
+          ikaClient,
+          Curve.SECP256K1,
+          userShareEncryptionKeys,
+          entropy,
+          senderAddress,
+        );
+      }
+      break;
+    } catch (err) {
+      console.warn(`IKA: DKG preparation attempt ${retryCount + 1} failed:`, err);
+      retryCount++;
+      if (retryCount === 3) throw err;
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  }
+
+  if (!dkgOutput) throw new Error('Failed to generate DKG output');
+
+  console.log(`[${new Date().toISOString()}] PRISM: DKG preparation finished. Moving to key retrieval...`);
+  console.log('PRISM: DKG output msg length:', dkgOutput[0]?.length);
+  console.log('PRISM: DKG output public output length:', dkgOutput[1]?.length);
+  console.log('PRISM: protocolPublicParameters used length:', protocolPublicParameters?.length);
+
+  // Use the existing encryption key object we resolved earlier.
+  let encKeyObj = existingEncKey;
+  
+  if (!encKeyObj) {
+    // Final attempt to resolve if somehow missing
+    try {
+      console.log('PRISM: Final attempt to resolve encryption key...');
+      encKeyObj = await ikaClient.getActiveEncryptionKey(encKeyAddress);
+    } catch (e) {
+      console.error('PRISM: Final key resolution failed. Cannot proceed with DKG.');
+      throw new Error('Encryption key not found or registered.');
+    }
+  }
 
   // Submit the DKG + session-identifier registration in one Sui transaction.
   const dkgTx = new SuiTransaction();
+  dkgTx.setSender(senderAddress);
   const coordRef = dkgTx.sharedObjectRef({
     objectId: ikaConfig.objects.ikaDWalletCoordinator.objectID,
     initialSharedVersion: ikaConfig.objects.ikaDWalletCoordinator.initialSharedVersion,
     mutable: true,
   });
 
-  // Register a random session identifier — result is a Move object used in DKG.
-  const sessionBytes = createRandomSessionIdentifier();
-  const sessionId = coordinatorTransactions.registerSessionIdentifier(
-    ikaConfig,
-    coordRef,
-    sessionBytes,
-    dkgTx,
-  );
+  const ikaTx = new IkaTransaction({ ikaClient, transaction: dkgTx, userShareEncryptionKeys });
+  const sessionId = ikaTx.createSessionIdentifier();
 
-  // Fee coins: split from the gas object (IKA Network accepts SUI for fees on testnet).
-  const [ikaCoin] = dkgTx.splitCoins(dkgTx.gas, [dkgTx.pure.u64(0)]);
-  const [suiCoin] = dkgTx.splitCoins(dkgTx.gas, [dkgTx.pure.u64(0)]);
-
-  coordinatorTransactions.requestDWalletDKG(
-    ikaConfig,
-    coordRef,
-    networkEncKey.id,
-    SECP256K1_CURVE_NUMBER,
-    dkgOutput.userDKGMessage,
-    dkgOutput.encryptedUserShareAndProof,
-    encKeyAddress,
-    dkgOutput.userPublicOutput,
-    suiKeypair.getPublicKey().toRawBytes(),
-    sessionId,
-    null,
-    ikaCoin,
-    suiCoin,
-    dkgTx,
-  );
-
-  const dkgResult = await suiClient.signAndExecuteTransaction({
-    transaction: dkgTx,
-    signer: suiKeypair,
-    options: { showObjectChanges: true },
+  const ikaCoinType = `${ikaConfig.packages.ikaPackage}::ika::IKA`;
+  console.log('PRISM: Resolving IKA coin for fee...', ikaCoinType);
+  const userIkaCoins = await suiClient.getCoins({
+    owner: senderAddress,
+    coinType: ikaCoinType,
   });
 
+  let ikaCoin;
+  let ikaCoinNeedsTransfer = false;
+  if (userIkaCoins.data.length > 0) {
+    console.log('PRISM: Found IKA coin(s), using:', userIkaCoins.data[0].coinObjectId);
+    ikaCoin = dkgTx.object(userIkaCoins.data[0].coinObjectId);
+  } else {
+    console.log('PRISM: No IKA coins found, creating zero coin.');
+    const [zeroIka] = dkgTx.moveCall({
+      target: '0x2::coin::zero',
+      typeArguments: [ikaCoinType],
+    });
+    ikaCoin = zeroIka;
+    ikaCoinNeedsTransfer = true;
+  }
+
+  // Fee coins: split from the gas object (IKA Network accepts SUI for fees on testnet).
+  // Use 1 MIST instead of 0 to avoid potential wallet extension validation issues.
+  const [suiCoin] = dkgTx.splitCoins(dkgTx.gas, [dkgTx.pure.u64(1)]);
+
+  const dkgTxResult = await ikaTx.requestDWalletDKG({
+    dkgRequestInput: dkgOutput,
+    ikaCoin,
+    suiCoin,
+    sessionIdentifier: sessionId,
+    dwalletNetworkEncryptionKeyId: networkKeyId!,
+    curve: Curve.SECP256K1,
+  });
+
+  // CLEANUP: Sui Programmable Transactions require all created/split objects to be 
+  // consumed or transferred. Since coins and capabilities were passed by reference
+  // or returned, we must send them back to the owner.
+  // Note: dkgTxResult[0] is the DWalletCap (an object). dkgTxResult[1] is an 
+  // Option<ID> (a value with the drop ability), so it doesn't need to be transferred.
+  const objectsToTransfer: any[] = [suiCoin, dkgTxResult[0]];
+  if (ikaCoinNeedsTransfer) {
+    objectsToTransfer.push(ikaCoin);
+  }
+  dkgTx.transferObjects(objectsToTransfer, senderAddress);
+
+  onProgress?.('submitting_sui_tx');
+  const { digest } = await signAndExecute(dkgTx, suiClient);
+
   // Extract the created dWallet object ID from the tx result.
+  onProgress?.('extracting_dwallet');
+  let dkgResult;
+  retryCount = 0;
+  while (retryCount < 5) { // 5 retries for the final tx, as it's the most critical
+    try {
+      dkgResult = await suiClient.waitForTransaction({
+        digest,
+        options: {
+          showObjectChanges: true,
+        },
+      });
+      break;
+    } catch (err) {
+      console.warn(`IKA: Attempt ${retryCount + 1} to wait for DKG transaction failed:`, err);
+      retryCount++;
+      if (retryCount === 5) throw err;
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  }
+
+  if (!dkgResult) throw new Error('Failed to retrieve DKG transaction result');
+
   const createdObjects = dkgResult.objectChanges?.filter(
-    (change): change is Extract<
+    (change: any): change is Extract<
       NonNullable<typeof dkgResult.objectChanges>[number],
       { type: 'created' }
     > => change.type === 'created',
   ) ?? [];
 
-  // The dWallet object is the first newly created object in the transaction.
+  console.log('PRISM: DKG tx created objects:',
+    createdObjects.map((c: any) => `${c.objectType} @ ${c.objectId}`).join('\n  '));
+
+  // Match exactly ::DWallet (not DWalletCap, DWalletCoordinator, etc.)
+  // ::DWallet is always non-generic and ends the type string.
   const dwalletObj = createdObjects.find(
-    (change) => String(change.objectType).includes('DWallet'),
+    (change: any) => /::DWallet$/.test(String(change.objectType)),
   );
 
+  // Fallback: if DWallet wasn't in createdObjects (e.g. added to ObjectTable as child object),
+  // find the DWalletCap and extract its dwallet_id field.
   if (!dwalletObj) {
+    const capObj = createdObjects.find(
+      (change: any) => /::DWalletCap$/.test(String(change.objectType)),
+    );
+    if (capObj) {
+      console.log('PRISM: DWallet not in createdObjects; resolving via DWalletCap', capObj.objectId);
+      const { CoordinatorInnerModule } = await import('@ika.xyz/sdk');
+      const capRpc = await suiClient.getObject({
+        id: capObj.objectId,
+        options: { showBcs: true },
+      });
+      const capBcs = (capRpc as any).data?.bcs?.bcsBytes;
+      if (capBcs) {
+        const cap = CoordinatorInnerModule.DWalletCap.parse(
+          Buffer.from(capBcs, 'base64'),
+        ) as any;
+        const resolvedId = '0x' + Buffer.from(cap.dwallet_id as Uint8Array).toString('hex');
+        console.log('PRISM: Resolved dWallet ID from DWalletCap:', resolvedId);
+        const dwalletId = Buffer.from(resolvedId.replace('0x', ''), 'hex');
+        return { dwalletId, dwalletObjectId: resolvedId };
+      }
+    }
     throw new Error('DKG transaction completed but no DWallet object found in result');
   }
 
   const objectId = dwalletObj.objectId; // "0x<64 hex chars>"
   const dwalletId = Buffer.from(objectId.replace('0x', ''), 'hex');
+  console.log('PRISM: dWallet object ID:', objectId);
 
   return { dwalletId, dwalletObjectId: objectId };
+}
+
+/**
+ * Retrieves the target chain (BTC/ETH) address for a specific IKA dWallet.
+ *
+ * Uses the IKA SDK's IkaClient.getDWallet() which fetches raw BCS bytes via
+ * IKA's specialized client (not standard Sui JSON-RPC), then parses the full
+ * DWallet struct including the nested state.Active.public_output field.
+ * publicKeyFromDWalletOutput() (WASM) extracts the 33-byte secp256k1 pubkey.
+ */
+export async function getDWalletAddress(
+  dwalletObjectId: string,
+  chainId: IkaChain,
+): Promise<string> {
+  console.log(`PRISM: Fetching dWallet object ${dwalletObjectId}...`);
+
+  try {
+    const {
+      IkaClient,
+      getNetworkConfig,
+      publicKeyFromDWalletOutput,
+      Curve,
+    } = await import('@ika.xyz/sdk');
+    // @ts-ignore
+    const { SuiJsonRpcClient } = await import('@mysten/sui/jsonRpc');
+
+    const ikaConfig = getNetworkConfig(IKA_NETWORK);
+    console.log('PRISM: ikaConfig:', JSON.stringify(ikaConfig, null, 2));
+    console.log('PRISM: dwalletObjectId to fetch:', dwalletObjectId);
+    const suiClient = new SuiJsonRpcClient({ url: CLIENT_RPC_URL, network: 'testnet' });
+    const ikaClient = new IkaClient({ suiClient, config: ikaConfig, cache: true });
+    await ikaClient.initialize();
+
+    // getDWallet uses IKA's core client which returns raw BCS bytes,
+    // bypassing the fields:{} problem with standard Sui JSON-RPC.
+    // Poll until Active state — IKA network needs a moment to verify DKG output.
+    let dwallet: any;
+    try {
+      dwallet = await ikaClient.getDWalletInParticularState(dwalletObjectId, 'Active', {
+        timeoutMs: 120_000,
+        pollingIntervalMs: 3_000,
+      });
+    } catch (pollErr) {
+      // If polling throws "not found" or "deleted", fall through to the outer catch.
+      const pollMsg = pollErr instanceof Error ? pollErr.message : String(pollErr);
+      if (pollMsg.includes('deleted') || pollMsg.includes('not found') || pollMsg.includes('does not exist')) {
+        throw pollErr;
+      }
+      // Timeout or other — try a single fetch to get the current state for a better error message.
+      dwallet = await ikaClient.getDWallet(dwalletObjectId);
+    }
+
+    // public_output is in state.Active (guaranteed by getDWalletInParticularState)
+    const state = (dwallet as any).state;
+    const publicOutput: number[] | undefined =
+      state?.Active?.public_output ??
+      state?.AwaitingKeyHolderSignature?.public_output;
+
+    if (!publicOutput || publicOutput.length === 0) {
+      const kind = state?.$kind ?? 'unknown';
+      const isRejected = kind.includes('Rejected');
+      throw new Error(
+        isRejected
+          ? `dWallet DKG was rejected by the IKA network (state: ${kind}). ` +
+            `Please create a new dWallet — the current one cannot be recovered.`
+          : `dWallet is not yet Active (current state: ${kind}). ` +
+            `Wait for the IKA network to finish DKG verification before fetching the deposit address.`,
+      );
+    }
+
+    // WASM call: extracts the 33-byte compressed secp256k1 pubkey from the DKG output blob
+    const pkBytes = await publicKeyFromDWalletOutput(Curve.SECP256K1, Uint8Array.from(publicOutput));
+    if (!pkBytes || pkBytes.length !== 33) {
+      throw new Error(`publicKeyFromDWalletOutput returned invalid key (${pkBytes?.length ?? 0} bytes)`);
+    }
+
+    const pkBuf = Buffer.from(pkBytes);
+    console.log('PRISM: Derived public key:', pkBuf.toString('hex').slice(0, 16) + '...');
+
+    if (chainId === IKA_CHAIN.BTC) {
+      const network = bitcoin.networks.testnet;
+      const { address } = bitcoin.payments.p2wpkh({ pubkey: pkBuf, network });
+      if (!address) throw new Error('Failed to derive BTC address from public key');
+      return address;
+    }
+
+    if (chainId === IKA_CHAIN.ETH) {
+      return ethers.computeAddress('0x' + pkBuf.toString('hex'));
+    }
+
+    return dwalletObjectId;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+
+    // Deleted object — surface with a typed code so the UI can show a helpful message.
+    if (msg.includes('deleted') || msg.includes('notExists') || msg.includes('not found')) {
+      const e = new Error(
+        `dWallet object was deleted on Sui testnet (pruning or testnet reset). ` +
+        `Recreate your dWallet to get a new deposit address.`,
+      );
+      (e as any).code = 'DWALLET_DELETED';
+      throw e;
+    }
+
+    throw new Error(`getDWalletAddress: could not derive real chain address for ${dwalletObjectId}: ${msg}`);
+  }
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useLoanApplications } from '@/hooks/useLoanApplications';
 import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { AnchorProvider, Program, BN, type Idl } from '@coral-xyz/anchor';
 import { SystemProgram, SYSVAR_RENT_PUBKEY, PublicKey, Transaction, Keypair } from '@solana/web3.js';
 import adminSecret from '@/contracts/keys/admin.json';
@@ -39,6 +40,7 @@ import {
 } from '@/app/lib/pda';
 import prismCoreIdl from '@/app/lib/idl/prism_core.json';
 import prismAmmIdl from '@/app/lib/idl/prism_amm.json';
+import { buildPrograms } from '@/app/lib/program';
 
 import {
   useIkaCollateralAccount,
@@ -78,8 +80,13 @@ export function AdminPanel() {
 
   const [activeMode, setActiveMode] = useState<'auto' | 'manual'>('auto');
 
-  // Track collateral for the current test loan (ID 0 in vault 0)
-  const pdas = getPdas();
+  // Track collateral for the most recent approved loan
+  const lastApprovedLoan = applications
+    .filter(a => a.status === 'approved' && a.loanId !== undefined)
+    .sort((a, b) => b.submittedAt - a.submittedAt)[0];
+  
+  const currentLoanId = lastApprovedLoan?.loanId ?? 0;
+  const pdas = getPdas(currentLoanId);
   const { data: ikaCollateral } = useIkaCollateralAccount(pdas.loan);
   const ikaStatus = ikaCollateral?.status;
 
@@ -101,18 +108,11 @@ export function AdminPanel() {
 
   function getPrograms() {
     const admin = getAdminKeypair();
-    const adminWallet = {
-      publicKey: admin.publicKey,
-      signTransaction: async <T extends Parameters<AnchorProvider['sendAndConfirm']>[0]>(tx: T) => { (tx as any).partialSign?.(admin); return tx; },
-      signAllTransactions: async <T extends Parameters<AnchorProvider['sendAndConfirm']>[0]>(txs: T[]) => txs,
-    };
-    const provider = new AnchorProvider(connection, adminWallet as any, { commitment: 'confirmed' });
-    const core = new Program(prismCoreIdl as Idl, provider) as any;
-    const amm = new Program(prismAmmIdl as Idl, provider) as any;
+    const { core, amm } = buildPrograms(connection, admin);
     return { core, amm, adminKeypair: admin };
   }
 
-  function getPdas() {
+  function getPdas(loanId: number = 0) {
     const [config] = getConfigPda(PRISM_CORE_PROGRAM_ID);
     const [vault] = getVaultPda(VAULT_ID, PRISM_CORE_PROGRAM_ID);
     const [trancheP] = getTranchePda(vault, TrancheKind.Prime, PRISM_CORE_PROGRAM_ID);
@@ -123,7 +123,7 @@ export function AdminPanel() {
     const [mintA] = getTrancheMintPda(vault, TrancheKind.Alpha, PRISM_CORE_PROGRAM_ID);
     const [reserve] = getVaultReservePda(vault, PRISM_CORE_PROGRAM_ID);
     const [lossBucket] = getLossBucketPda(vault, PRISM_CORE_PROGRAM_ID);
-    const [loan] = getLoanPda(vault, 0, PRISM_CORE_PROGRAM_ID);
+    const [loan] = getLoanPda(vault, loanId, PRISM_CORE_PROGRAM_ID);
     const [poolP] = getPoolPda(mintP, PRISM_AMM_PROGRAM_ID);
     const [poolC] = getPoolPda(mintC, PRISM_AMM_PROGRAM_ID);
     const [poolA] = getPoolPda(mintA, PRISM_AMM_PROGRAM_ID);
@@ -139,18 +139,19 @@ export function AdminPanel() {
   // ── Individual Step Functions ──────────────────────────────────────────
 
   async function setupGlobalConfig() {
-    const { core } = getPrograms();
+    const { core, adminKeypair } = getPrograms();
     const p = getPdas();
-    const admin = wallet!.publicKey;
+    const admin = adminKeypair.publicKey;
     setStep(0, 'running');
     try {
       console.log('Using config PDA:', p.config.toBase58());
+      const TEST_ORACLE = new PublicKey('5nmEq5cNc9yXpK1ySrb4XH65zccBvRK2hwKnEJePjcrf');
       const existing = await core.account.globalConfig.fetchNullable(p.config);
       if (existing) {
         addLog('Global config already exists — skipping');
       } else {
         await core.methods
-          .initializeGlobalConfig(0, [admin])
+          .initializeGlobalConfig(0, [admin, TEST_ORACLE])
           .accounts({ admin, config: p.config, usdcMint: USDC_MINT, systemProgram: SystemProgram.programId })
           .rpc({ commitment: 'confirmed' });
         addLog('✓ Global config initialized');
@@ -166,9 +167,9 @@ export function AdminPanel() {
   }
 
   async function setupVault() {
-    const { core } = getPrograms();
+    const { core, adminKeypair } = getPrograms();
     const p = getPdas();
-    const admin = wallet!.publicKey;
+    const admin = adminKeypair.publicKey;
     setStep(1, 'running');
     try {
       const existing = await core.account.vault.fetchNullable(p.vault);
@@ -212,9 +213,9 @@ export function AdminPanel() {
   }
 
   async function setupTranches() {
-    const { core } = getPrograms();
+    const { core, adminKeypair } = getPrograms();
     const p = getPdas();
-    const admin = wallet!.publicKey;
+    const admin = adminKeypair.publicKey;
     setStep(2, 'running');
     try {
       const trancheParams = [
@@ -282,9 +283,9 @@ export function AdminPanel() {
   }
 
   async function setupAmmPools() {
-    const { amm } = getPrograms();
+    const { amm, adminKeypair } = getPrograms();
     const p = getPdas();
-    const admin = wallet!.publicKey;
+    const admin = adminKeypair.publicKey;
     setStep(4, 'running');
     try {
       const poolEntries = [
@@ -353,9 +354,9 @@ export function AdminPanel() {
   async function deposit(kind: TrancheKind, label: string, amountUsdc: string) {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
+      const { core, adminKeypair } = getPrograms();
       const p = getPdas();
-      const admin = wallet.publicKey;
+      const admin = adminKeypair.publicKey;
       const amount = BigInt(parseFloat(amountUsdc) * 1_000_000);
 
       const tranchePda = kind === TrancheKind.Prime ? p.tranches.prime : kind === TrancheKind.Core ? p.tranches.core : p.tranches.alpha;
@@ -391,9 +392,9 @@ export function AdminPanel() {
   async function accrueYield() {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
+      const { core, adminKeypair } = getPrograms();
       const p = getPdas();
-      const admin = wallet.publicKey;
+      const admin = adminKeypair.publicKey;
       const adminUsdcAta = await getAssociatedTokenAddress(USDC_MINT, admin);
       const amount = new BN(parseFloat(params.yieldAmount) * 1_000_000);
 
@@ -424,15 +425,32 @@ export function AdminPanel() {
   async function disburseLoan() {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
-      const p = getPdas();
-      const admin = wallet.publicKey;
-      const borrowerUsdcAta = await getAssociatedTokenAddress(USDC_MINT, admin);
+      const { core, adminKeypair } = getPrograms();
+      const p = getPdas(currentLoanId);
+      const admin = adminKeypair.publicKey;
+      
+      const borrowerPubkey = new PublicKey(lastApprovedLoan!.borrowerPubkey);
+      const borrowerUsdcAta = await getAssociatedTokenAddress(USDC_MINT, borrowerPubkey);
+      
+      const instructions = [];
+      const ataInfo = await connection.getAccountInfo(borrowerUsdcAta);
+      if (!ataInfo) {
+        addLog('Borrower USDC account not found — adding create instruction');
+        instructions.push(
+          createAssociatedTokenAccountInstruction(
+            admin, // Admin pays for creation
+            borrowerUsdcAta,
+            borrowerPubkey,
+            USDC_MINT
+          )
+        );
+      }
+
       // Check for IKA collateral
       const [ikaCollateralPda] = getIkaCollateralPda(p.loan);
       const ikaAcc = await core.account.ikaCollateral.fetchNullable(ikaCollateralPda);
 
-      await (core.methods as any)
+      const sig = await (core.methods as any)
         .disburseLoan()
         .accounts({
           admin,
@@ -444,8 +462,9 @@ export function AdminPanel() {
           tokenProgram: TOKEN_PROGRAM_ID,
           ikaCollateral: ikaAcc ? ikaCollateralPda : null,
         })
+        .preInstructions(instructions)
         .rpc({ commitment: 'confirmed' });
-      addLog('✓ Loan disbursed — USDC sent to borrower (admin wallet)');
+      addLog(`✓ Loan ${currentLoanId} disbursed. Tx: ${sig}`);
       toast.success('Loan disbursed');
     } catch (e: any) {
       addLog(`✗ Disburse: ${e.message}`);
@@ -456,9 +475,9 @@ export function AdminPanel() {
   async function repayLoan() {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
-      const p = getPdas();
-      const admin = wallet.publicKey;
+      const { core, adminKeypair } = getPrograms();
+      const p = getPdas(currentLoanId);
+      const admin = adminKeypair.publicKey;
       const amount = new BN(parseFloat(params.repayAmount) * 1_000_000);
       const borrowerUsdcAta = await getAssociatedTokenAddress(USDC_MINT, admin);
       await (core.methods as any)
@@ -475,7 +494,7 @@ export function AdminPanel() {
           systemProgram: SystemProgram.programId,
         })
         .rpc({ commitment: 'confirmed' });
-      addLog(`✓ Repaid ${params.repayAmount} USDC — reserve restored`);
+      addLog(`✓ Repaid ${params.repayAmount} USDC for Loan ${currentLoanId}`);
       toast.success('Loan repaid');
     } catch (e: any) {
       addLog(`✗ Repay: ${e.message}`);
@@ -500,6 +519,7 @@ export function AdminPanel() {
       const apr = parseInt(params.loanApr) * 100;
       const maturity = new BN(Math.floor(Date.now() / 1000) + maturityDays * 24 * 60 * 60);
       const [loanPda] = getLoanPda(p.vault, nextLoanId, PRISM_CORE_PROGRAM_ID);
+      console.log(`Originating loan ID ${nextLoanId} at PDA: ${loanPda.toBase58()}`);
       await core.methods
         .initializeLoan(nextLoanId, principal, apr, maturity, borrower)
         .accounts({ admin: adminKeypair.publicKey, config: p.config, vault: p.vault, loan: loanPda, systemProgram: SystemProgram.programId })
@@ -517,9 +537,9 @@ export function AdminPanel() {
   async function triggerDefault() {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
+      const { core, adminKeypair } = getPrograms();
       const p = getPdas();
-      const admin = wallet.publicKey;
+      const admin = adminKeypair.publicKey;
 
       const vaultAccount = await core.account.vault.fetch(p.vault);
       const seq: number = vaultAccount.creditEventSeq ?? 0;
@@ -582,9 +602,9 @@ export function AdminPanel() {
   async function liquidateCollateral() {
     if (!wallet) { toast.error('Connect wallet first'); return; }
     try {
-      const { core } = getPrograms();
+      const { core, adminKeypair } = getPrograms();
       const p = getPdas();
-      const admin = wallet.publicKey;
+      const admin = adminKeypair.publicKey;
       const [ikaCollateralPda] = getIkaCollateralPda(p.loan);
       await core.methods
         .liquidateIkaCollateral()
@@ -605,23 +625,21 @@ export function AdminPanel() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1180px] space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
       {/* Header */}
-      <div className="rounded-md border border-white/10 bg-black/35 p-5 shadow-[0_8px_24px_rgba(60,46,22,0.05)] sm:p-6">
+      <div className="flex items-center justify-between">
         <div>
-          <div className="mb-3 inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
-            Protocol operations
-          </div>
-          <h1 className="text-3xl font-semibold tracking-tight text-white">Admin Panel</h1>
-          <p className="mt-2 font-mono text-sm text-white/40">
+          <h1 className="text-xl font-semibold text-white">Admin Panel</h1>
+          <p className="text-sm text-white/40">
             Vault {VAULT_ID} · {PRISM_CORE_PROGRAM_ID.toBase58().slice(0, 8)}…
           </p>
         </div>
+        <WalletMultiButton style={{}} />
       </div>
 
       {/* Step 1: Protocol Setup */}
-      <section className="relative space-y-5 overflow-hidden rounded-md border border-white/10 bg-black/35 p-5 shadow-[0_8px_24px_rgba(60,46,22,0.05)] sm:p-6">
-        <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
+      <section className="rounded-xl border border-white/10 bg-white/5 p-5 space-y-4 relative overflow-hidden">
+        <div className="flex items-center justify-between relative z-10">
           <h2 className="text-sm font-medium text-white/80">1 · Protocol Setup</h2>
           <div className="flex gap-2 p-1 rounded-lg bg-black/40 border border-white/5">
             <button
@@ -641,7 +659,7 @@ export function AdminPanel() {
 
         {activeMode === 'auto' ? (
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center justify-between">
               <p className="text-xs text-white/40">Run all initialization steps in sequence with default parameters.</p>
               <button
                 onClick={runFullSetup}
@@ -651,7 +669,7 @@ export function AdminPanel() {
                 {setupRunning ? 'Running…' : 'Run Full Setup'}
               </button>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="grid grid-cols-5 gap-2">
               {SETUP_STEPS.map((step, i) => (
                 <div
                   key={step}
@@ -746,8 +764,8 @@ export function AdminPanel() {
       </section>
 
       {/* Step 2: Seed Deposits */}
-      <section className="space-y-5 rounded-md border border-white/10 bg-black/35 p-5 shadow-[0_8px_24px_rgba(60,46,22,0.05)] sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <section className="rounded-xl border border-white/10 bg-white/5 p-5 space-y-4">
+        <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-white/80">2 · Seed Deposits</h2>
           <div className="flex gap-2">
             <input
@@ -759,11 +777,11 @@ export function AdminPanel() {
             />
           </div>
         </div>
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="flex gap-3">
           {[
-            { kind: TrancheKind.Prime, label: 'Prime', apy: '5%', cls: 'border-sky-400/30 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20' },
-            { kind: TrancheKind.Core, label: 'Core', apy: '8%', cls: 'border-amber-400/30 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20' },
-            { kind: TrancheKind.Alpha, label: 'Alpha', apy: '15%', cls: 'border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20' },
+            { kind: TrancheKind.Prime, label: 'Prime', apy: '5%', color: 'sky' },
+            { kind: TrancheKind.Core, label: 'Core', apy: '8%', color: 'amber' },
+            { kind: TrancheKind.Alpha, label: 'Alpha', apy: '15%', color: 'rose' },
           ].map((t) => (
             <button
               key={t.label}
@@ -772,7 +790,7 @@ export function AdminPanel() {
                 deposit(t.kind, t.label, amount);
               }}
               disabled={!wallet}
-              className={`rounded-md border py-3 text-center text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${t.cls}`}
+              className={`flex-1 rounded-lg border border-${t.color}-400/30 bg-${t.color}-500/10 py-2 text-xs text-${t.color}-200 hover:bg-${t.color}-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-center`}
             >
               Deposit to {t.label}<br />
               <span className="text-[10px] text-white/40">{t.apy} APY</span>
@@ -781,7 +799,7 @@ export function AdminPanel() {
         </div>
 
         {/* Dev Faucet — only works if wallet is USDC mint authority */}
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+        <div className="flex items-center gap-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
           <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider whitespace-nowrap">Dev Faucet</span>
           <input
             type="text"
@@ -802,13 +820,13 @@ export function AdminPanel() {
       </section>
 
       {/* Step 3: Simulate Events */}
-      <section className="space-y-6 rounded-md border border-white/10 bg-black/35 p-5 shadow-[0_8px_24px_rgba(60,46,22,0.05)] sm:p-6">
+      <section className="rounded-xl border border-white/10 bg-white/5 p-5 space-y-6">
         <h2 className="text-sm font-medium text-white/80">3 · Simulate Events</h2>
         
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Yield Simulation */}
           <div className="space-y-3 p-4 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center justify-between">
               <h3 className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Yield Accrual</h3>
               <span className="text-[10px] text-emerald-400/50 italic">Waterfall Distribution</span>
             </div>
@@ -833,10 +851,17 @@ export function AdminPanel() {
           </div>
 
           {/* Loan Lifecycle */}
-          <div className="space-y-3 p-4 rounded-lg bg-blue-500/5 border border-blue-500/10 xl:col-span-2">
+          <div className="space-y-3 p-4 rounded-lg bg-blue-500/5 border border-blue-500/10 md:col-span-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Loan Lifecycle</h3>
-              <div className="flex flex-wrap items-center gap-3">
+              <h3 className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">
+                Loan Lifecycle {lastApprovedLoan && `· ID ${currentLoanId}`}
+              </h3>
+              <div className="flex items-center gap-4">
+                {lastApprovedLoan && (
+                  <span className="text-[9px] text-blue-400/70 font-mono">
+                    Borrower: {lastApprovedLoan.borrowerPubkey.slice(0, 8)}… · ${lastApprovedLoan.requestedUSDC.toLocaleString()}
+                  </span>
+                )}
                 <span className="text-[10px] text-blue-400/50 italic">Disburse → Repay</span>
                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/5 border border-white/10">
                   <span className="text-[9px] text-white/30 uppercase font-bold">Collateral:</span>
@@ -849,29 +874,13 @@ export function AdminPanel() {
                 </div>
               </div>
             </div>
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="min-w-[220px] flex-1 space-y-1">
-                <label className="text-[10px] text-white/30 uppercase">Repay Amount (USDC)</label>
-                <input
-                  type="text"
-                  value={params.repayAmount}
-                  onChange={(e) => setParams(p => ({ ...p, repayAmount: e.target.value }))}
-                  className="w-full bg-black/20 border border-blue-500/20 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500/50"
-                />
-              </div>
+            <div className="flex items-end gap-3">
               <button
                 onClick={disburseLoan}
                 disabled={!wallet}
-                className="px-4 py-1.5 rounded bg-blue-500/20 border border-blue-500/30 text-blue-200 text-xs font-semibold hover:bg-blue-500/30 transition-all disabled:opacity-40 whitespace-nowrap"
+                className="w-full py-1.5 rounded bg-blue-500/20 border border-blue-500/30 text-blue-200 text-xs font-semibold hover:bg-blue-500/30 transition-all disabled:opacity-40 whitespace-nowrap"
               >
                 Disburse Loan
-              </button>
-              <button
-                onClick={repayLoan}
-                disabled={!wallet}
-                className="px-4 py-1.5 rounded bg-indigo-500/20 border border-indigo-500/30 text-indigo-200 text-xs font-semibold hover:bg-indigo-500/30 transition-all disabled:opacity-40 whitespace-nowrap"
-              >
-                Repay Loan
               </button>
             </div>
             {ikaStatus === 'Locked' && (
@@ -925,7 +934,7 @@ export function AdminPanel() {
 
       {/* Log */}
       {log.length > 0 && (
-        <section className="rounded-md border border-white/10 bg-black/40 p-4">
+        <section className="rounded-xl border border-white/10 bg-black/40 p-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-xs font-medium text-white/50">Transaction Log</h2>
             <button
@@ -947,7 +956,7 @@ export function AdminPanel() {
 
       {/* Pending Loan Applications */}
       {applications.filter(a => a.status === 'pending').length > 0 && (
-        <section className="space-y-4 rounded-md border border-yellow-500/20 bg-yellow-500/5 p-5 shadow-[0_8px_24px_rgba(60,46,22,0.05)] sm:p-6">
+        <section className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-5 space-y-4">
           <h2 className="text-sm font-medium text-yellow-200/80">
             4 · Pending Loan Applications ({applications.filter(a => a.status === 'pending').length})
           </h2>
@@ -955,17 +964,18 @@ export function AdminPanel() {
             {applications
               .filter(a => a.status === 'pending')
               .map((app, idx) => {
-                // Start from 1 — loan ID 0 is reserved for the admin setup/demo loan
-                const nextId = 1 + applications.filter(a => a.status === 'approved').length + idx;
+                // Use Unix timestamp (seconds) as loan ID — unique across sessions and redeploys,
+                // fits in u32 until year 2106. Offset by idx so two pending apps get different IDs.
+                const nextId = (Math.floor(Date.now() / 1000) + idx) >>> 0;
                 return (
                   <div key={app.id} className="rounded-lg border border-yellow-500/10 bg-black/20 p-3 space-y-2">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex items-start justify-between gap-2">
                       <div className="text-xs space-y-0.5">
                         <p className="font-mono text-white/70">{app.borrowerPubkey.slice(0, 16)}…</p>
                         <p className="text-white/50">{app.purpose} · {app.maturityDays} days · ${app.requestedUSDC.toLocaleString()} USDC</p>
                         <p className="text-white/30 text-[10px]">{new Date(app.submittedAt).toLocaleString()}</p>
                       </div>
-                      <div className="flex shrink-0 gap-2">
+                      <div className="flex gap-2 shrink-0">
                         <button
                           onClick={() => originateLoanForApplicant(app.id, app.borrowerPubkey, app.requestedUSDC, app.maturityDays, nextId)}
                           disabled={!wallet}
