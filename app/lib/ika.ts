@@ -279,7 +279,6 @@ export async function createIkaDwallet(
     getNetworkConfig,
     UserShareEncryptionKeys,
     prepareDKG,
-    prepareDKGAsync,
     IkaTransaction,
     Curve,
   } = await import('@ika.xyz/sdk');
@@ -420,54 +419,17 @@ export async function createIkaDwallet(
         throw new Error(`Invalid Sui Object id: resolved to ${typeof networkKeyId} instead of string`);
       }
 
-      try {
-        const systemId = ikaConfig.objects.ikaSystemObject.objectID;
-        const coordId = ikaConfig.objects.ikaDWalletCoordinator.objectID;
-        
-        console.log('PRISM: Fetching system & coordinator objects...');
-        const [systemObj, coordObj] = await Promise.all([
-          (suiClient as any).getObject({ id: systemId, objectId: systemId, options: { showContent: true, showType: true } }),
-          (suiClient as any).getObject({ id: coordId, objectId: coordId, options: { showContent: true, showType: true } })
-        ]);
-        
-        console.log('PRISM: ikaSystemObject full:', JSON.stringify(systemObj, null, 2));
-        console.log('PRISM: Coordinator full:', JSON.stringify(coordObj, null, 2));
-
-        // Try to find parameters in any of these objects
-        const findParams = (obj: any): any => {
-           if (!obj || typeof obj !== 'object') return null;
-           // Parameters are usually a large array of numbers (64+ bytes)
-           if (Array.isArray(obj) && obj.length >= 64 && obj.every(x => typeof x === 'number')) return obj;
-           for (const k in obj) {
-             const res = findParams(obj[k]);
-             if (res) return res;
-           }
-           return null;
-        };
-
-        const foundInSystem = findParams(systemObj);
-        const foundInCoord = findParams(coordObj);
-        
-        if (foundInSystem) {
-           console.log('PRISM: Found potential params in system object!');
-           protocolPublicParameters = new Uint8Array(foundInSystem);
-        } else if (foundInCoord) {
-           console.log('PRISM: Found potential params in coordinator object!');
-           protocolPublicParameters = new Uint8Array(foundInCoord);
-        }
-
-        if (!protocolPublicParameters) {
-          console.log('PRISM: Trying getProtocolPublicParameters as last SDK attempt...');
-          // SDK expects (dWallet?: DWallet, curve?: Curve). Pass undefined for dWallet to use configured/latest key.
-          protocolPublicParameters = await ikaClient.getProtocolPublicParameters(
-            undefined,
-            Curve.SECP256K1,
-          );
-        }
-      } catch (e1: any) {
-        console.warn('PRISM: Manual getProtocolPublicParameters failed, will attempt prepareDKGAsync later:', e1.message);
-        // We'll skip manual fetch and let prepareDKGAsync try later
-      }
+      // The SDK is the only source-of-truth for protocol_public_parameters.
+      // The deep-search-through-Sui-objects path that lived here previously was unsafe:
+      // it grabbed the first numeric array ≥ 64 bytes and treated it as params, which
+      // produced a 45 MB blob (an unrelated serialized object). Feeding that into
+      // prepareDKG yielded a malformed output that IKA's network later rejected with
+      // NetworkRejectedDKGVerification.
+      protocolPublicParameters = await ikaClient.getProtocolPublicParameters(
+        undefined,
+        Curve.SECP256K1,
+      );
+      console.log('PRISM: protocolPublicParameters length:', protocolPublicParameters?.length);
       break;
     } catch (err) {
       console.warn(`IKA: Attempt ${retryCount + 1} to fetch network key/params failed:`, err);
@@ -477,81 +439,35 @@ export async function createIkaDwallet(
     }
   }
 
+  if (!protocolPublicParameters) {
+    throw new Error(
+      'IKA SDK getProtocolPublicParameters returned no parameters. ' +
+      'Cannot run DKG without authentic protocol params.',
+    );
+  }
+
+  // CRITICAL: this `entropy` (bytesToHash) must be byte-identical to the
+  // sessionIdentifier registered on-chain in the Sui tx below. prepareDKG bakes
+  // keccak_256(senderAddress || entropy) into the user's DKG output. The network
+  // recomputes that digest from the on-chain session identifier and rejects with
+  // NetworkRejectedDKGVerification if the bytes don't match. Using
+  // ikaTx.createSessionIdentifier() (random) instead of registerSessionIdentifier(entropy)
+  // produces a different value on-chain and the verification fails.
+  const entropy = crypto.getRandomValues(new Uint8Array(32));
+  console.log('PRISM: DKG session entropy (hex):', Buffer.from(entropy).toString('hex'));
+
   let dkgOutput;
   retryCount = 0;
   while (retryCount < 3) {
     try {
-      const entropy = crypto.getRandomValues(new Uint8Array(32));
-      
-      // If SDK-level fetch failed, try manual extraction from the DKG output object
-      if (!protocolPublicParameters && networkEncKey?.networkDKGOutputID) {
-        console.log('PRISM: Manual fetch failed, attempting extraction from networkDKGOutputID:', networkEncKey.networkDKGOutputID);
-        try {
-          const dkgObj = await (suiClient as any).getObject({ 
-            id: networkEncKey.networkDKGOutputID,
-            objectId: networkEncKey.networkDKGOutputID, 
-            options: { showContent: true } 
-          });
-          console.log('PRISM: networkDKGOutputID raw result:', JSON.stringify(dkgObj, null, 2));
-          
-          const fields = (dkgObj.data?.content as any)?.fields || (dkgObj.data as any)?.content?.fields || (dkgObj as any)?.content?.fields || (dkgObj as any)?.fields;
-          
-          // Try all known field names and common nesting patterns
-          const rawParams = 
-            fields?.public_parameters || 
-            fields?.protocol_parameters || 
-            fields?.params ||
-            fields?.value?.fields?.public_parameters ||
-            fields?.value?.fields?.protocol_parameters ||
-            // Reconfiguration pattern
-            fields?.network_dkg_public_output?.fields?.public_parameters;
-            
-          if (rawParams) {
-            console.log('PRISM: Successfully extracted public parameters manually.');
-            protocolPublicParameters = new Uint8Array(rawParams);
-          } else {
-             console.warn('PRISM: Could not find parameters in top-level fields, searching recursively...');
-             // Deep search for any Uint8Array of reasonable size (usually 64+ bytes for parameters)
-             const findParams = (obj: any): any => {
-               if (!obj || typeof obj !== 'object') return null;
-               if (Array.isArray(obj) && obj.length >= 64 && obj.every(x => typeof x === 'number')) return obj;
-               for (const k in obj) {
-                 const res = findParams(obj[k]);
-                 if (res) return res;
-               }
-               return null;
-             };
-             const found = findParams(fields);
-             if (found) {
-               console.log('PRISM: Found potential protocol parameters via deep search.');
-               protocolPublicParameters = new Uint8Array(found);
-             }
-          }
-        } catch (e) {
-          console.warn('PRISM: Manual extraction failed:', e);
-        }
-      }
-
-      if (protocolPublicParameters) {
-        console.log(`PRISM: Running DKG preparation (attempt ${retryCount + 1})...`);
-        dkgOutput = await prepareDKG(
-          protocolPublicParameters,
-          Curve.SECP256K1,
-          (userShareEncryptionKeys as any).encryptionKey,
-          entropy,
-          senderAddress,
-        );
-      } else {
-        console.log(`PRISM: Running DKG preparation (async SDK fallback, attempt ${retryCount + 1})...`);
-        // SDK prepareDKGAsync expects (ikaClient, curve, userShareEncryptionKeys object, bytesToHash, senderAddress)
-        dkgOutput = await prepareDKGAsync(
-          ikaClient,
-          Curve.SECP256K1,
-          userShareEncryptionKeys,
-          entropy,
-          senderAddress,
-        );
-      }
+      console.log(`PRISM: Running DKG preparation (attempt ${retryCount + 1})...`);
+      dkgOutput = await prepareDKG(
+        protocolPublicParameters,
+        Curve.SECP256K1,
+        (userShareEncryptionKeys as any).encryptionKey,
+        entropy,
+        senderAddress,
+      );
       break;
     } catch (err) {
       console.warn(`IKA: DKG preparation attempt ${retryCount + 1} failed:`, err);
@@ -564,8 +480,7 @@ export async function createIkaDwallet(
   if (!dkgOutput) throw new Error('Failed to generate DKG output');
 
   console.log(`[${new Date().toISOString()}] PRISM: DKG preparation finished. Moving to key retrieval...`);
-  console.log('PRISM: DKG output msg length:', dkgOutput[0]?.length);
-  console.log('PRISM: DKG output public output length:', dkgOutput[1]?.length);
+  console.log('PRISM: DKG output type:', typeof dkgOutput, 'keys:', dkgOutput && Object.keys(dkgOutput as object));
   console.log('PRISM: protocolPublicParameters used length:', protocolPublicParameters?.length);
 
   // Use the existing encryption key object we resolved earlier.
@@ -592,7 +507,9 @@ export async function createIkaDwallet(
   });
 
   const ikaTx = new IkaTransaction({ ikaClient, transaction: dkgTx, userShareEncryptionKeys });
-  const sessionId = ikaTx.createSessionIdentifier();
+  // Register the SAME entropy bytes that were hashed into the DKG output above.
+  // ikaTx.createSessionIdentifier() generates fresh random bytes and would mismatch.
+  const sessionId = ikaTx.registerSessionIdentifier(entropy);
 
   const ikaCoinType = `${ikaConfig.packages.ikaPackage}::ika::IKA`;
   console.log('PRISM: Resolving IKA coin for fee...', ikaCoinType);
