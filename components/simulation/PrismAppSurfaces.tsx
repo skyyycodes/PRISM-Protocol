@@ -827,6 +827,102 @@ export function PrismEarn() {
   );
 }
 
+export function PrismVaultDetail({ vaultId }: { vaultId: string }) {
+  const data = usePrismData();
+
+  if (vaultId !== '0') {
+    return (
+      <PageFrame>
+        <div className="rounded-md border border-white/10 bg-black/35 p-12 text-center">
+          <h1 className="text-xl text-white/60">Vault #{vaultId} not found or not yet active on Devnet.</h1>
+          <Link href="/earn" className="mt-6 inline-block text-sm text-white border-b border-white">Back to Earn</Link>
+        </div>
+      </PageFrame>
+    );
+  }
+
+  return (
+    <PageFrame>
+      <DataState data={data} />
+      <div className="mb-6 flex items-center gap-3">
+        <Link href="/earn" className="text-sm text-white/50 transition-colors hover:text-white">
+          <ArrowLeft className="inline h-4 w-4" /> Back to Earn
+        </Link>
+        <Pill tone="blue">Vault Detail View</Pill>
+      </div>
+
+      <Card className="overflow-hidden">
+        <div className="grid gap-6 border-b border-white/10 bg-white/[0.055] p-7 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Eyebrow>Vault #0</Eyebrow>
+              <Pill tone="green">Active</Pill>
+              <Pill>USDC</Pill>
+            </div>
+            <h2 className="mt-5 font-display text-4xl text-white">PRISM Credit Vault</h2>
+            <p className="mt-3 text-white/50">Solana credit positions · transparent tranche accounting · USDC denominated</p>
+          </div>
+          <div className="grid grid-cols-2 gap-px border-l border-white/10 pl-7">
+            <div>
+              <Eyebrow>Vault TVL</Eyebrow>
+              <div className="mt-3 font-display text-4xl text-white">${formatUsdc(data.vaultCapital, 2)}</div>
+            </div>
+            <div>
+              <Eyebrow>Tranches</Eyebrow>
+              <div className="mt-3 font-display text-4xl text-white">3</div>
+            </div>
+          </div>
+        </div>
+        <div className="grid lg:grid-cols-[440px_minmax(0,1fr)]">
+          <div className="min-h-[520px] border-b border-white/10 p-7 lg:border-r lg:border-b-0">
+            <Eyebrow>The waterfall</Eyebrow>
+            <p className="mt-4 text-sm text-white/50">Cash flows top-down. Losses absorb bottom-up.</p>
+            <div className="mt-8">
+              <div className="mb-4 font-mono text-xs uppercase tracking-[0.24em] text-white/45">Cashflow</div>
+              <div className="relative pl-9 pr-7">
+                <div className="absolute bottom-3 left-3 top-0 border-l border-dashed border-white/30" />
+                <ArrowDown className="absolute left-1 bottom-0 h-4 w-4 text-white/45" strokeWidth={1.7} />
+                <div className="absolute bottom-3 right-0 top-0 border-r border-dashed border-[#c47f68]/55" />
+                <ArrowUp className="absolute -right-2 top-0 h-4 w-4 text-[#c47f68]" strokeWidth={1.7} />
+                {TRANCHE_ORDER.map((kind) => {
+                  const meta = TRANCHE_META[kind];
+                  const apyLabel = `${Number.parseFloat(meta.apy).toFixed(1)}%`;
+
+                  return (
+                    <div
+                      key={meta.label}
+                      className="relative mb-4 h-20 overflow-hidden rounded-lg text-white"
+                      style={{ backgroundColor: meta.soft }}
+                    >
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-lg"
+                        style={{ width: `${meta.allocation}%`, backgroundColor: meta.color }}
+                      />
+                      <div className="relative flex h-full items-center justify-between gap-4 px-4 sm:px-5">
+                        <div className="min-w-0 [text-shadow:0_1px_8px_rgba(0,0,0,0.26)]">
+                          <div className="font-mono text-sm uppercase tracking-[0.22em] text-white sm:text-base sm:tracking-[0.26em]">{meta.label}</div>
+                          <div className="mt-3 text-sm text-white/90 sm:text-base">{meta.allocation}% filled</div>
+                        </div>
+                        <div className="font-mono text-3xl text-white drop-shadow-sm sm:text-4xl">{apyLabel}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="mt-5 flex justify-between text-xs text-white/50">
+              <span className="inline-flex items-center gap-1">Paid first <ArrowDown className="h-3 w-3" strokeWidth={1.7} /></span>
+              <span className="inline-flex items-center gap-1 text-[#c47f68]"><ArrowUp className="h-3 w-3" strokeWidth={1.7} /> Loss first</span>
+            </div>
+          </div>
+          <TrancheRows data={data} />
+        </div>
+      </Card>
+      <EarnGuideBanner />
+    </PageFrame>
+  );
+}
+
 function ProtectionCard({
   index,
   amount,
