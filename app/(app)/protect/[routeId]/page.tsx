@@ -14,7 +14,7 @@ export default async function ProtectRouteDetailPage({
 
   return (
     <div data-app-scroll className="relative flex-1 overflow-y-auto [overscroll-behavior:contain]">
-      <PrismProtectDetail routeId={routeId} />
+      <PrismProtectDetail routeId={routeId as '0' | '1'} />
     </div>
   );
 }
