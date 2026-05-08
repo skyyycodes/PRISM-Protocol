@@ -22,6 +22,7 @@ import {
 
 import { Q64_ONE, TRANCHE_CONFIG, TrancheKind } from '@/app/lib/constants';
 import { formatNavQ, formatUsdc, shortKey, stateName, toBigInt } from '@/app/lib/format';
+import { EventTickerPanel } from '@/components/simulation/EventTickerPanel';
 import { useDeposit } from '@/hooks/useDeposit';
 import { useUserPosition } from '@/hooks/useUserPosition';
 import { useVaultState } from '@/hooks/useVaultState';
@@ -545,6 +546,7 @@ export function PrismOverview() {
       </section>
 
       <ProtocolAtGlance data={data} />
+      <EventTickerPanel />
       <div id="how-it-works">
         <HowPrismWorks />
       </div>
