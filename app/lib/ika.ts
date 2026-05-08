@@ -564,8 +564,8 @@ export async function createIkaDwallet(
   if (!dkgOutput) throw new Error('Failed to generate DKG output');
 
   console.log(`[${new Date().toISOString()}] PRISM: DKG preparation finished. Moving to key retrieval...`);
-  console.log('PRISM: DKG output msg length:', dkgOutput[0]?.length);
-  console.log('PRISM: DKG output public output length:', dkgOutput[1]?.length);
+  console.log('PRISM: DKG output msg length:', (dkgOutput as any)[0]?.length);
+  console.log('PRISM: DKG output public output length:', (dkgOutput as any)[1]?.length);
   console.log('PRISM: protocolPublicParameters used length:', protocolPublicParameters?.length);
 
   // Use the existing encryption key object we resolved earlier.
@@ -753,8 +753,8 @@ export async function getDWalletAddress(
     let dwallet: any;
     try {
       dwallet = await ikaClient.getDWalletInParticularState(dwalletObjectId, 'Active', {
-        timeoutMs: 120_000,
-        pollingIntervalMs: 3_000,
+        timeout: 120_000,
+        interval: 3_000,
       });
     } catch (pollErr) {
       // If polling throws "not found" or "deleted", fall through to the outer catch.
