@@ -1,27 +1,15 @@
-/**
- * Create a Dodo Payments hosted-checkout session for a loan repayment.
- *
- * Pattern follows app/api/ika-test-oracle/attest/route.ts:
- *   - validate JSON body
- *   - call out to a server-side helper
- *   - return JSON
- *
- * Records the intent in dodo_intents (status='pending') so the webhook can
- * reconcile when the borrower completes payment on Dodo's hosted page.
- */
-
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { createCheckout } from '@/app/lib/dodo';
-import { recordIntent } from '@/lib/dodoStore';
+import { recordInvestIntent } from '@/lib/dodoStore';
 
 export const runtime = 'nodejs';
 
 const Body = z.object({
-  loanId: z.number().int().nonnegative(),
+  trancheKind: z.number().int().min(0).max(2),
   amountUsd: z.number().positive().max(500_000),
-  borrowerPubkey: z.string().min(32).max(64),
+  investorPubkey: z.string().min(32).max(64),
 });
 
 export async function POST(req: NextRequest) {
@@ -33,25 +21,25 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
-  const { loanId, amountUsd, borrowerPubkey } = parsed.data;
+  const { trancheKind, amountUsd, investorPubkey } = parsed.data;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const successUrl = `${appUrl}/borrower?dodo=success&loanId=${loanId}`;
+  const successUrl = `${appUrl}/dashboard?dodo=invested&tranche=${trancheKind}`;
   const amountUsdCents = Math.round(amountUsd * 100);
-  const amountUsdMicro = BigInt(amountUsdCents) * 10_000n; // cents -> micro-USDC (6dp)
+  const amountUsdMicro = BigInt(amountUsdCents) * 10_000n;
 
   try {
     const session = await createCheckout({
-      loanId,
+      loanId: trancheKind,
       amountUsdCents,
-      borrowerPubkey,
+      borrowerPubkey: investorPubkey,
       successUrl,
     });
 
-    await recordIntent({
+    await recordInvestIntent({
       paymentId: session.payment_id,
-      loanId,
-      borrowerPubkey,
+      trancheKind,
+      investorPubkey,
       amountUsdMicro,
     });
 
@@ -61,7 +49,7 @@ export async function POST(req: NextRequest) {
       mock: session.mock ?? false,
     });
   } catch (err) {
-    console.error('[dodo/checkout]', err);
+    console.error('[dodo/invest/checkout]', err);
     const msg = err instanceof Error ? err.message : 'checkout failed';
     return NextResponse.json({ error: msg }, { status: 502 });
   }

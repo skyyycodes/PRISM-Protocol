@@ -5,7 +5,10 @@ import { useState, type ReactNode } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import {
   ArrowUpRight,
+  CheckCircle2,
+  CreditCard,
   Droplets,
+  Loader2,
   RefreshCw,
   Shield,
   TrendingUp,
@@ -18,6 +21,7 @@ import { formatNavQ, formatUsdc, shortKey, stateName, toBigInt } from '@/app/lib
 import { EventTickerPanel } from '@/components/simulation/EventTickerPanel';
 import { useDeposit } from '@/hooks/useDeposit';
 import { useIdentity } from '@/hooks/useIdentity';
+import { useCancelInvestIntent, useFiatInvestCheckout, useFiatInvestStatus } from '@/hooks/useFiatInvest';
 import { useUserPosition } from '@/hooks/useUserPosition';
 import { useVaultState } from '@/hooks/useVaultState';
 
@@ -169,9 +173,22 @@ function PositionRow({
 }) {
   const meta = TRANCHE_META[tranche.kind];
   const deposit = useDeposit();
-  const { connected } = useWallet();
+  const fiatCheckout = useFiatInvestCheckout();
+  const { connected, publicKey } = useWallet();
+  const cancelIntent = useCancelInvestIntent(publicKey?.toBase58() ?? null, tranche.kind);
+
   const [amount, setAmount] = useState('');
+  const [fiatAmount, setFiatAmount] = useState('');
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<'usdc' | 'inr'>('usdc');
+
+  // DB-backed status — no localStorage
+  const fiatStatus = useFiatInvestStatus(
+    publicKey?.toBase58() ?? null,
+    tranche.kind,
+  );
+  const status = fiatStatus.data?.status ?? 'none';
+  const creditedAmountMicro = fiatStatus.data?.amountUsdMicro;
 
   const hasPosition = userBalance > 0n;
   const currentValue = hasPosition ? (userBalance * tranche.navPerShareQ) / Q64_ONE : 0n;
@@ -184,6 +201,25 @@ function PositionRow({
     deposit.mutate(
       { trancheKind: tranche.kind, usdcAmount: BigInt(Math.round(usd * 1_000_000)) },
       { onSuccess: () => { setAmount(''); setOpen(false); } },
+    );
+  }
+
+  function handleFiatCheckout() {
+    const usd = parseFloat(fiatAmount);
+    if (isNaN(usd) || usd <= 0 || !publicKey) return;
+    fiatCheckout.mutate({
+      trancheKind: tranche.kind,
+      amountUsd: usd,
+      investorPubkey: publicKey.toBase58(),
+    });
+  }
+
+  function handleCompleteDeposit() {
+    if (!creditedAmountMicro) return;
+    const usdcAmount = BigInt(creditedAmountMicro);
+    deposit.mutate(
+      { trancheKind: tranche.kind, usdcAmount },
+      { onSuccess: () => setOpen(false) },
     );
   }
 
@@ -239,7 +275,7 @@ function PositionRow({
                   : 'border-white/[0.07] text-white/35 hover:border-white/15 hover:text-white/65',
               )}
             >
-              {open ? 'Cancel' : hasPosition ? 'Add' : 'Deposit'}
+              {open ? 'Cancel' : hasPosition ? 'Add' : 'Invest'}
             </button>
           ) : (
             <Link href="/earn" className="font-mono text-[11px] text-white/20 transition-colors hover:text-white/45">
@@ -249,28 +285,147 @@ function PositionRow({
         </div>
       </div>
 
-      {/* Inline deposit form */}
+      {/* Inline invest form */}
       {open && (
-        <div className="border-t border-white/[0.05] bg-white/[0.015] px-5 py-3.5">
-          <div className="flex max-w-[280px] items-center gap-2">
-            <input
-              type="number"
-              min="0"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleDeposit()}
-              placeholder="USDC amount"
-              className="min-w-0 flex-1 rounded border border-white/[0.08] bg-black/60 px-3 py-2 font-mono text-sm text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-white/15"
-            />
+        <div className="border-t border-white/[0.05] bg-white/[0.015] px-5 py-3.5 space-y-3">
+          {/* Tab switcher */}
+          <div className="flex gap-px overflow-hidden rounded border border-white/[0.08] w-fit">
             <button
-              onClick={handleDeposit}
-              disabled={deposit.isPending || !amount}
-              className="shrink-0 rounded bg-white px-4 py-2 font-mono text-xs font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-40"
+              type="button"
+              onClick={() => setTab('usdc')}
+              className={cx(
+                'px-3 py-1.5 font-mono text-[11px] transition-colors',
+                tab === 'usdc' ? 'bg-white/[0.08] text-white' : 'text-white/30 hover:text-white/55',
+              )}
             >
-              {deposit.isPending ? '…' : 'Confirm'}
+              USDC
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab('inr')}
+              className={cx(
+                'flex items-center gap-1.5 px-3 py-1.5 font-mono text-[11px] transition-colors',
+                tab === 'inr' ? 'bg-white/[0.08] text-white' : 'text-white/30 hover:text-white/55',
+              )}
+            >
+              <CreditCard className="h-3 w-3" />
+              INR via Dodo
             </button>
           </div>
-          <p className="mt-2 font-mono text-[11px] text-white/25">{meta.risk}</p>
+
+          {tab === 'usdc' && (
+            <div className="flex max-w-[280px] items-center gap-2">
+              <input
+                type="number"
+                min="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleDeposit()}
+                placeholder="USDC amount"
+                className="min-w-0 flex-1 rounded border border-white/[0.08] bg-black/60 px-3 py-2 font-mono text-sm text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-white/15"
+              />
+              <button
+                onClick={handleDeposit}
+                disabled={deposit.isPending || !amount}
+                className="shrink-0 rounded bg-white px-4 py-2 font-mono text-xs font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-40"
+              >
+                {deposit.isPending ? '…' : 'Confirm'}
+              </button>
+            </div>
+          )}
+
+          {tab === 'inr' && (
+            <div className="space-y-2.5 max-w-[320px]">
+              {/* Status banner when returning from Dodo */}
+              {status !== 'none' && (
+                <div className={cx(
+                  'flex items-start gap-2.5 rounded border px-3 py-2.5 text-xs',
+                  status === 'pending' || status === 'paid'
+                    ? 'border-yellow-500/30 bg-yellow-500/[0.07] text-yellow-200'
+                    : status === 'credited'
+                    ? 'border-emerald-500/35 bg-emerald-500/[0.07] text-emerald-200'
+                    : 'border-red-500/30 bg-red-500/[0.07] text-red-200',
+                )}>
+                  {status === 'pending' || status === 'paid'
+                    ? <Loader2 className="h-3.5 w-3.5 shrink-0 mt-0.5 animate-spin" />
+                    : status === 'credited'
+                    ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    : <TriangleAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />}
+                  <div className="flex-1">
+                    <div className="font-semibold">
+                      {status === 'pending' && 'Awaiting payment confirmation…'}
+                      {status === 'paid' && 'Payment received — bridging USDC…'}
+                      {status === 'credited' && 'USDC received — complete your deposit'}
+                      {status === 'failed' && 'Payment failed — try again'}
+                    </div>
+                    {status === 'credited' && creditedAmountMicro && (
+                      <div className="mt-0.5 opacity-75">
+                        ${(Number(BigInt(creditedAmountMicro)) / 1_000_000).toFixed(2)} USDC ready in your wallet
+                      </div>
+                    )}
+                  </div>
+                  {(status === 'pending' || status === 'paid') && (
+                    <button
+                      type="button"
+                      onClick={() => cancelIntent.mutate()}
+                      disabled={cancelIntent.isPending}
+                      className="shrink-0 rounded border border-yellow-500/25 px-2 py-1 font-mono text-[10px] text-yellow-200/60 transition-colors hover:border-yellow-500/50 hover:text-yellow-200 disabled:opacity-40"
+                    >
+                      {cancelIntent.isPending ? '…' : 'Cancel'}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Amount input — hidden once credited */}
+              {status !== 'credited' && status !== 'paid' && (
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      min="0"
+                      value={fiatAmount}
+                      onChange={(e) => setFiatAmount(e.target.value)}
+                      placeholder="Amount in USD"
+                      disabled={status === 'pending' || fiatCheckout.isPending}
+                      className="w-full rounded border border-white/[0.08] bg-black/60 px-3 py-2 font-mono text-sm text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-white/15 disabled:opacity-40"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[10px] text-white/20">USD</span>
+                  </div>
+                  <button
+                    onClick={handleFiatCheckout}
+                    disabled={!fiatAmount || fiatCheckout.isPending || status === 'pending'}
+                    className="shrink-0 flex items-center gap-1.5 rounded border border-purple-500/30 bg-purple-500/[0.12] px-3 py-2 font-mono text-[11px] text-purple-200 transition-colors hover:bg-purple-500/20 disabled:opacity-40"
+                  >
+                    {fiatCheckout.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CreditCard className="h-3 w-3" />}
+                    Pay with Dodo
+                  </button>
+                </div>
+              )}
+
+              {/* Complete deposit button once USDC is credited */}
+              {status === 'credited' && (
+                <button
+                  onClick={handleCompleteDeposit}
+                  disabled={deposit.isPending}
+                  className="w-full flex items-center justify-center gap-2 rounded border border-emerald-500/40 bg-emerald-500/[0.12] py-2.5 font-mono text-xs font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/20 disabled:opacity-40"
+                >
+                  {deposit.isPending
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <CheckCircle2 className="h-3.5 w-3.5" />}
+                  Complete deposit into {meta.label}
+                </button>
+              )}
+
+              {status === 'none' && (
+                <p className="font-mono text-[10px] text-white/20 leading-relaxed">
+                  Pay with UPI, cards, or netbanking. USDC is bridged to your wallet server-side. You sign the final deposit yourself.
+                </p>
+              )}
+            </div>
+          )}
+
+          <p className="font-mono text-[11px] text-white/20">{meta.risk}</p>
         </div>
       )}
     </div>

@@ -61,9 +61,10 @@ export async function POST(req: NextRequest) {
   }
 
   let event: {
-    event_type?: string;
     type?: string;
-    data?: { payment_id?: string; id?: string; metadata?: Record<string, unknown> };
+    business_id?: string;
+    timestamp?: string;
+    data?: { payment_id?: string; metadata?: Record<string, unknown> };
   };
   try {
     event = JSON.parse(raw);
@@ -71,9 +72,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'bad json' }, { status: 400 });
   }
 
-  // Dodo may use either `event_type` (Standard Webhooks) or `type` (legacy)
-  const eventName = event.event_type ?? event.type ?? '';
-  const paymentId = event.data?.payment_id ?? event.data?.id;
+  // Dodo webhook payload uses `type` (Standard Webhooks spec confirmed in docs)
+  const eventName = event.type ?? '';
+  const paymentId = event.data?.payment_id;
 
   if (!paymentId) {
     console.warn('[dodo/webhook] missing payment_id in event');

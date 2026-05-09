@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   }
 
   const event = {
-    event_type: 'payment.succeeded',
+    type: 'payment.succeeded',
     data: {
       payment_id: paymentId,
       metadata: {

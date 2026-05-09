@@ -16,7 +16,8 @@ export interface CreateCheckoutParams {
   amountUsdCents: number; // smallest unit (cents)
   borrowerPubkey: string;
   successUrl: string;
-  webhookUrl: string;
+  // webhookUrl removed — Dodo webhooks are configured per-business in the dashboard,
+  // not per-checkout-session.
 }
 
 export interface CheckoutSession {
@@ -51,8 +52,14 @@ export async function createCheckout(params: CreateCheckoutParams): Promise<Chec
     };
   }
 
-  // Real Dodo Payments API call. Endpoint shape based on Dodo's published
-  // /payments + /checkouts pattern; adjust if the dashboard shows different URLs.
+  // Real Dodo Payments API — POST /checkouts
+  // product_cart requires a pre-created product in the Dodo dashboard.
+  // Set DODO_REPAYMENT_PRODUCT_ID in env to the ID of a variable-price product.
+  const productId = process.env.DODO_REPAYMENT_PRODUCT_ID ?? '';
+  if (!productId) {
+    throw new Error('DODO_REPAYMENT_PRODUCT_ID env var is not set');
+  }
+
   const res = await fetch(`${DODO_API_BASE}/checkouts`, {
     method: 'POST',
     headers: {
@@ -60,12 +67,10 @@ export async function createCheckout(params: CreateCheckoutParams): Promise<Chec
       Authorization: `Bearer ${DODO_API_KEY}`,
     },
     body: JSON.stringify({
-      amount: params.amountUsdCents,
-      currency: 'USD',
-      payment_methods: ['card', 'upi'],
-      success_url: params.successUrl,
-      cancel_url: params.successUrl, // same redirect; UI inspects status param
-      webhook_url: params.webhookUrl,
+      product_cart: [{ product_id: productId, quantity: 1 }],
+      allowed_payment_method_types: ['card', 'upi'],
+      return_url: params.successUrl,
+      cancel_url: params.successUrl,
       metadata: {
         loan_id: params.loanId,
         borrower_pubkey: params.borrowerPubkey,
@@ -78,11 +83,12 @@ export async function createCheckout(params: CreateCheckoutParams): Promise<Chec
     throw new Error(`Dodo /checkouts ${res.status}: ${text.slice(0, 240)}`);
   }
 
-  const data = (await res.json()) as { id?: string; url?: string };
-  if (!data.id || !data.url) {
-    throw new Error('Dodo response missing id/url');
+  // Dodo checkout session response: { session_id, checkout_url }
+  const data = (await res.json()) as { session_id?: string; checkout_url?: string };
+  if (!data.session_id || !data.checkout_url) {
+    throw new Error('Dodo response missing session_id/checkout_url');
   }
-  return { payment_id: data.id, checkout_url: data.url };
+  return { payment_id: data.session_id, checkout_url: data.checkout_url };
 }
 
 function getAppOrigin(): string {
