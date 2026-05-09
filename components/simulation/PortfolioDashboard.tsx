@@ -9,17 +9,21 @@ import {
   CreditCard,
   Droplets,
   Loader2,
+  Lock,
   RefreshCw,
   Shield,
+  ShieldCheck,
   TrendingUp,
   TriangleAlert,
   Wallet,
 } from 'lucide-react';
+import type { PublicKey } from '@solana/web3.js';
 
 import { Q64_ONE, TRANCHE_CONFIG, TrancheKind } from '@/app/lib/constants';
 import { formatNavQ, formatUsdc, shortKey, stateName, toBigInt } from '@/app/lib/format';
 import { EventTickerPanel } from '@/components/simulation/EventTickerPanel';
 import { useDeposit } from '@/hooks/useDeposit';
+import { useEncryptHealth } from '@/hooks/useEncryptHealth';
 import { useIdentity } from '@/hooks/useIdentity';
 import { useCancelInvestIntent, useFiatInvestCheckout, useFiatInvestStatus } from '@/hooks/useFiatInvest';
 import { useUserPosition } from '@/hooks/useUserPosition';
@@ -96,6 +100,7 @@ function useDashboardData() {
     poolLiquidity: sum(tranches.map((t) => t.ammQuoteBalance)),
     lossBucket: toBigInt(raw?.lossBucketBalance ?? 0n),
     totalLoss: sum(tranches.map((t) => t.cumulativeLoss)),
+    loanPda: raw?.loanPda as PublicKey | undefined,
     isLoading: vaultQuery.isLoading,
     error: vaultQuery.error instanceof Error ? vaultQuery.error : undefined,
   };
@@ -493,6 +498,48 @@ function MyPositionsTable({
 
 // ─── ProtocolHealthPanel ──────────────────────────────────────────────────────
 
+function EncryptHealthBadge({ loanPda }: { loanPda: PublicKey | undefined }) {
+  const { data: health, isLoading } = useEncryptHealth(loanPda ?? null);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-between gap-3 px-5 py-2.5">
+        <span className="font-mono text-[11px] text-white/28">Loan health (FHE)</span>
+        <span className="font-mono text-[11px] text-white/20">…</span>
+      </div>
+    );
+  }
+
+  if (!health) {
+    return (
+      <div className="flex items-center justify-between gap-3 px-5 py-2.5">
+        <span className="font-mono text-[11px] text-white/28">Loan health (FHE)</span>
+        <span className="font-mono text-[11px] text-white/25">unencrypted</span>
+      </div>
+    );
+  }
+
+  const isProven = health.status === 'DefaultProven';
+  return (
+    <div className="flex items-center justify-between gap-3 px-5 py-2.5">
+      <span className="font-mono text-[11px] text-white/28">Loan health (FHE)</span>
+      <div className="flex items-center gap-1.5">
+        {isProven ? (
+          <>
+            <ShieldCheck className="h-3 w-3 text-[#e8a090]" />
+            <span className="font-mono text-[11px] text-[#e8a090]">default proven</span>
+          </>
+        ) : (
+          <>
+            <Lock className="h-3 w-3 text-emerald-400" />
+            <span className="font-mono text-[11px] text-emerald-400">encrypted</span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ProtocolHealthPanel({ data }: { data: DashboardData }) {
   const isActive = data.vaultCapital > 0n || data.vaultStatus.toLowerCase() === 'active';
 
@@ -569,6 +616,7 @@ function ProtocolHealthPanel({ data }: { data: DashboardData }) {
             </span>
           </div>
         ))}
+        <EncryptHealthBadge loanPda={data.loanPda} />
       </div>
 
       {/* Footer */}

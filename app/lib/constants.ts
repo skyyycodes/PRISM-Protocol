@@ -53,3 +53,11 @@ export const TRANCHE_CONFIG = {
 export const DEFAULT_DEMO_LOSS_AMOUNT = 6_500_000_000n;
 export const DEFAULT_DEMO_YIELD_AMOUNT = 100_000_000n;
 export const DEFAULT_DEMO_LOAN_PRINCIPAL = 20_000_000_000n;
+
+// Ed25519 pubkey of the demo Encrypt FHE oracle.
+// Derived from a deterministic 32-byte zero seed so the mock oracle route
+// (app/api/encrypt-oracle/route.ts) and the on-chain allowlist agree.
+// In production this is replaced by the real Encrypt oracle key.
+export const ENCRYPT_ORACLE_PUBKEY = new PublicKey(
+  process.env.NEXT_PUBLIC_ENCRYPT_ORACLE_PUBKEY ?? '4zvwRjXUKGfvwnParsHAS3HuSVzV5cA4McphgmoCtajS',
+);

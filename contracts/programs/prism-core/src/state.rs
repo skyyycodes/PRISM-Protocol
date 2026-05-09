@@ -126,3 +126,21 @@ pub enum CollateralStatus {
     Released,
     Liquidated,
 }
+
+#[account]
+#[derive(InitSpace)]
+pub struct EncryptLoanHealth {
+    pub loan: Pubkey,
+    pub score_commitment: [u8; 32],
+    pub encrypt_oracle: Pubkey,
+    pub status: EncryptStatus,
+    pub default_proven_ts: i64,
+    pub bump: u8,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, InitSpace)]
+pub enum EncryptStatus {
+    Pending,
+    Verified,
+    DefaultProven,
+}

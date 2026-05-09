@@ -1,4 +1,5 @@
 pub mod accrue_yield;
+pub mod attach_encrypt_score;
 pub mod attach_ika_collateral;
 pub mod deposit;
 pub mod disburse_loan;
@@ -12,10 +13,12 @@ pub mod release_ika_collateral;
 pub mod repay_loan;
 pub mod trigger_credit_event;
 pub mod verify_and_disburse;
+pub mod verify_encrypt_default;
 pub mod verify_ika_collateral;
 pub mod withdraw;
 
 pub use accrue_yield::*;
+pub use attach_encrypt_score::*;
 pub use attach_ika_collateral::*;
 pub use deposit::*;
 pub use disburse_loan::*;
@@ -29,5 +32,6 @@ pub use release_ika_collateral::*;
 pub use repay_loan::*;
 pub use trigger_credit_event::*;
 pub use verify_and_disburse::*;
+pub use verify_encrypt_default::*;
 pub use verify_ika_collateral::*;
 pub use withdraw::*;
