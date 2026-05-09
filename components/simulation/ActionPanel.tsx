@@ -27,6 +27,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import {
+  CLOAK_ORACLE_PUBKEY,
   DEFAULT_DEMO_LOAN_PRINCIPAL,
   DEFAULT_DEMO_LOSS_AMOUNT,
   DEFAULT_DEMO_YIELD_AMOUNT,
@@ -60,6 +61,7 @@ import {
   useEncryptHealth,
   useVerifyEncryptDefault,
 } from '@/hooks/useEncryptHealth';
+import { useCloakPayout, useRecordCloakPayout } from '@/hooks/useCloakPayout';
 import { useIdentity } from '@/hooks/useIdentity';
 import { useSimulationActions } from '@/hooks/useSimulationActions';
 import { useSimulationLog } from '@/hooks/useSimulationLog';
@@ -413,6 +415,37 @@ export function ActionPanel() {
     onError: (error) => toast.error(formatError(error)),
   });
 
+  // ── Cloak shielded payout flow ───────────────────────────────────────────
+  const cloakPayout = useCloakPayout(common.vault);
+  const recordCloakPayout = useRecordCloakPayout();
+
+  const shieldYieldViaCloak = useMutation({
+    mutationFn: async () => {
+      const totalShieldedAmount = parseUsdc(yieldAmount);
+      const admin = identity.identities.admin.keypair;
+      const before = await snapshot(admin, TrancheKind.Prime);
+
+      const result = await recordCloakPayout.mutateAsync({
+        signer: admin,
+        vaultPda: common.vault,
+        configPda: common.config,
+        totalShieldedAmount,
+      });
+
+      const after = await snapshot(admin, TrancheKind.Prime);
+      recordSuccess(
+        'Cloak — Shield Yield Batch',
+        'Protocol Admin',
+        before,
+        after,
+        await navSnapshot(),
+        result.signature,
+      );
+    },
+    onSuccess: afterMutation,
+    onError: (error) => toast.error(formatError(error)),
+  });
+
   async function sellOnAmm(signer: Keypair, kind: TrancheKind, amount: bigint, label: string) {
     const programs = buildPrograms(connection, signer);
     const before = await snapshot(signer, kind);
@@ -523,6 +556,7 @@ export function ActionPanel() {
           .initializeGlobalConfig(0, [
             identity.identities.borrower.keypair.publicKey,
             ENCRYPT_ORACLE_PUBKEY,
+            CLOAK_ORACLE_PUBKEY,
           ])
           .accounts({
             admin: admin.publicKey,
@@ -673,6 +707,8 @@ export function ActionPanel() {
     });
   }, [mutateYield, mutateDefault, mutateMarket, registerActions]);
 
+  const cloakAlreadyShielded = cloakPayout.data?.status === 'Shielded';
+
   const busy =
     deposit.isPending ||
     withdraw.isPending ||
@@ -686,7 +722,9 @@ export function ActionPanel() {
     attachFheScore.isPending ||
     verifyDefaultViaFhe.isPending ||
     verifyEncryptDefault.isPending ||
-    attachEncryptScore.isPending;
+    attachEncryptScore.isPending ||
+    shieldYieldViaCloak.isPending ||
+    recordCloakPayout.isPending;
 
   return (
     <section className="rounded-lg border border-white/10 bg-black/30 p-5" aria-label="Action panel">
@@ -828,6 +866,27 @@ export function ActionPanel() {
                   Borrower must run Attach FHE Score first.
                 </p>
               ) : null}
+            </div>
+            <div className="mt-3">
+              <Button
+                disabled={busy || cloakAlreadyShielded}
+                variant="outline"
+                onClick={() => shieldYieldViaCloak.mutate()}
+                className="w-full gap-2 border-sky-300/30 text-sky-200 hover:bg-sky-300/10"
+                title="Verifies Cloak oracle attestation and records a shielded batch payout"
+              >
+                <Lock className="h-4 w-4" />
+                {shieldYieldViaCloak.isPending
+                  ? 'Shielding Yield via Cloak…'
+                  : cloakAlreadyShielded
+                    ? 'Yield Already Shielded via Cloak'
+                    : 'Shield Yield via Cloak 🔒'}
+              </Button>
+              <p className="mt-1 font-mono text-[10px] text-white/40">
+                {cloakPayout.data
+                  ? `Cloak status: ${cloakPayout.data.status}`
+                  : 'No Cloak payout record yet.'}
+              </p>
             </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <Button disabled={busy} variant="outline" onClick={() => marketReaction.mutate()} className="w-full gap-2">

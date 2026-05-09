@@ -156,7 +156,7 @@ Same Ed25519-via-sysvar plumbing, different jobs:
 
 ---
 
-## 3. Cloak — ⬜ Planned
+## 3. Cloak — ✅ Shipped
 **Category:** Privacy & Confidentiality
 **Goal:** Shield institutional yield distributions.
 
@@ -165,19 +165,19 @@ Cloak is a privacy-first infrastructure layer for Solana that uses Zero-Knowledg
 - **Google Search:** [Cloak.ag Solana Privacy SDK](https://www.google.com/search?q=Cloak.ag+Solana+Privacy+SDK)
 - **Reference:** [cloak.ag](https://cloak.ag)
 
-### Code Structure & Snippet
-We will implement a `confidential_payout` helper that uses the Cloak SDK to send yield from the vault to LPs.
+### Shipped integration
+PRISM now follows the same attestation pattern used by Encrypt:
+1. Frontend obtains a Cloak oracle attestation for a batch payout (`/api/cloak-oracle/shield_payout`).
+2. Frontend sends a dual-instruction transaction:
+   - `ix[0]` Ed25519 precompile
+   - `ix[1]` `record_cloak_payout`
+3. On-chain program validates the 73-byte `clk_atts` message via `SYSVAR_INSTRUCTIONS` and stores a `CloakPayoutRecord`.
+4. Dashboard shows `🔒 shielded via Cloak` and supports per-tranche viewing-key reveal.
 
-**Proposed Integration (`confidential_disburse.rs`):**
-```rust
-// This is a draft of the interaction with Cloak program
-pub fn confidential_payout(ctx: Context<ConfidentialPayout>, amount: u64) -> Result<()> {
-    // 1. Send funds to the Cloak Shield program
-    // 2. Generate a ZK proof for the disbursement list
-    // 3. Execute the fan-out to shielded LP accounts
-    Ok(())
-}
-```
+### Files shipped
+- On-chain: `record_cloak_payout.rs`, `CloakPayoutRecord`, `CloakPayoutStatus`, Cloak errors, `cloak_payout_pda`.
+- Frontend: `app/lib/cloak.ts`, `hooks/useCloakPayout.tsx`, `/api/cloak-oracle/shield_payout`, ActionPanel button, PortfolioDashboard badge.
+- Verification: `contracts/scripts/test-cloak-flow.js`.
 
 ---
 
@@ -239,30 +239,33 @@ const handleRepay = async (loanId: string, amount: number) => {
 ## File Changes Summary
 
 ### [Component] PRISM Core (Rust) — shipped
-- [MODIFY] ✅ `state.rs`: `IkaCollateral`, `EncryptLoanHealth`, `EncryptStatus`
-- [MODIFY] ✅ `errors.rs`: 4 IKA errors + 4 Encrypt errors
-- [MODIFY] ✅ `lib.rs`: Registered `attach_ika_collateral`, `verify_ika_collateral`, `verify_and_disburse`, `release_ika_collateral`, `liquidate_ika_collateral`, `attach_encrypt_score`, `verify_encrypt_default`
-- [MODIFY] ✅ `pda.rs`: `encrypt_health_pda`
+- [MODIFY] ✅ `state.rs`: `IkaCollateral`, `EncryptLoanHealth`, `EncryptStatus`, `CloakPayoutRecord`, `CloakPayoutStatus`
+- [MODIFY] ✅ `errors.rs`: 4 IKA errors + 4 Encrypt errors + 4 Cloak errors
+- [MODIFY] ✅ `lib.rs`: Registered `attach_ika_collateral`, `verify_ika_collateral`, `verify_and_disburse`, `release_ika_collateral`, `liquidate_ika_collateral`, `attach_encrypt_score`, `verify_encrypt_default`, `record_cloak_payout`
+- [MODIFY] ✅ `pda.rs`: `encrypt_health_pda`, `cloak_payout_pda`
 - [NEW]    ✅ `instructions/attach_ika_collateral.rs`, `verify_ika_collateral.rs`, `verify_and_disburse.rs`, `release_ika_collateral.rs`, `liquidate_ika_collateral.rs`
 - [NEW]    ✅ `instructions/attach_encrypt_score.rs`, `verify_encrypt_default.rs`
-- [NEW]    ⬜ `instructions/confidential_disburse.rs` (Cloak — planned)
+- [NEW]    ✅ `instructions/record_cloak_payout.rs`
 
 ### [Component] PRISM App (React/TS) — shipped
 - [NEW]    ✅ `app/lib/ika.ts`: dWallet integration + Ed25519 attestation
 - [NEW]    ✅ `app/lib/encrypt.ts`: 73-byte attestation + dual-ix tx builder
 - [NEW]    ✅ `app/api/ika-test-oracle/attest/route.ts`: mock IKA oracle
 - [NEW]    ✅ `app/api/encrypt-oracle/attest_default/route.ts`: mock Encrypt FHE oracle
-- [NEW]    ✅ `hooks/useEncryptHealth.tsx`, `hooks/useIkaCollateral.tsx`
-- [MODIFY] ✅ `components/simulation/ActionPanel.tsx`: Attach FHE Score / Verify Default via FHE buttons
-- [MODIFY] ✅ `components/simulation/PortfolioDashboard.tsx`: `EncryptHealthBadge`
+- [NEW]    ✅ `app/lib/cloak.ts`: Cloak attestation builder + tx builder
+- [NEW]    ✅ `app/api/cloak-oracle/shield_payout/route.ts`: mock Cloak oracle
+- [NEW]    ✅ `hooks/useEncryptHealth.tsx`, `hooks/useIkaCollateral.tsx`, `hooks/useCloakPayout.tsx`
+- [MODIFY] ✅ `app/lib/constants.ts`, `app/lib/pda.ts`: Cloak oracle + PDA helpers
+- [MODIFY] ✅ `components/simulation/ActionPanel.tsx`: "Shield Yield via Cloak" admin control
+- [MODIFY] ✅ `components/simulation/PortfolioDashboard.tsx`: `EncryptHealthBadge` + `CloakPayoutBadge`
 - [MODIFY] ✅ `components/borrower/CollateralOnboarding.tsx`: dWallet creation flow
 - [NEW]    🟡 `app/api/dune/route.ts`: Dune SIM proxy (partial)
 - [NEW]    ✅ `app/api/dodo/`: Dodo Payments checkout + webhook
-- [NEW]    ⬜ Cloak shielded-disburse client (planned)
+- [NEW]    ✅ `contracts/scripts/test-cloak-flow.js`: Cloak crypto verification
 
 ## Verification Plan
 1. **IKA**: ✅ Mock dWallet attestations signed by `IKA_TEST_ORACLE_SECRET_SEED`; on-chain `verify_ika_collateral` reads them via instructions sysvar.
 2. **Encrypt**: ✅ End-to-end crypto test at `contracts/scripts/test-encrypt-flow.js` (19/19 pass) — proves the 73-byte attestation is byte-identical between the TS builder, mock FHE oracle signer, and Rust verifier.
-3. **Cloak**: ⬜ Use `npx @cloak.dev/claude-skills` to scaffold shielded-send logic.
+3. **Cloak**: ✅ End-to-end crypto test at `contracts/scripts/test-cloak-flow.js` validates 73-byte message layout, Ed25519 signature, IDL entries, and built program artifact.
 4. **Dune**: 🟡 Validate API responses against local cluster state.
 5. **Dodo**: ✅ Sandbox webhook + LP investment fiat flow tested end-to-end.

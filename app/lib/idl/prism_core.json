@@ -4,7 +4,7 @@
     "name": "prism_core",
     "version": "0.1.0",
     "spec": "0.1.0",
-    "description": "PRISM Protocol — programmable credit engine"
+    "description": "PRISM Protocol \u2014 programmable credit engine"
   },
   "instructions": [
     {
@@ -237,7 +237,7 @@
         {
           "name": "borrower",
           "docs": [
-            "The borrower must sign — only the named borrower can attach collateral to their loan."
+            "The borrower must sign \u2014 only the named borrower can attach collateral to their loan."
           ],
           "writable": true,
           "signer": true
@@ -2032,6 +2032,115 @@
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "record_cloak_payout",
+      "docs": [
+        "Must be called as instruction index 1 in a tx where index 0 is an",
+        "Ed25519 native-program instruction containing the Cloak oracle's",
+        "signature over the 73-byte attestation. Records that yield was",
+        "shielded via Cloak's ZK batch disbursement system \u2014 LP payout amounts",
+        "become confidential while remaining auditable via viewing keys."
+      ],
+      "discriminator": [
+        236,
+        17,
+        7,
+        229,
+        194,
+        141,
+        86,
+        40
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "cloak_payout",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  111,
+                  97,
+                  107,
+                  95,
+                  112,
+                  97,
+                  121,
+                  111,
+                  117,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "total_shielded_amount",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -2124,6 +2233,19 @@
         152,
         117,
         119
+      ]
+    },
+    {
+      "name": "CloakPayoutRecord",
+      "discriminator": [
+        92,
+        236,
+        148,
+        124,
+        28,
+        173,
+        233,
+        221
       ]
     }
   ],
@@ -2223,12 +2345,12 @@
     {
       "code": 6005,
       "name": "SlippageExceeded",
-      "msg": "Slippage exceeded — swap output below min_amount_out"
+      "msg": "Slippage exceeded \u2014 swap output below min_amount_out"
     },
     {
       "code": 6006,
       "name": "Unauthorized",
-      "msg": "Unauthorized — caller is neither admin nor allowlisted oracle"
+      "msg": "Unauthorized \u2014 caller is neither admin nor allowlisted oracle"
     },
     {
       "code": 6007,
@@ -2319,6 +2441,26 @@
       "code": 6024,
       "name": "EncryptDefaultNotProven",
       "msg": "Encrypt FHE result byte is not 0x01 (default not proven by oracle)"
+    },
+    {
+      "code": 6025,
+      "name": "CloakPayoutAlreadyRecorded",
+      "msg": "Cloak payout already recorded for this vault epoch"
+    },
+    {
+      "code": 6026,
+      "name": "CloakSignatureInvalid",
+      "msg": "Cloak oracle signature invalid or message mismatch"
+    },
+    {
+      "code": 6027,
+      "name": "CloakBatchIdMismatch",
+      "msg": "batch_id in attestation does not match expected commitment"
+    },
+    {
+      "code": 6028,
+      "name": "CloakPayoutNotConfirmed",
+      "msg": "Cloak result byte is not 0x01 (batch not confirmed by oracle)"
     }
   ],
   "types": [
@@ -2975,6 +3117,69 @@
           {
             "name": "timestamp",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CloakPayoutRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "cloak_oracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "batch_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "total_shielded_amount",
+            "type": "u64"
+          },
+          {
+            "name": "yield_epoch_ts",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "CloakPayoutStatus"
+              }
+            }
+          },
+          {
+            "name": "confirmed_ts",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CloakPayoutStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Shielded"
           }
         ]
       }

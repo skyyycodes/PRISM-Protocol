@@ -144,3 +144,22 @@ pub enum EncryptStatus {
     Verified,
     DefaultProven,
 }
+
+#[account]
+#[derive(InitSpace)]
+pub struct CloakPayoutRecord {
+    pub vault: Pubkey,
+    pub cloak_oracle: Pubkey,
+    pub batch_id: [u8; 32],           // sha256 of Cloak batch disbursement receipt
+    pub total_shielded_amount: u64,   // total USDC shielded across all tranches
+    pub yield_epoch_ts: i64,          // timestamp of the yield epoch this covers
+    pub status: CloakPayoutStatus,    // Pending → Shielded
+    pub confirmed_ts: i64,
+    pub bump: u8,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, InitSpace)]
+pub enum CloakPayoutStatus {
+    Pending,
+    Shielded,
+}

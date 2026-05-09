@@ -18,11 +18,13 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { PublicKey } from '@solana/web3.js';
+import { toast } from 'sonner';
 
 import { Q64_ONE, TRANCHE_CONFIG, TrancheKind } from '@/app/lib/constants';
 import { formatNavQ, formatUsdc, shortKey, stateName, toBigInt } from '@/app/lib/format';
 import { EventTickerPanel } from '@/components/simulation/EventTickerPanel';
 import { useDeposit } from '@/hooks/useDeposit';
+import { useCloakPayout, useCloakViewingKeys } from '@/hooks/useCloakPayout';
 import { useEncryptHealth } from '@/hooks/useEncryptHealth';
 import { useIdentity } from '@/hooks/useIdentity';
 import { useCancelInvestIntent, useFiatInvestCheckout, useFiatInvestStatus } from '@/hooks/useFiatInvest';
@@ -93,6 +95,7 @@ function useDashboardData() {
     connected,
     walletLabel: connected && publicKey ? shortKey(publicKey) : 'Not connected',
     vaultLabel: raw ? shortKey(raw.vaultPda) : 'Vault #0',
+    vaultPda: raw?.vaultPda as PublicKey | undefined,
     vaultStatus: stateName(raw?.vault?.state),
     tranches,
     vaultCapital: trancheAssets > 0n ? trancheAssets : reserveBalance,
@@ -112,6 +115,16 @@ type DashboardData = ReturnType<typeof useDashboardData>;
 
 function cx(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(' ');
+}
+
+function decodeViewingKeyAmount(viewingKey: string): bigint | null {
+  const [, amount] = viewingKey.split(':');
+  if (!amount) return null;
+  try {
+    return BigInt(amount);
+  } catch {
+    return null;
+  }
 }
 
 // ─── DataState ────────────────────────────────────────────────────────────────
@@ -540,6 +553,82 @@ function EncryptHealthBadge({ loanPda }: { loanPda: PublicKey | undefined }) {
   );
 }
 
+function CloakPayoutBadge({ vaultPda }: { vaultPda: PublicKey | undefined }) {
+  const { role } = useIdentity();
+  const { data: payout, isLoading } = useCloakPayout(vaultPda ?? null);
+  const { data: viewingKeys } = useCloakViewingKeys();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-between gap-3 px-5 py-2.5">
+        <span className="font-mono text-[11px] text-white/28">Cloak payout</span>
+        <span className="font-mono text-[11px] text-white/20">…</span>
+      </div>
+    );
+  }
+
+  if (!payout || payout.status !== 'Shielded') {
+    return (
+      <div className="flex items-center justify-between gap-3 px-5 py-2.5">
+        <span className="font-mono text-[11px] text-white/28">Cloak payout</span>
+        <span className="font-mono text-[11px] text-white/25">payouts public</span>
+      </div>
+    );
+  }
+
+  const revealableTranches: Array<'prime' | 'core' | 'alpha'> =
+    role === 'admin'
+      ? ['prime', 'core', 'alpha']
+      : role === 'senior'
+        ? ['prime']
+        : role === 'junior'
+          ? ['alpha']
+          : [];
+
+  function revealViewingKey(tranche: 'prime' | 'core' | 'alpha') {
+    const key = viewingKeys?.[tranche];
+    if (!key) {
+      toast.error(`No viewing key available for ${tranche}. Shield again to refresh keys.`);
+      return;
+    }
+    const amount = decodeViewingKeyAmount(key);
+    const trancheLabel = tranche.charAt(0).toUpperCase() + tranche.slice(1);
+    if (amount === null) {
+      toast(`${trancheLabel} viewing key: ${key}`);
+      return;
+    }
+    toast.success(`${trancheLabel} payout: ${formatUsdc(amount, 2)} USDC`, {
+      description: `Viewing key: ${key}`,
+    });
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-3 px-5 py-2.5">
+      <span className="font-mono text-[11px] text-white/28">Cloak payout</span>
+      <div className="flex items-center gap-2">
+        <span className="inline-flex items-center gap-1.5">
+          <Lock className="h-3 w-3 text-sky-300" />
+          <span className="font-mono text-[11px] text-sky-200">shielded via Cloak</span>
+        </span>
+        {revealableTranches.length > 0 ? (
+          <div className="flex items-center gap-1">
+            {revealableTranches.map((tranche) => (
+              <button
+                key={tranche}
+                type="button"
+                onClick={() => revealViewingKey(tranche)}
+                className="rounded border border-sky-300/25 px-1.5 py-0.5 font-mono text-[10px] text-sky-200/80 transition-colors hover:border-sky-300/40 hover:text-sky-200"
+              >
+                View {tranche}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 function ProtocolHealthPanel({ data }: { data: DashboardData }) {
   const isActive = data.vaultCapital > 0n || data.vaultStatus.toLowerCase() === 'active';
 
@@ -617,6 +706,7 @@ function ProtocolHealthPanel({ data }: { data: DashboardData }) {
           </div>
         ))}
         <EncryptHealthBadge loanPda={data.loanPda} />
+        <CloakPayoutBadge vaultPda={data.vaultPda} />
       </div>
 
       {/* Footer */}

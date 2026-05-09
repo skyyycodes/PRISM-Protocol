@@ -153,15 +153,22 @@ pub mod prism_core {
         instructions::attach_encrypt_score_handler(ctx, commitment, encrypt_oracle)
     }
 
-    /// Must be called as instruction index 1 in a tx where index 0 is an
-    /// ed25519 native-program instruction containing the Encrypt FHE oracle's
-    /// signature over the 73-byte attestation. Atomically proves default via
-    /// FHE attestation AND triggers the credit event cascade.
+    
     pub fn verify_encrypt_default(
         ctx: Context<VerifyEncryptDefault>,
         loss_amount: u64,
         severity_bps: u16,
     ) -> Result<()> {
         instructions::verify_encrypt_default_handler(ctx, loss_amount, severity_bps)
+    }
+
+    // ── Cloak batch payout instructions ───────────────────────────────────
+
+   
+    pub fn record_cloak_payout(
+        ctx: Context<RecordCloakPayout>,
+        total_shielded_amount: u64,
+    ) -> Result<()> {
+        instructions::record_cloak_payout_handler(ctx, total_shielded_amount)
     }
 }

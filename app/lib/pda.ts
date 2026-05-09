@@ -125,6 +125,16 @@ export function getEncryptHealthPda(
   );
 }
 
+export function getCloakPayoutPda(
+  vault: PublicKey,
+  programId: PublicKey = PRISM_CORE_PROGRAM_ID,
+): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('cloak_payout'), vault.toBuffer()],
+    programId,
+  );
+}
+
 export function getLpMintPda(
   trancheMint: PublicKey,
   programId: PublicKey = PRISM_AMM_PROGRAM_ID,
