@@ -221,4 +221,59 @@
     50%  { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
   }
+
+  /* ── Waterfall flow particles ─────────────────────────────────────── */
+  @keyframes flow-down {
+    0%   { transform: translateY(0);    opacity: 0; }
+    12%  { opacity: 1; }
+    85%  { opacity: 1; }
+    100% { transform: translateY(32px); opacity: 0; }
+  }
+
+  @keyframes flow-down-lg {
+    0%   { transform: translateY(0);     opacity: 0; }
+    8%   { opacity: 0.9; }
+    88%  { opacity: 0.9; }
+    100% { transform: translateY(200px); opacity: 0; }
+  }
+
+  .flow-particle-down {
+    animation: flow-down 2s ease-in-out infinite;
+  }
+
+  .flow-particle-down-lg {
+    animation: flow-down-lg 3s ease-in-out infinite;
+  }
+
+  /* ── Live pulse ring ──────────────────────────────────────────────── */
+  @keyframes pulse-ring {
+    0%   { transform: scale(1);   opacity: 0.75; }
+    100% { transform: scale(2.8); opacity: 0; }
+  }
+
+  .pulse-ring-anim {
+    animation: pulse-ring 2s ease-out infinite;
+  }
+
+  /* ── Tranche scanline sweep ───────────────────────────────────────── */
+  @keyframes scan-sweep {
+    0%   { top: -1px;  opacity: 0; }
+    5%   { opacity: 0.12; }
+    95%  { opacity: 0.06; }
+    100% { top: 100%;  opacity: 0; }
+  }
+
+  .scan-line-anim {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+    animation: scan-sweep 5s linear infinite;
+  }
+
+  /* ── Event ticker scroll speed variants ──────────────────────────── */
+  .marquee-ticker {
+    animation: marquee 22s linear infinite;
+  }
 }

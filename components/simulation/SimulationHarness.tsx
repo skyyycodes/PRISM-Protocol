@@ -1,6 +1,6 @@
 'use client';
 
-import { PrismOverview } from './PortfolioDashboard';
+import PrismOverview from './PortfolioDashboard';
 
 export function SimulationHarness() {
   return <PrismOverview />;

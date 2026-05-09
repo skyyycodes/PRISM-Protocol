@@ -29,17 +29,17 @@ async function tokenBalance(connection: import('@solana/web3.js').Connection, ad
   }
 }
 
-export function useVaultState() {
+export function useVaultState(vaultId: number = VAULT_ID) {
   const { connection } = useConnection();
   const { keypair } = useIdentity();
 
   return useQuery({
-    queryKey: ['vault-state', connection.rpcEndpoint, VAULT_ID],
+    queryKey: ['vault-state', connection.rpcEndpoint, vaultId],
     refetchInterval: 5000,
     queryFn: async () => {
       const { core, amm } = buildPrograms(connection, keypair);
       const [configPda] = getConfigPda(core.programId);
-      const [vaultPda] = getVaultPda(VAULT_ID, core.programId);
+      const [vaultPda] = getVaultPda(vaultId, core.programId);
       const [reservePda] = getVaultReservePda(vaultPda, core.programId);
       const [lossBucketPda] = getLossBucketPda(vaultPda, core.programId);
       const [loanPda] = getLoanPda(vaultPda, 0, core.programId);
