@@ -11,8 +11,8 @@ import {
 import { SystemProgram } from '@solana/web3.js';
 import { toast } from 'sonner';
 
-import prismCoreIdl from '@/app/lib/idl/prism_core.json';
-import { USDC_MINT, VAULT_ID, TrancheKind } from '@/app/lib/constants';
+import { getCoreIdl } from '@/app/lib/program';
+import { USDC_MINT, TrancheKind } from '@/app/lib/constants';
 import {
   getConfigPda,
   getTrancheMintPda,
@@ -20,6 +20,7 @@ import {
   getVaultPda,
   getVaultReservePda,
 } from '@/app/lib/pda';
+import { useSelectedVaultId } from '@/hooks/useSelectedVault';
 
 const TRANCHE_LABELS = ['Prime', 'Core', 'Alpha'];
 
@@ -27,6 +28,7 @@ export function useDeposit() {
   const { connection } = useConnection();
   const wallet = useWallet();
   const queryClient = useQueryClient();
+  const { vaultId } = useSelectedVaultId();
 
   return useMutation({
     mutationFn: async ({
@@ -43,10 +45,10 @@ export function useDeposit() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const provider = new AnchorProvider(connection, wallet as any, { commitment: 'confirmed' });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const program = new Program(prismCoreIdl as any, provider);
+      const program = new Program(getCoreIdl(), provider);
 
       const [configPda] = getConfigPda();
-      const [vaultPda] = getVaultPda(VAULT_ID);
+      const [vaultPda] = getVaultPda(vaultId);
       const [tranchePda] = getTranchePda(vaultPda, trancheKind);
       const [trancheMintPda] = getTrancheMintPda(vaultPda, trancheKind);
       const [vaultReservePda] = getVaultReservePda(vaultPda);

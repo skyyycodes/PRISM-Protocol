@@ -16,6 +16,10 @@ import {
 } from '@solana/spl-token';
 import { toast } from 'sonner';
 
+import { ActionPanel } from '@/components/simulation/ActionPanel';
+import { LoanList } from '@/components/simulation/LoanList';
+import { useSelectedVaultId } from '@/hooks/useSelectedVault';
+import { useVaultList, useRegisterVault } from '@/hooks/useVaultRegistry';
 import {
   PRISM_CORE_PROGRAM_ID,
   PRISM_AMM_PROGRAM_ID,
@@ -79,6 +83,139 @@ export function AdminPanel() {
   });
 
   const [activeMode, setActiveMode] = useState<'auto' | 'manual'>('auto');
+
+  // ── Multi-vault ──────────────────────────────────────────────────────────
+  const { vaultId: selectedVaultId, setVaultId: setSelectedVaultId } = useSelectedVaultId();
+  const { data: registeredVaults } = useVaultList();
+  const registerVaultMutation = useRegisterVault();
+  const [newVaultForm, setNewVaultForm] = useState({
+    name: '',
+    primeBps: '500',
+    coreBps: '800',
+    alphaBps: '1500',
+    loanPrincipal: '20000',
+    maturityDays: '365',
+  });
+  const [vaultCreateRunning, setVaultCreateRunning] = useState(false);
+
+  function nextVaultId(): number {
+    if (!registeredVaults || registeredVaults.length === 0) return 1;
+    return Math.max(...registeredVaults.map((v) => v.vault_id)) + 1;
+  }
+
+  async function handleCreateVault() {
+    if (!wallet || !newVaultForm.name.trim()) return;
+    const id = nextVaultId();
+    setVaultCreateRunning(true);
+    addLog(`Creating vault #${id} "${newVaultForm.name}"…`);
+    try {
+      const { core, amm, adminKeypair } = getPrograms();
+      const admin = adminKeypair.publicKey;
+      const [config] = getConfigPda(PRISM_CORE_PROGRAM_ID);
+      const [vault] = getVaultPda(id, PRISM_CORE_PROGRAM_ID);
+      const [reserve] = getVaultReservePda(vault, PRISM_CORE_PROGRAM_ID);
+      const [lossBucket] = getLossBucketPda(vault, PRISM_CORE_PROGRAM_ID);
+      const [loan] = getLoanPda(vault, 0, PRISM_CORE_PROGRAM_ID);
+
+      // Config (shared — skip if exists)
+      if (!(await core.account.globalConfig.fetchNullable(config))) {
+        const TEST_ORACLE = new PublicKey('5nmEq5cNc9yXpK1ySrb4XH65zccBvRK2hwKnEJePjcrf');
+        await core.methods
+          .initializeGlobalConfig(0, [admin, TEST_ORACLE])
+          .accounts({ admin, config, usdcMint: USDC_MINT, systemProgram: SystemProgram.programId })
+          .rpc({ commitment: 'confirmed' });
+      }
+
+      // Vault
+      if (!(await core.account.vault.fetchNullable(vault))) {
+        await core.methods
+          .initializeVault(id)
+          .accounts({ admin, config, vault, systemProgram: SystemProgram.programId })
+          .rpc({ commitment: 'confirmed' });
+        addLog(`✓ Vault #${id} created`);
+        await core.methods
+          .initializeVaultReserves()
+          .accounts({ admin, config, vault, usdcMint: USDC_MINT, vaultUsdcReserve: reserve, tokenProgram: TOKEN_PROGRAM_ID, systemProgram: SystemProgram.programId })
+          .rpc({ commitment: 'confirmed' });
+        await core.methods
+          .initializeVaultLossBucket()
+          .accounts({ admin, config, vault, usdcMint: USDC_MINT, lossBucket, tokenProgram: TOKEN_PROGRAM_ID, systemProgram: SystemProgram.programId })
+          .rpc({ commitment: 'confirmed' });
+        addLog('✓ Reserves initialized');
+      }
+
+      // Tranches with custom APR bps
+      const aprMap = [Number(newVaultForm.primeBps), Number(newVaultForm.coreBps), Number(newVaultForm.alphaBps)];
+      for (const kind of [TrancheKind.Prime, TrancheKind.Core, TrancheKind.Alpha] as const) {
+        const [tranche] = getTranchePda(vault, kind, PRISM_CORE_PROGRAM_ID);
+        if (!(await core.account.tranche.fetchNullable(tranche))) {
+          await core.methods
+            .initializeTranche(kind, aprMap[kind])
+            .accounts({
+              admin, config, vault, tranche,
+              trancheMint: getTrancheMintPda(vault, kind, PRISM_CORE_PROGRAM_ID)[0],
+              tokenProgram: TOKEN_PROGRAM_ID, systemProgram: SystemProgram.programId, rent: SYSVAR_RENT_PUBKEY,
+            })
+            .rpc({ commitment: 'confirmed' });
+        }
+      }
+      addLog('✓ Tranches initialized');
+
+      // Loan
+      const principal = BigInt(Math.round(Number(newVaultForm.loanPrincipal) * 1_000_000));
+      const maturityTs = Math.floor(Date.now() / 1000) + Number(newVaultForm.maturityDays) * 86400;
+      if (!(await core.account.loan.fetchNullable(loan))) {
+        await core.methods
+          .initializeLoan(0, new BN(principal.toString()), Number(newVaultForm.coreBps), new BN(maturityTs), adminKeypair.publicKey)
+          .accounts({ admin, config, vault, loan, systemProgram: SystemProgram.programId })
+          .rpc({ commitment: 'confirmed' });
+        addLog('✓ Loan initialized');
+      }
+
+      // AMM pools
+      for (const kind of [TrancheKind.Prime, TrancheKind.Core, TrancheKind.Alpha] as const) {
+        const [trancheMint] = getTrancheMintPda(vault, kind, PRISM_CORE_PROGRAM_ID);
+        const [pool] = getPoolPda(trancheMint, PRISM_AMM_PROGRAM_ID);
+        if (!(await amm.account.ammPool.fetchNullable(pool))) {
+          await amm.methods.initializePool(30)
+            .accounts({ admin, trancheMint, quoteMint: USDC_MINT, pool, systemProgram: SystemProgram.programId })
+            .rpc({ commitment: 'confirmed' });
+          await amm.methods.initializePoolReserves()
+            .accounts({
+              admin, pool, trancheMint, quoteMint: USDC_MINT,
+              trancheReserve: getPoolTrancheReservePda(trancheMint, PRISM_AMM_PROGRAM_ID)[0],
+              quoteReserve: getPoolQuoteReservePda(trancheMint, PRISM_AMM_PROGRAM_ID)[0],
+              lpMint: getLpMintPda(trancheMint, PRISM_AMM_PROGRAM_ID)[0],
+              tokenProgram: TOKEN_PROGRAM_ID, systemProgram: SystemProgram.programId,
+            })
+            .rpc({ commitment: 'confirmed' });
+        }
+      }
+      addLog('✓ AMM pools initialized');
+
+      // Register in DB
+      await registerVaultMutation.mutateAsync({
+        vaultId: id,
+        name: newVaultForm.name.trim(),
+        primeBps: Number(newVaultForm.primeBps),
+        coreBps: Number(newVaultForm.coreBps),
+        alphaBps: Number(newVaultForm.alphaBps),
+        loanPrincipal: principal,
+        maturityDays: Number(newVaultForm.maturityDays),
+      });
+
+      addLog(`✓ Vault #${id} "${newVaultForm.name}" registered`);
+      setNewVaultForm({ name: '', primeBps: '500', coreBps: '800', alphaBps: '1500', loanPrincipal: '20000', maturityDays: '365' });
+      setSelectedVaultId(id);
+      toast.success(`Vault #${id} created and selected`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      addLog(`✗ ${msg}`);
+      toast.error(msg.slice(0, 120));
+    } finally {
+      setVaultCreateRunning(false);
+    }
+  }
 
   // Track collateral for the most recent approved loan
   const lastApprovedLoan = applications
@@ -997,6 +1134,84 @@ export function AdminPanel() {
           </div>
         </section>
       )}
+
+      {/* Create New Vault */}
+      <section className="rounded-xl border border-white/10 bg-white/5 p-5 space-y-4">
+        <h2 className="text-sm font-medium text-white/80">New Vault / Pool</h2>
+
+        {/* Existing vaults */}
+        {registeredVaults && registeredVaults.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-xs text-white/40">Registered vaults</p>
+            <div className="flex flex-wrap gap-2">
+              {registeredVaults.map((v) => (
+                <button
+                  key={v.vault_id}
+                  type="button"
+                  onClick={() => setSelectedVaultId(v.vault_id)}
+                  className={[
+                    'flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs transition-colors',
+                    selectedVaultId === v.vault_id
+                      ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+                      : 'border-white/10 bg-white/5 text-white/50 hover:text-white/80',
+                  ].join(' ')}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${selectedVaultId === v.vault_id ? 'bg-emerald-400' : 'bg-white/20'}`} />
+                  {v.name}
+                  <span className="text-white/30">#{v.vault_id}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs text-white/40">Vault name</label>
+            <input
+              type="text"
+              placeholder="e.g. Real Estate Pool"
+              value={newVaultForm.name}
+              onChange={(e) => setNewVaultForm((f) => ({ ...f, name: e.target.value }))}
+              className="w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white placeholder-white/20 focus:border-white/25 focus:outline-none"
+            />
+          </div>
+
+          {[
+            { key: 'primeBps', label: 'Prime APR (bps)', placeholder: '500' },
+            { key: 'coreBps', label: 'Core APR (bps)', placeholder: '800' },
+            { key: 'alphaBps', label: 'Alpha APR (bps)', placeholder: '1500' },
+            { key: 'loanPrincipal', label: 'Loan principal (USDC)', placeholder: '20000' },
+            { key: 'maturityDays', label: 'Maturity (days)', placeholder: '365' },
+          ].map(({ key, label, placeholder }) => (
+            <div key={key}>
+              <label className="mb-1 block text-xs text-white/40">{label}</label>
+              <input
+                type="number"
+                min="0"
+                placeholder={placeholder}
+                value={newVaultForm[key as keyof typeof newVaultForm]}
+                onChange={(e) => setNewVaultForm((f) => ({ ...f, [key]: e.target.value }))}
+                className="w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 font-mono text-sm text-white placeholder-white/20 focus:border-white/25 focus:outline-none"
+              />
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={handleCreateVault}
+          disabled={vaultCreateRunning || !wallet || !newVaultForm.name.trim()}
+          className="rounded-lg border border-purple-400/30 bg-purple-500/15 px-5 py-2 text-sm text-purple-200 transition-colors hover:bg-purple-500/25 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {vaultCreateRunning ? 'Initializing…' : `Initialize Vault #${nextVaultId()}`}
+        </button>
+      </section>
+
+      {/* Protocol actions — deposit, yield, defaults, Cloak, Encrypt FHE */}
+      <ActionPanel />
+
+      {/* Active Loans */}
+      <LoanList />
     </div>
   );
 }

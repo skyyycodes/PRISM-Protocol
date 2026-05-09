@@ -19,6 +19,7 @@ import {
 } from '@/app/lib/pda';
 import { buildPrograms } from '@/app/lib/program';
 import { useIdentity } from '@/hooks/useIdentity';
+import { useSelectedVaultId } from '@/hooks/useSelectedVault';
 
 async function tokenBalance(connection: import('@solana/web3.js').Connection, address: import('@solana/web3.js').PublicKey) {
   try {
@@ -29,17 +30,19 @@ async function tokenBalance(connection: import('@solana/web3.js').Connection, ad
   }
 }
 
-export function useVaultState() {
+export function useVaultState(vaultIdOverride?: number) {
   const { connection } = useConnection();
   const { keypair } = useIdentity();
+  const { vaultId: contextVaultId } = useSelectedVaultId();
+  const vaultId = vaultIdOverride ?? contextVaultId;
 
   return useQuery({
-    queryKey: ['vault-state', connection.rpcEndpoint, VAULT_ID],
+    queryKey: ['vault-state', connection.rpcEndpoint, vaultId],
     refetchInterval: 5000,
     queryFn: async () => {
       const { core, amm } = buildPrograms(connection, keypair);
       const [configPda] = getConfigPda(core.programId);
-      const [vaultPda] = getVaultPda(VAULT_ID, core.programId);
+      const [vaultPda] = getVaultPda(vaultId, core.programId);
       const [reservePda] = getVaultReservePda(vaultPda, core.programId);
       const [lossBucketPda] = getLossBucketPda(vaultPda, core.programId);
       const [loanPda] = getLoanPda(vaultPda, 0, core.programId);

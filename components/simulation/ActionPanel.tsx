@@ -61,6 +61,7 @@ import {
   useEncryptHealth,
   useVerifyEncryptDefault,
 } from '@/hooks/useEncryptHealth';
+import { useUpsertLoan } from '@/hooks/useActiveLoans';
 import { useCloakPayout, useRecordCloakPayout } from '@/hooks/useCloakPayout';
 import { useIdentity } from '@/hooks/useIdentity';
 import { useSimulationActions } from '@/hooks/useSimulationActions';
@@ -102,6 +103,8 @@ export function ActionPanel() {
   const [lossAmount, setLossAmount] = useState(formatUsdc(DEFAULT_DEMO_LOSS_AMOUNT));
   const [loanAmount, setLoanAmount] = useState('10.000000');
   const [swapAmount, setSwapAmount] = useState('10.000000');
+
+  const upsertLoan = useUpsertLoan();
 
   const investorTranche =
     identity.role === 'senior'
@@ -190,6 +193,30 @@ export function ActionPanel() {
 
   async function afterMutation() {
     await queryClient.invalidateQueries({ queryKey: ['vault-state'] });
+  }
+
+  async function syncLoanToDb(loanId: number) {
+    try {
+      const { core } = buildPrograms(connection, identity.keypair);
+      const [vaultPda] = getVaultPda(VAULT_ID, core.programId);
+      const [loanPda] = getLoanPda(vaultPda, loanId, core.programId);
+      const loan = await core.account.loan.fetchNullable(loanPda);
+      if (!loan) return;
+      const stateKey = Object.keys(loan.state as Record<string, unknown>)[0] ?? 'Originated';
+      await upsertLoan.mutateAsync({
+        loanId,
+        pda: loanPda.toBase58(),
+        borrower: loan.borrower.toBase58(),
+        principal: BigInt(loan.principal.toString()),
+        aprBps: loan.aprBps,
+        originationTs: Number(loan.originationTs.toString()),
+        maturityTs: Number(loan.maturityTs.toString()),
+        state: stateKey,
+        totalRepaid: BigInt(loan.totalRepaid.toString()),
+      });
+    } catch {
+      // non-critical — UI still works without DB sync
+    }
   }
 
   const deposit = useMutation({
@@ -509,7 +536,10 @@ export function ActionPanel() {
       const after = await snapshot(borrower, TrancheKind.Prime);
       recordSuccess('Borrower Disbursement (admin-authorized)', 'Borrower', before, after, await navSnapshot(), signature);
     },
-    onSuccess: afterMutation,
+    onSuccess: async () => {
+      await afterMutation();
+      await syncLoanToDb(0);
+    },
     onError: (error) => toast.error(formatError(error)),
   });
 
@@ -537,7 +567,10 @@ export function ActionPanel() {
       const after = await snapshot(borrower, TrancheKind.Prime);
       recordSuccess('Borrower Repay Loan', 'Borrower', before, after, await navSnapshot(), signature);
     },
-    onSuccess: afterMutation,
+    onSuccess: async () => {
+      await afterMutation();
+      await syncLoanToDb(0);
+    },
     onError: (error) => toast.error(formatError(error)),
   });
 
@@ -691,7 +724,10 @@ export function ActionPanel() {
         deltas: {},
       });
     },
-    onSuccess: afterMutation,
+    onSuccess: async () => {
+      await afterMutation();
+      await syncLoanToDb(0);
+    },
     onError: (error) => toast.error(formatError(error)),
   });
 

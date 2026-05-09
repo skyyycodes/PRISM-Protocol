@@ -52,7 +52,11 @@
       "Bash(python3 -c \"import json,base58; k=json.load\\(open\\('target/deploy/prism_core-keypair.json'\\)\\); print\\('prism_core:', base58.b58encode\\(bytes\\(k[32:]\\)\\).decode\\(\\)\\)\")",
       "Bash(node -e \"const k=require\\('./target/deploy/prism_amm-keypair.json'\\); const {PublicKey}=require\\('@solana/web3.js'\\); console.log\\('prism_amm:', new PublicKey\\(k.slice\\(32\\)\\).toBase58\\(\\)\\)\")",
       "Bash(node -e \"const k=require\\('./target/deploy/prism_core-keypair.json'\\); const {PublicKey}=require\\('@solana/web3.js'\\); console.log\\(new PublicKey\\(k.slice\\(32\\)\\).toBase58\\(\\)\\)\")",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(xargs grep -l \"status === 'approved'\")",
+      "Bash(pnpm lint *)",
+      "PowerShell(Set-Location \"C:\\\\Users\\\\manov\\\\Desktop\\\\code\\\\PRISM-Protocol\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -match \"loanStore|useActiveLoans|LoanList|ActionPanel\" })",
+      "PowerShell(Set-Location \"C:\\\\Users\\\\manov\\\\Desktop\\\\code\\\\PRISM-Protocol\"; \\(npx tsc --noEmit 2>&1\\) -match \"loanStore|useActiveLoans|LoanList|ActionPanel\")"
     ]
   }
 }
