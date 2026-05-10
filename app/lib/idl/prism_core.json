@@ -1,11 +1,10 @@
 {
   "address": "CRzsHoHgdrK7HC2GoGsfxiEJtHP2sPSWY7SgrwqK9ao4",
   "metadata": {
-    
     "name": "prism_core",
     "version": "0.1.0",
     "spec": "0.1.0",
-    "description": "PRISM Protocol — programmable credit engine"
+    "description": "PRISM Protocol \u2014 programmable credit engine"
   },
   "instructions": [
     {
@@ -38,7 +37,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -127,23 +127,24 @@
       ]
     },
     {
-      "name": "attach_ika_collateral",
+      "name": "attach_encrypt_score",
+      "docs": [
+        "Borrower registers a sha256 commitment of their Encrypt-sealed credit",
+        "score on-chain. The actual score data stays encrypted off-chain."
+      ],
       "discriminator": [
-        223,
-        77,
-        205,
-        170,
-        162,
+        66,
+        136,
         69,
-        159,
-        118
+        107,
+        179,
+        238,
+        28,
+        112
       ],
       "accounts": [
         {
           "name": "borrower",
-          "docs": [
-            "The borrower must sign — only the named borrower can attach collateral to their loan."
-          ],
           "writable": true,
           "signer": true
         },
@@ -164,6 +165,82 @@
               }
             ]
           }
+        },
+        {
+          "name": "loan"
+        },
+        {
+          "name": "encrypt_health",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  110,
+                  99,
+                  114,
+                  121,
+                  112,
+                  116,
+                  95,
+                  104,
+                  101,
+                  97,
+                  108,
+                  116,
+                  104
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loan"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "commitment",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "encrypt_oracle",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "attach_ika_collateral",
+      "discriminator": [
+        223,
+        77,
+        205,
+        170,
+        162,
+        69,
+        159,
+        118
+      ],
+      "accounts": [
+        {
+          "name": "borrower",
+          "docs": [
+            "The borrower must sign \u2014 only the named borrower can attach collateral to their loan."
+          ],
+          "writable": true,
+          "signer": true
         },
         {
           "name": "loan"
@@ -258,7 +335,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -469,7 +547,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -579,7 +658,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -639,7 +719,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -754,7 +835,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -851,7 +933,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -924,7 +1007,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -1031,7 +1115,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -1133,7 +1218,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -1218,7 +1304,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -1313,7 +1400,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -1419,7 +1507,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -1603,7 +1692,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -1613,28 +1703,27 @@
       "args": []
     },
     {
-      "name": "verify_and_disburse",
+      "name": "verify_encrypt_default",
       "docs": [
-        "Atomic: verify oracle attestation AND disburse loan in one tx.",
-        "Callable by the borrower — no admin required after loan origination.",
-        "The tx must include an Ed25519 precompile instruction before this one."
+        "Must be called as instruction index 1 in a tx where index 0 is an",
+        "ed25519 native-program instruction containing the Encrypt FHE oracle's",
+        "signature over the 73-byte attestation. Atomically proves default via",
+        "FHE attestation AND triggers the credit event cascade."
       ],
       "discriminator": [
-        240,
-        62,
-        157,
-        54,
-        110,
-        177,
-        175,
-        200
+        209,
+        6,
+        221,
+        214,
+        220,
+        246,
+        224,
+        166
       ],
       "accounts": [
         {
-          "name": "borrower",
-          "docs": [
-            "Borrower initiates — no admin needed after loan origination."
-          ],
+          "name": "signer",
+          "writable": true,
           "signer": true
         },
         {
@@ -1656,57 +1745,30 @@
           }
         },
         {
-          "name": "vault",
+          "name": "loan"
+        },
+        {
+          "name": "encrypt_health",
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "vault.id",
-                "account": "Vault"
-              }
-            ]
-          },
-          "relations": [
-            "loan"
-          ]
-        },
-        {
-          "name": "loan",
-          "writable": true
-        },
-        {
-          "name": "ika_collateral",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  105,
-                  107,
-                  97,
-                  95,
-                  99,
-                  111,
-                  108,
-                  108,
-                  97,
-                  116,
                   101,
+                  110,
+                  99,
                   114,
+                  121,
+                  112,
+                  116,
+                  95,
+                  104,
+                  101,
                   97,
-                  108
+                  108,
+                  116,
+                  104
                 ]
               },
               {
@@ -1717,31 +1779,31 @@
           }
         },
         {
-          "name": "vault_usdc_reserve",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  115,
-                  101,
-                  114,
-                  118,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "vault"
-              }
-            ]
-          }
+          "name": "vault",
+          "writable": true
         },
         {
-          "name": "borrower_usdc_ata",
+          "name": "tranche_prime",
+          "writable": true
+        },
+        {
+          "name": "tranche_core",
+          "writable": true
+        },
+        {
+          "name": "tranche_alpha",
+          "writable": true
+        },
+        {
+          "name": "vault_usdc_reserve",
+          "writable": true
+        },
+        {
+          "name": "loss_bucket",
+          "writable": true
+        },
+        {
+          "name": "credit_event",
           "writable": true
         },
         {
@@ -1749,11 +1811,24 @@
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
           "name": "instructions_sysvar",
           "address": "Sysvar1nstructions1111111111111111111111111"
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "loss_amount",
+          "type": "u64"
+        },
+        {
+          "name": "severity_bps",
+          "type": "u16"
+        }
+      ]
     },
     {
       "name": "verify_ika_collateral",
@@ -1794,7 +1869,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -1871,7 +1947,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -1955,6 +2032,115 @@
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "record_cloak_payout",
+      "docs": [
+        "Must be called as instruction index 1 in a tx where index 0 is an",
+        "Ed25519 native-program instruction containing the Cloak oracle's",
+        "signature over the 73-byte attestation. Records that yield was",
+        "shielded via Cloak's ZK batch disbursement system \u2014 LP payout amounts",
+        "become confidential while remaining auditable via viewing keys."
+      ],
+      "discriminator": [
+        236,
+        17,
+        7,
+        229,
+        194,
+        141,
+        86,
+        40
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "cloak_payout",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  111,
+                  97,
+                  107,
+                  95,
+                  112,
+                  97,
+                  121,
+                  111,
+                  117,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "total_shielded_amount",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -1969,6 +2155,19 @@
         102,
         124,
         77
+      ]
+    },
+    {
+      "name": "EncryptLoanHealth",
+      "discriminator": [
+        139,
+        132,
+        10,
+        198,
+        14,
+        145,
+        116,
+        159
       ]
     },
     {
@@ -2034,6 +2233,19 @@
         152,
         117,
         119
+      ]
+    },
+    {
+      "name": "CloakPayoutRecord",
+      "discriminator": [
+        92,
+        236,
+        148,
+        124,
+        28,
+        173,
+        233,
+        221
       ]
     }
   ],
@@ -2133,12 +2345,12 @@
     {
       "code": 6005,
       "name": "SlippageExceeded",
-      "msg": "Slippage exceeded — swap output below min_amount_out"
+      "msg": "Slippage exceeded \u2014 swap output below min_amount_out"
     },
     {
       "code": 6006,
       "name": "Unauthorized",
-      "msg": "Unauthorized — caller is neither admin nor allowlisted oracle"
+      "msg": "Unauthorized \u2014 caller is neither admin nor allowlisted oracle"
     },
     {
       "code": 6007,
@@ -2204,6 +2416,51 @@
       "code": 6019,
       "name": "OracleNotAllowlisted",
       "msg": "Oracle public key is not in the global allowlist"
+    },
+    {
+      "code": 6020,
+      "name": "CollateralAlreadyActive",
+      "msg": "Collateral account is already active and cannot be re-attached"
+    },
+    {
+      "code": 6021,
+      "name": "EncryptAlreadyDefaultProven",
+      "msg": "Encrypt health is already DefaultProven; cannot re-prove"
+    },
+    {
+      "code": 6022,
+      "name": "EncryptSignatureInvalid",
+      "msg": "Encrypt oracle signature invalid or message mismatch"
+    },
+    {
+      "code": 6023,
+      "name": "EncryptCommitmentMismatch",
+      "msg": "score_commitment in attestation does not match registered commitment"
+    },
+    {
+      "code": 6024,
+      "name": "EncryptDefaultNotProven",
+      "msg": "Encrypt FHE result byte is not 0x01 (default not proven by oracle)"
+    },
+    {
+      "code": 6025,
+      "name": "CloakPayoutAlreadyRecorded",
+      "msg": "Cloak payout already recorded for this vault epoch"
+    },
+    {
+      "code": 6026,
+      "name": "CloakSignatureInvalid",
+      "msg": "Cloak oracle signature invalid or message mismatch"
+    },
+    {
+      "code": 6027,
+      "name": "CloakBatchIdMismatch",
+      "msg": "batch_id in attestation does not match expected commitment"
+    },
+    {
+      "code": 6028,
+      "name": "CloakPayoutNotConfirmed",
+      "msg": "Cloak result byte is not 0x01 (batch not confirmed by oracle)"
     }
   ],
   "types": [
@@ -2369,6 +2626,64 @@
       }
     },
     {
+      "name": "EncryptLoanHealth",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "loan",
+            "type": "pubkey"
+          },
+          {
+            "name": "score_commitment",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "encrypt_oracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "EncryptStatus"
+              }
+            }
+          },
+          {
+            "name": "default_proven_ts",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EncryptStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Verified"
+          },
+          {
+            "name": "DefaultProven"
+          }
+        ]
+      }
+    },
+    {
       "name": "GlobalConfig",
       "type": {
         "kind": "struct",
@@ -2409,10 +2724,16 @@
         "fields": [
           {
             "name": "loan",
+            "docs": [
+              "The Loan PDA this collateral secures."
+            ],
             "type": "pubkey"
           },
           {
             "name": "dwallet_id",
+            "docs": [
+              "IKA dWallet identifier (32-byte key on the IKA / dWallet Network)."
+            ],
             "type": {
               "array": [
                 "u8",
@@ -2422,10 +2743,16 @@
           },
           {
             "name": "chain_id",
+            "docs": [
+              "Chain where the real asset lives: 0 = BTC, 1 = ETH."
+            ],
             "type": "u8"
           },
           {
             "name": "collateral_amount_usd",
+            "docs": [
+              "USD value of locked collateral in micro-USD (1 USD = 1_000_000)."
+            ],
             "type": "u64"
           },
           {
@@ -2438,10 +2765,16 @@
           },
           {
             "name": "oracle_pubkey",
+            "docs": [
+              "Ed25519 public key of the IKA oracle that must sign the attestation."
+            ],
             "type": "pubkey"
           },
           {
             "name": "locked_ts",
+            "docs": [
+              "Unix timestamp when the oracle confirmed the lock (0 until Locked)."
+            ],
             "type": "i64"
           },
           {
@@ -2784,6 +3117,69 @@
           {
             "name": "timestamp",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CloakPayoutRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "cloak_oracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "batch_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "total_shielded_amount",
+            "type": "u64"
+          },
+          {
+            "name": "yield_epoch_ts",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "CloakPayoutStatus"
+              }
+            }
+          },
+          {
+            "name": "confirmed_ts",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CloakPayoutStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Shielded"
           }
         ]
       }

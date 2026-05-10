@@ -45,4 +45,22 @@ pub enum PrismError {
     OracleNotAllowlisted,
     #[msg("Collateral account is already active and cannot be re-attached")]
     CollateralAlreadyActive,
+    // ── Encrypt FHE errors ──────────────────────────────────────────────────
+    #[msg("Encrypt health is already DefaultProven; cannot re-prove")]
+    EncryptAlreadyDefaultProven,
+    #[msg("Encrypt oracle signature invalid or message mismatch")]
+    EncryptSignatureInvalid,
+    #[msg("score_commitment in attestation does not match registered commitment")]
+    EncryptCommitmentMismatch,
+    #[msg("Encrypt FHE result byte is not 0x01 (default not proven by oracle)")]
+    EncryptDefaultNotProven,
+    // ── Cloak batch payout errors ───────────────────────────────────────────
+    #[msg("Cloak payout already recorded for this vault epoch")]
+    CloakPayoutAlreadyRecorded,
+    #[msg("Cloak oracle signature invalid or message mismatch")]
+    CloakSignatureInvalid,
+    #[msg("batch_id in attestation does not match expected commitment")]
+    CloakBatchIdMismatch,
+    #[msg("Cloak result byte is not 0x01 (batch not confirmed by oracle)")]
+    CloakPayoutNotConfirmed,
 }

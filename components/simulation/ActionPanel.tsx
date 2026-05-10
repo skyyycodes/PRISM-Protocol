@@ -15,9 +15,11 @@ import {
   Banknote,
   Flame,
   Landmark,
+  Lock,
   Play,
   RotateCcw,
   ShieldAlert,
+  ShieldCheck,
   TrendingDown,
   WalletCards,
 } from 'lucide-react';
@@ -25,9 +27,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import {
+  CLOAK_ORACLE_PUBKEY,
   DEFAULT_DEMO_LOAN_PRINCIPAL,
   DEFAULT_DEMO_LOSS_AMOUNT,
   DEFAULT_DEMO_YIELD_AMOUNT,
+  ENCRYPT_ORACLE_PUBKEY,
   TRANCHE_CONFIG,
   TrancheKind,
   USDC_MINT,
@@ -52,6 +56,13 @@ import { buildPrograms } from '@/app/lib/program';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import mmSecret from '@/contracts/keys/mm.json';
+import {
+  useAttachEncryptScore,
+  useEncryptHealth,
+  useVerifyEncryptDefault,
+} from '@/hooks/useEncryptHealth';
+import { useUpsertLoan } from '@/hooks/useActiveLoans';
+import { useCloakPayout, useRecordCloakPayout } from '@/hooks/useCloakPayout';
 import { useIdentity } from '@/hooks/useIdentity';
 import { useSimulationActions } from '@/hooks/useSimulationActions';
 import { useSimulationLog } from '@/hooks/useSimulationLog';
@@ -92,6 +103,8 @@ export function ActionPanel() {
   const [lossAmount, setLossAmount] = useState(formatUsdc(DEFAULT_DEMO_LOSS_AMOUNT));
   const [loanAmount, setLoanAmount] = useState('10.000000');
   const [swapAmount, setSwapAmount] = useState('10.000000');
+
+  const upsertLoan = useUpsertLoan();
 
   const investorTranche =
     identity.role === 'senior'
@@ -180,6 +193,30 @@ export function ActionPanel() {
 
   async function afterMutation() {
     await queryClient.invalidateQueries({ queryKey: ['vault-state'] });
+  }
+
+  async function syncLoanToDb(loanId: number) {
+    try {
+      const { core } = buildPrograms(connection, identity.keypair);
+      const [vaultPda] = getVaultPda(VAULT_ID, core.programId);
+      const [loanPda] = getLoanPda(vaultPda, loanId, core.programId);
+      const loan = await core.account.loan.fetchNullable(loanPda);
+      if (!loan) return;
+      const stateKey = Object.keys(loan.state as Record<string, unknown>)[0] ?? 'Originated';
+      await upsertLoan.mutateAsync({
+        loanId,
+        pda: loanPda.toBase58(),
+        borrower: loan.borrower.toBase58(),
+        principal: BigInt(loan.principal.toString()),
+        aprBps: loan.aprBps,
+        originationTs: Number(loan.originationTs.toString()),
+        maturityTs: Number(loan.maturityTs.toString()),
+        state: stateKey,
+        totalRepaid: BigInt(loan.totalRepaid.toString()),
+      });
+    } catch {
+      // non-critical — UI still works without DB sync
+    }
   }
 
   const deposit = useMutation({
@@ -317,6 +354,125 @@ export function ActionPanel() {
     onError: (error) => toast.error(formatError(error)),
   });
 
+  // ── Encrypt FHE flow ─────────────────────────────────────────────────────
+  const verifyEncryptDefault = useVerifyEncryptDefault();
+  const attachEncryptScore = useAttachEncryptScore();
+  const encryptHealth = useEncryptHealth(common.loan);
+
+  /**
+   * Borrower's deterministic Encrypt-sealed-data commitment for the demo.
+   * In production this is sha256 of the ciphertext returned by the Encrypt SDK
+   * after sealing the borrower's credit data with the FHE oracle's pubkey.
+   * For the demo we derive it deterministically from the borrower pubkey so it
+   * matches whatever the mock oracle expects.
+   */
+  async function deriveDemoCommitment(): Promise<Uint8Array> {
+    const borrowerKey = new Uint8Array(
+      identity.identities.borrower.keypair.publicKey.toBytes(),
+    );
+    const subtle = globalThis.crypto?.subtle ?? null;
+    if (subtle) {
+      const digest = await subtle.digest('SHA-256', borrowerKey);
+      return new Uint8Array(digest);
+    }
+    // Node fallback (SSR / API tests)
+    const { createHash } = await import('node:crypto');
+    return new Uint8Array(createHash('sha256').update(borrowerKey).digest());
+  }
+
+  const attachFheScore = useMutation({
+    mutationFn: async () => {
+      const borrower = identity.identities.borrower.keypair;
+      const commitment = await deriveDemoCommitment();
+      await attachEncryptScore.mutateAsync({
+        borrower,
+        loanPda: common.loan,
+        configPda: common.config,
+        commitment,
+        encryptOracle: ENCRYPT_ORACLE_PUBKEY,
+      });
+    },
+    onError: (error) => toast.error(formatError(error)),
+  });
+
+  const verifyDefaultViaFhe = useMutation({
+    mutationFn: async () => {
+      const admin = identity.identities.admin.keypair;
+      const programs = buildPrograms(connection, admin);
+      const [encryptHealthPda] = (await import('@/app/lib/pda')).getEncryptHealthPda(
+        common.loan,
+        programs.core.programId,
+      );
+      const healthAcc = await programs.core.account.encryptLoanHealth.fetchNullable(
+        encryptHealthPda,
+      );
+      if (!healthAcc) {
+        throw new Error(
+          'No FHE health record found. The borrower must run "Attach FHE Score" first.',
+        );
+      }
+      const seq = Number(toBigInt(vaultState.data?.vault?.creditEventSeq ?? 0));
+      const before = await snapshot(admin, TrancheKind.Alpha);
+      const result = await verifyEncryptDefault.mutateAsync({
+        signer: admin,
+        loanPubkey: common.loan,
+        scoreCommitment: new Uint8Array(healthAcc.scoreCommitment as number[]),
+        configPda: common.config,
+        vaultPda: common.vault,
+        tranchePrimePda: getTranchePda(common.vault, TrancheKind.Prime, programs.core.programId)[0],
+        trancheCorePda: getTranchePda(common.vault, TrancheKind.Core, programs.core.programId)[0],
+        trancheAlphaPda: getTranchePda(common.vault, TrancheKind.Alpha, programs.core.programId)[0],
+        vaultReservePda: common.reserve,
+        lossBucketPda: common.lossBucket,
+        creditEventPda: getCreditEventPda(common.vault, seq, programs.core.programId)[0],
+        lossAmount: parseUsdc(lossAmount),
+        severityBps: 5000,
+      });
+      const after = await snapshot(admin, TrancheKind.Alpha);
+      recordSuccess(
+        'Encrypt FHE — Default Proven',
+        'Protocol Admin',
+        before,
+        after,
+        await navSnapshot(),
+        result.signature,
+      );
+    },
+    onSuccess: afterMutation,
+    onError: (error) => toast.error(formatError(error)),
+  });
+
+  // ── Cloak shielded payout flow ───────────────────────────────────────────
+  const cloakPayout = useCloakPayout(common.vault);
+  const recordCloakPayout = useRecordCloakPayout();
+
+  const shieldYieldViaCloak = useMutation({
+    mutationFn: async () => {
+      const totalShieldedAmount = parseUsdc(yieldAmount);
+      const admin = identity.identities.admin.keypair;
+      const before = await snapshot(admin, TrancheKind.Prime);
+
+      const result = await recordCloakPayout.mutateAsync({
+        signer: admin,
+        vaultPda: common.vault,
+        configPda: common.config,
+        totalShieldedAmount,
+      });
+
+      const after = await snapshot(admin, TrancheKind.Prime);
+      recordSuccess(
+        'Cloak — Shield Yield Batch',
+        'Protocol Admin',
+        before,
+        after,
+        await navSnapshot(),
+        result.signature,
+      );
+    },
+    onSuccess: afterMutation,
+    onError: (error) => toast.error(formatError(error)),
+  });
+
   async function sellOnAmm(signer: Keypair, kind: TrancheKind, amount: bigint, label: string) {
     const programs = buildPrograms(connection, signer);
     const before = await snapshot(signer, kind);
@@ -380,7 +536,10 @@ export function ActionPanel() {
       const after = await snapshot(borrower, TrancheKind.Prime);
       recordSuccess('Borrower Disbursement (admin-authorized)', 'Borrower', before, after, await navSnapshot(), signature);
     },
-    onSuccess: afterMutation,
+    onSuccess: async () => {
+      await afterMutation();
+      await syncLoanToDb(0);
+    },
     onError: (error) => toast.error(formatError(error)),
   });
 
@@ -408,7 +567,10 @@ export function ActionPanel() {
       const after = await snapshot(borrower, TrancheKind.Prime);
       recordSuccess('Borrower Repay Loan', 'Borrower', before, after, await navSnapshot(), signature);
     },
-    onSuccess: afterMutation,
+    onSuccess: async () => {
+      await afterMutation();
+      await syncLoanToDb(0);
+    },
     onError: (error) => toast.error(formatError(error)),
   });
 
@@ -424,7 +586,11 @@ export function ActionPanel() {
 
       if (!(await programs.core.account.globalConfig.fetchNullable(config))) {
         await programs.core.methods
-          .initializeGlobalConfig(0, [identity.identities.borrower.keypair.publicKey])
+          .initializeGlobalConfig(0, [
+            identity.identities.borrower.keypair.publicKey,
+            ENCRYPT_ORACLE_PUBKEY,
+            CLOAK_ORACLE_PUBKEY,
+          ])
           .accounts({
             admin: admin.publicKey,
             config,
@@ -558,7 +724,10 @@ export function ActionPanel() {
         deltas: {},
       });
     },
-    onSuccess: afterMutation,
+    onSuccess: async () => {
+      await afterMutation();
+      await syncLoanToDb(0);
+    },
     onError: (error) => toast.error(formatError(error)),
   });
 
@@ -574,6 +743,8 @@ export function ActionPanel() {
     });
   }, [mutateYield, mutateDefault, mutateMarket, registerActions]);
 
+  const cloakAlreadyShielded = cloakPayout.data?.status === 'Shielded';
+
   const busy =
     deposit.isPending ||
     withdraw.isPending ||
@@ -583,7 +754,13 @@ export function ActionPanel() {
     marketReaction.isPending ||
     disburse.isPending ||
     repay.isPending ||
-    initialize.isPending;
+    initialize.isPending ||
+    attachFheScore.isPending ||
+    verifyDefaultViaFhe.isPending ||
+    verifyEncryptDefault.isPending ||
+    attachEncryptScore.isPending ||
+    shieldYieldViaCloak.isPending ||
+    recordCloakPayout.isPending;
 
   return (
     <section className="rounded-lg border border-white/10 bg-black/30 p-5" aria-label="Action panel">
@@ -646,6 +823,33 @@ export function ActionPanel() {
               </Button>
             </div>
           </div>
+          <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/[0.04] p-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-white">
+              <Lock className="h-4 w-4 text-emerald-300" />
+              Encrypt FHE credit score
+            </div>
+            <p className="mt-1 text-xs text-white/55">
+              Register a sha256 commitment of your Encrypt-sealed credit data on-chain. The
+              actual score never leaves your device — the FHE oracle proves default conditions
+              homomorphically.
+            </p>
+            <div className="mt-3">
+              <Button
+                disabled={busy}
+                variant="outline"
+                onClick={() => attachFheScore.mutate()}
+                className="w-full gap-2"
+              >
+                <Lock className="h-4 w-4" />
+                {encryptHealth.data ? 'Re-attach FHE Score' : 'Attach FHE Score'}
+              </Button>
+            </div>
+            {encryptHealth.data ? (
+              <div className="mt-3 font-mono text-[11px] text-white/55">
+                Status: <span className="text-emerald-300">{encryptHealth.data.status}</span>
+              </div>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
@@ -668,6 +872,57 @@ export function ActionPanel() {
                 <ShieldAlert className="h-4 w-4" />
                 Trigger Default
               </Button>
+            </div>
+            <div className="mt-3">
+              <Button
+                disabled={busy || !encryptHealth.data}
+                variant="outline"
+                onClick={() => verifyDefaultViaFhe.mutate()}
+                className="w-full gap-2 border-emerald-300/30 text-emerald-200 hover:bg-emerald-300/10"
+                title={
+                  encryptHealth.data
+                    ? 'Verifies an Encrypt FHE attestation on-chain and atomically cascades losses'
+                    : 'Borrower must Attach FHE Score before this becomes available'
+                }
+              >
+                {verifyDefaultViaFhe.isPending ? (
+                  <>
+                    <ShieldCheck className="h-4 w-4 animate-pulse" />
+                    Awaiting Encrypt FHE oracle…
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="h-4 w-4" />
+                    Verify Default via FHE (Encrypt)
+                  </>
+                )}
+              </Button>
+              {!encryptHealth.data ? (
+                <p className="mt-1 font-mono text-[10px] text-white/40">
+                  Borrower must run Attach FHE Score first.
+                </p>
+              ) : null}
+            </div>
+            <div className="mt-3">
+              <Button
+                disabled={busy || cloakAlreadyShielded}
+                variant="outline"
+                onClick={() => shieldYieldViaCloak.mutate()}
+                className="w-full gap-2 border-sky-300/30 text-sky-200 hover:bg-sky-300/10"
+                title="Verifies Cloak oracle attestation and records a shielded batch payout"
+              >
+                <Lock className="h-4 w-4" />
+                {shieldYieldViaCloak.isPending
+                  ? 'Shielding Yield via Cloak…'
+                  : cloakAlreadyShielded
+                    ? 'Yield Already Shielded via Cloak'
+                    : 'Shield Yield via Cloak 🔒'}
+              </Button>
+              <p className="mt-1 font-mono text-[10px] text-white/40">
+                {cloakPayout.data
+                  ? `Cloak status: ${cloakPayout.data.status}`
+                  : 'No Cloak payout record yet.'}
+              </p>
             </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <Button disabled={busy} variant="outline" onClick={() => marketReaction.mutate()} className="w-full gap-2">

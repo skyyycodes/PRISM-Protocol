@@ -19,6 +19,7 @@ import {
 } from '@/app/lib/pda';
 import { buildPrograms } from '@/app/lib/program';
 import { useIdentity } from '@/hooks/useIdentity';
+import { useSelectedVaultId } from '@/hooks/useSelectedVault';
 
 async function tokenBalance(connection: import('@solana/web3.js').Connection, address: import('@solana/web3.js').PublicKey) {
   try {
@@ -29,9 +30,11 @@ async function tokenBalance(connection: import('@solana/web3.js').Connection, ad
   }
 }
 
-export function useVaultState(vaultId: number = VAULT_ID) {
+export function useVaultState(vaultIdOverride?: number) {
   const { connection } = useConnection();
   const { keypair } = useIdentity();
+  const { vaultId: contextVaultId } = useSelectedVaultId();
+  const vaultId = vaultIdOverride ?? contextVaultId;
 
   return useQuery({
     queryKey: ['vault-state', connection.rpcEndpoint, vaultId],

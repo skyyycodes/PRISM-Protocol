@@ -25,6 +25,7 @@ import { formatNavQ, formatUsdc, shortKey, stateName, toBigInt } from '@/app/lib
 import { EventTickerPanel } from '@/components/simulation/EventTickerPanel';
 import { useDeposit } from '@/hooks/useDeposit';
 import { useUserPosition } from '@/hooks/useUserPosition';
+import { useVaultList, type VaultEntry } from '@/hooks/useVaultRegistry';
 import { useVaultState } from '@/hooks/useVaultState';
 
 const TRANCHE_ORDER = [TrancheKind.Prime, TrancheKind.Core, TrancheKind.Alpha] as const;
@@ -147,6 +148,48 @@ function usePrismData(): PrismData {
     vaultCapital: trancheAssets > 0n ? trancheAssets : reserveBalance,
     yieldDistributed: sum(tranches.map((tranche) => tranche.cumulativeYield)),
     poolLiquidity: sum(tranches.map((tranche) => tranche.ammQuoteBalance)),
+    lossBucket: toBigInt(data?.lossBucketBalance ?? 0n),
+    isLoading: vaultQuery.isLoading,
+    error: vaultQuery.error instanceof Error ? vaultQuery.error : undefined,
+  };
+}
+
+function usePrismDataById(vaultId: number): PrismData {
+  const { connected, publicKey } = useWallet();
+  const vaultQuery = useVaultState(vaultId);
+  const data = vaultQuery.data;
+
+  const tranches: DashboardTranche[] = TRANCHE_ORDER.map((kind) => {
+    const config = TRANCHE_CONFIG[kind];
+    const live = data?.tranches.find((tranche) => tranche.kind === kind);
+    const meta = TRANCHE_META[kind];
+    return {
+      kind,
+      key: config.key,
+      label: meta.label,
+      totalAssets: live?.totalAssets ?? 0n,
+      totalSupply: live?.totalSupply ?? 0n,
+      navPerShareQ: live?.navPerShareQ ?? 0n,
+      cumulativeYield: live?.cumulativeYield ?? 0n,
+      cumulativeLoss: live?.cumulativeLoss ?? 0n,
+      ammQuoteBalance: live?.ammQuoteBalance ?? 0n,
+      ammTrancheBalance: live?.ammTrancheBalance ?? 0n,
+      pdaLabel: live ? shortKey(live.pda) : meta.token,
+    };
+  });
+
+  const trancheAssets = sum(tranches.map((t) => t.totalAssets));
+  const reserveBalance = toBigInt(data?.reserveBalance ?? 0n);
+
+  return {
+    connected,
+    walletLabel: connected && publicKey ? shortKey(publicKey) : 'Not connected',
+    vaultLabel: data ? shortKey(data.vaultPda) : `Vault #${vaultId}`,
+    vaultStatus: stateName(data?.vault?.state),
+    tranches,
+    vaultCapital: trancheAssets > 0n ? trancheAssets : reserveBalance,
+    yieldDistributed: sum(tranches.map((t) => t.cumulativeYield)),
+    poolLiquidity: sum(tranches.map((t) => t.ammQuoteBalance)),
     lossBucket: toBigInt(data?.lossBucketBalance ?? 0n),
     isLoading: vaultQuery.isLoading,
     error: vaultQuery.error instanceof Error ? vaultQuery.error : undefined,
@@ -652,6 +695,97 @@ function TrancheRows({ data }: { data: PrismData }) {
   );
 }
 
+function VaultCard({ entry }: { entry: VaultEntry }) {
+  const data = usePrismDataById(entry.vault_id);
+  const aprPrime = (entry.prime_bps / 100).toFixed(1);
+  const aprAlpha = (entry.alpha_bps / 100).toFixed(1);
+
+  return (
+    <div id={`vault-${entry.vault_id}`} className="scroll-mt-24">
+      <Card className="mt-12 overflow-hidden">
+        <div className="grid gap-6 border-b border-white/10 bg-white/[0.055] p-7 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Eyebrow>Vault #{entry.vault_id}</Eyebrow>
+              <Pill tone="green">{data.vaultStatus || 'Active'}</Pill>
+              <Pill>USDC</Pill>
+            </div>
+            <h2 className="mt-5 font-display text-4xl text-white">{entry.name}</h2>
+            <p className="mt-3 text-white/50">
+              Solana credit positions · {aprPrime}%–{aprAlpha}% APR range · USDC denominated
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-px border-l border-white/10 pl-7">
+            <div>
+              <Eyebrow>Vault TVL</Eyebrow>
+              <div className="mt-3 font-display text-4xl text-white">${formatUsdc(data.vaultCapital, 2)}</div>
+            </div>
+            <div>
+              <Eyebrow>Tranches</Eyebrow>
+              <div className="mt-3 font-display text-4xl text-white">3</div>
+            </div>
+          </div>
+        </div>
+        <div className="grid lg:grid-cols-[440px_minmax(0,1fr)]">
+          <div className="min-h-[520px] border-b border-white/10 p-7 lg:border-r lg:border-b-0">
+            <Eyebrow>The waterfall</Eyebrow>
+            <p className="mt-4 text-sm text-white/50">Cash flows top-down. Losses absorb bottom-up.</p>
+            <div className="mt-8">
+              <div className="mb-4 font-mono text-xs uppercase tracking-[0.24em] text-white/45">Cashflow</div>
+              <div className="relative pl-9 pr-7">
+                <div className="absolute bottom-3 left-3 top-0 border-l border-dashed border-white/30" />
+                <ArrowDown className="absolute left-1 bottom-0 h-4 w-4 text-white/45" strokeWidth={1.7} />
+                <div className="absolute bottom-3 right-0 top-0 border-r border-dashed border-[#c47f68]/55" />
+                <ArrowUp className="absolute -right-2 top-0 h-4 w-4 text-[#c47f68]" strokeWidth={1.7} />
+                {TRANCHE_ORDER.map((kind) => {
+                  const meta = TRANCHE_META[kind];
+                  const bps = kind === TrancheKind.Prime ? entry.prime_bps : kind === TrancheKind.Core ? entry.core_bps : entry.alpha_bps;
+                  const apyLabel = `${(bps / 100).toFixed(1)}%`;
+                  return (
+                    <div
+                      key={meta.label}
+                      className="relative mb-4 h-20 overflow-hidden rounded-lg text-white"
+                      style={{ backgroundColor: meta.soft }}
+                    >
+                      <div className="absolute inset-y-0 left-0 rounded-lg" style={{ width: `${meta.allocation}%`, backgroundColor: meta.color }} />
+                      <div className="relative flex h-full items-center justify-between gap-4 px-4 sm:px-5">
+                        <div className="min-w-0 [text-shadow:0_1px_8px_rgba(0,0,0,0.26)]">
+                          <div className="font-mono text-sm uppercase tracking-[0.22em] text-white sm:text-base sm:tracking-[0.26em]">{meta.label}</div>
+                          <div className="mt-3 text-sm text-white/90 sm:text-base">{meta.allocation}% filled</div>
+                        </div>
+                        <div className="font-mono text-3xl text-white drop-shadow-sm sm:text-4xl">{apyLabel}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="mt-5 flex justify-between text-xs text-white/50">
+              <span className="inline-flex items-center gap-1">Paid first <ArrowDown className="h-3 w-3" strokeWidth={1.7} /></span>
+              <span className="inline-flex items-center gap-1 text-[#c47f68]"><ArrowUp className="h-3 w-3" strokeWidth={1.7} /> Loss first</span>
+            </div>
+          </div>
+          <TrancheRows data={data} />
+        </div>
+        <div className="grid border-t border-white/10 bg-white/[0.055] md:grid-cols-5">
+          {[
+            ['Underlying', 'Solana credit + USDC'],
+            ['Originator', data.vaultLabel],
+            ['Maturity', `${entry.maturity_days}d`],
+            ['30d default rate', '0.00%'],
+            ['Details', <Link key="link" href={`/earn/vault/${entry.vault_id}`} className="text-white/60 hover:text-white transition-colors">Open vault →</Link>],
+          ].map(([label, value]) => (
+            <div key={String(label)} className="border-b border-white/10 p-6 md:border-r md:border-b-0">
+              <Eyebrow>{label}</Eyebrow>
+              <div className="mt-3 text-sm text-white">{value}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 const UPCOMING_VAULTS = [
   {
     label: 'Vault #1 · Queued',
@@ -719,6 +853,9 @@ function MoreVaultsComing() {
 
 export function PrismEarn() {
   const data = usePrismData();
+  const { data: registeredVaults, isLoading: vaultsLoading } = useVaultList();
+
+  const vaultCount = registeredVaults?.length ?? 0;
 
   return (
     <PageFrame>
@@ -733,96 +870,24 @@ export function PrismEarn() {
         </div>
         <div className="text-right">
           <Eyebrow>Vaults</Eyebrow>
-          <div className="mt-6 font-display text-6xl text-white">1</div>
+          <div className="mt-6 font-display text-6xl text-white">{vaultsLoading ? '…' : vaultCount}</div>
           <p className="mt-2 text-sm text-white/50">Active on Devnet</p>
         </div>
       </section>
 
-      <div id="vault-0" className="scroll-mt-24">
-      <Card className="mt-12 overflow-hidden">
-        <div className="grid gap-6 border-b border-white/10 bg-white/[0.055] p-7 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Eyebrow>Vault #0</Eyebrow>
-              <Pill tone="green">Active</Pill>
-              <Pill>USDC</Pill>
-            </div>
-            <h2 className="mt-5 font-display text-4xl text-white">PRISM Credit Vault</h2>
-            <p className="mt-3 text-white/50">Solana credit positions · transparent tranche accounting · USDC denominated</p>
-          </div>
-          <div className="grid grid-cols-2 gap-px border-l border-white/10 pl-7">
-            <div>
-              <Eyebrow>Vault TVL</Eyebrow>
-              <div className="mt-3 font-display text-4xl text-white">${formatUsdc(data.vaultCapital, 2)}</div>
-            </div>
-            <div>
-              <Eyebrow>Tranches</Eyebrow>
-              <div className="mt-3 font-display text-4xl text-white">3</div>
-            </div>
-          </div>
+      {/* Registered vaults */}
+      {registeredVaults && registeredVaults.length > 0 ? (
+        registeredVaults.map((entry) => <VaultCard key={entry.vault_id} entry={entry} />)
+      ) : (
+        <div className="mt-16 rounded-md border border-white/10 bg-white/[0.025] px-8 py-12 text-center">
+          <p className="font-mono text-xs uppercase tracking-widest text-white/30">No vaults registered</p>
+          <p className="mt-3 text-sm text-white/40">
+            Go to <Link href="/admin" className="underline hover:text-white/70">Admin → New Vault</Link> to initialize your first vault.
+          </p>
         </div>
-        <div className="grid lg:grid-cols-[440px_minmax(0,1fr)]">
-          <div className="min-h-[520px] border-b border-white/10 p-7 lg:border-r lg:border-b-0">
-            <Eyebrow>The waterfall</Eyebrow>
-            <p className="mt-4 text-sm text-white/50">Cash flows top-down. Losses absorb bottom-up.</p>
-            <div className="mt-8">
-              <div className="mb-4 font-mono text-xs uppercase tracking-[0.24em] text-white/45">Cashflow</div>
-              <div className="relative pl-9 pr-7">
-                <div className="absolute bottom-3 left-3 top-0 border-l border-dashed border-white/30" />
-                <ArrowDown className="absolute left-1 bottom-0 h-4 w-4 text-white/45" strokeWidth={1.7} />
-                <div className="absolute bottom-3 right-0 top-0 border-r border-dashed border-[#c47f68]/55" />
-                <ArrowUp className="absolute -right-2 top-0 h-4 w-4 text-[#c47f68]" strokeWidth={1.7} />
-                {TRANCHE_ORDER.map((kind) => {
-                  const meta = TRANCHE_META[kind];
-                  const apyLabel = `${Number.parseFloat(meta.apy).toFixed(1)}%`;
+      )}
 
-                  return (
-                    <div
-                      key={meta.label}
-                      className="relative mb-4 h-20 overflow-hidden rounded-lg text-white"
-                      style={{ backgroundColor: meta.soft }}
-                    >
-                      <div
-                        className="absolute inset-y-0 left-0 rounded-lg"
-                        style={{ width: `${meta.allocation}%`, backgroundColor: meta.color }}
-                      />
-                      <div className="relative flex h-full items-center justify-between gap-4 px-4 sm:px-5">
-                        <div className="min-w-0 [text-shadow:0_1px_8px_rgba(0,0,0,0.26)]">
-                          <div className="font-mono text-sm uppercase tracking-[0.22em] text-white sm:text-base sm:tracking-[0.26em]">{meta.label}</div>
-                          <div className="mt-3 text-sm text-white/90 sm:text-base">{meta.allocation}% filled</div>
-                        </div>
-                        <div className="font-mono text-3xl text-white drop-shadow-sm sm:text-4xl">{apyLabel}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="mt-5 flex justify-between text-xs text-white/50">
-              <span className="inline-flex items-center gap-1">Paid first <ArrowDown className="h-3 w-3" strokeWidth={1.7} /></span>
-              <span className="inline-flex items-center gap-1 text-[#c47f68]"><ArrowUp className="h-3 w-3" strokeWidth={1.7} /> Loss first</span>
-            </div>
-          </div>
-          <TrancheRows data={data} />
-        </div>
-        <div className="grid border-t border-white/10 bg-white/[0.055] md:grid-cols-5">
-          {[
-            ['Underlying', 'Solana credit + USDC'],
-            ['Originator', data.vaultLabel],
-            ['Weighted APY', 'Portfolio driven'],
-            ['30d default rate', '0.00%'],
-            ['Details', 'Open vault ->'],
-          ].map(([label, value]) => (
-            <div key={label} className="border-b border-white/10 p-6 md:border-r md:border-b-0">
-              <Eyebrow>{label}</Eyebrow>
-              <div className="mt-3 text-sm text-white">{value}</div>
-            </div>
-          ))}
-        </div>
-      </Card>
-      </div>
       <EarnGuideBanner />
-      <MoreVaultsComing />
     </PageFrame>
   );
 }

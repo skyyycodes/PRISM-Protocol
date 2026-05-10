@@ -3,6 +3,9 @@
 import { AlertTriangle, Database, Landmark, RefreshCw } from 'lucide-react';
 
 import { formatNavQ, formatUsdc, shortKey, stateName, toBigInt } from '@/app/lib/format';
+import { LoanList } from '@/components/simulation/LoanList';
+import { VaultSelector } from '@/components/simulation/VaultSelector';
+import { useSelectedVaultId } from '@/hooks/useSelectedVault';
 import { useVaultState } from '@/hooks/useVaultState';
 
 function Metric({ label, value, detail }: { label: string; value: string; detail?: string }) {
@@ -17,6 +20,7 @@ function Metric({ label, value, detail }: { label: string; value: string; detail
 
 export function VaultStateDashboard() {
   const vaultState = useVaultState();
+  const { vaultId } = useSelectedVaultId();
   const data = vaultState.data;
 
   if (vaultState.isLoading) {
@@ -49,11 +53,14 @@ export function VaultStateDashboard() {
               Vault State
             </div>
             <div className="mt-1 font-mono text-xs text-white/40">
-              {data ? shortKey(data.vaultPda) : 'No vault PDA'}
+              {data ? shortKey(data.vaultPda) : `Vault #${vaultId} not initialized`}
             </div>
           </div>
-          <div className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-xs uppercase text-white/70">
-            {stateName(data?.vault?.state)}
+          <div className="flex items-center gap-2">
+            <VaultSelector />
+            <div className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-xs uppercase text-white/70">
+              {stateName(data?.vault?.state)}
+            </div>
           </div>
         </div>
 
@@ -75,6 +82,8 @@ export function VaultStateDashboard() {
           />
         </div>
       </div>
+
+      <LoanList />
 
       <div className="grid gap-3 xl:grid-cols-3">
         {data?.tranches.map((tranche) => (
