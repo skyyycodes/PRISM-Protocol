@@ -32,7 +32,7 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 z-50 flex h-full w-[72px] flex-col items-center border-r border-white/[0.08] bg-[#070707] py-6">
+    <aside className="fixed left-0 top-0 z-50 flex h-full w-[72px] flex-col items-center border-r border-white/[0.05] bg-transparent py-6">
       {/* Logo */}
       <Link href="/dashboard" className="mb-10 flex h-10 w-10 items-center justify-center">
         <Image 
@@ -60,7 +60,7 @@ export function AppSidebar() {
               }`}
               title={item.label}
             >
-              <Icon className="h-5 w-5" strokeWidth={isActive ? 2 : 1.5} />
+              <Icon className="h-[22px] w-[22px]" strokeWidth={isActive ? 2 : 1.5} />
             </Link>
           );
         })}
@@ -77,7 +77,7 @@ export function AppSidebar() {
               className="group relative flex h-12 w-12 items-center justify-center text-white/30 transition-all duration-300 hover:text-white"
               title={item.label}
             >
-              <Icon className="h-5 w-5" strokeWidth={1.5} />
+              <Icon className="h-[22px] w-[22px]" strokeWidth={1.5} />
             </Link>
           );
         })}
