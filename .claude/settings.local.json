@@ -79,7 +79,8 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\manov\\\\Desktop\\\\code\\\\PRISM-Protocol\" -Directory)",
       "Bash(Select-Object Name)",
       "Bash(pnpm lint *)",
-      "Bash(git merge *)"
+      "Bash(git merge *)",
+      "Bash(git stash *)"
     ]
   }
 }
