@@ -275,33 +275,33 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
       <div className="rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-6 space-y-6">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-white">IKA Collateral</h3>
-          <span className={`rounded-full border px-3 py-1 text-[10px] font-mono uppercase tracking-wider ${STATUS_COLORS[collateral.status]?.replace('bg-yellow-100', 'bg-yellow-500/10').replace('text-yellow-800', 'text-yellow-400').replace('border-yellow-200', 'border-yellow-500/30').replace('bg-green-100', 'bg-green-500/10').replace('text-green-800', 'text-green-400').replace('border-green-200', 'border-green-500/30').replace('bg-blue-100', 'bg-blue-500/10').replace('text-blue-800', 'text-blue-400').replace('border-blue-200', 'border-blue-500/30').replace('bg-red-100', 'bg-red-500/10').replace('text-red-800', 'text-red-400').replace('border-red-200', 'border-red-500/30') ?? ''}`}>
+          <span className={`rounded-full border px-3 py-1 text-xs font-mono uppercase tracking-wider ${STATUS_COLORS[collateral.status]?.replace('bg-yellow-100', 'bg-yellow-500/10').replace('text-yellow-800', 'text-yellow-400').replace('border-yellow-200', 'border-yellow-500/30').replace('bg-green-100', 'bg-green-500/10').replace('text-green-800', 'text-green-400').replace('border-green-200', 'border-green-500/30').replace('bg-blue-100', 'bg-blue-500/10').replace('text-blue-800', 'text-blue-400').replace('border-blue-200', 'border-blue-500/30').replace('bg-red-100', 'bg-red-500/10').replace('text-red-800', 'text-red-400').replace('border-red-200', 'border-red-500/30') ?? ''}`}>
             {collateral.status}
           </span>
         </div>
 
         <div className="grid grid-cols-2 gap-6">
           <div className="space-y-1">
-            <div className="text-[10px] uppercase tracking-wider text-white/40">dWallet ID</div>
+            <div className="text-xs uppercase tracking-wider text-white/40">dWallet ID</div>
             <div className="font-mono text-xs text-white/80 truncate" title={dwalletHex}>
               {dwalletHex.slice(0, 16)}…
             </div>
           </div>
 
           <div className="space-y-1">
-            <div className="text-[10px] uppercase tracking-wider text-white/40">Chain</div>
+            <div className="text-xs uppercase tracking-wider text-white/40">Chain</div>
             <div className="text-sm text-white/80">{CHAIN_LABELS[collateral.chainId as IkaChain]}</div>
           </div>
 
           <div className="space-y-1">
-            <div className="text-[10px] uppercase tracking-wider text-white/40">Collateral (USD)</div>
+            <div className="text-xs uppercase tracking-wider text-white/40">Collateral (USD)</div>
             <div className="text-lg font-display text-white">
               ${(Number(collateral.collateralAmountUsd) / 1_000_000).toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
           </div>
 
           <div className="space-y-1">
-            <div className="text-[10px] uppercase tracking-wider text-white/40">Oracle</div>
+            <div className="text-xs uppercase tracking-wider text-white/40">Oracle</div>
             <div className="font-mono text-xs text-white/60 truncate" title={collateral.oraclePubkey.toBase58()}>
               {collateral.oraclePubkey.toBase58().slice(0, 12)}…
             </div>
@@ -310,7 +310,7 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
 
         <div className="pt-4 border-t border-white/5">
           {collateral.lockedTs > 0 && (
-            <div className="flex items-center justify-between text-[11px]">
+            <div className="flex items-center justify-between text-sm">
               <span className="text-white/40">Locked at</span>
               <span className="text-white/30">{new Date(collateral.lockedTs * 1000).toLocaleString()}</span>
             </div>
@@ -323,7 +323,7 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
             <div className="space-y-4">
             <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/[0.03] p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-semibold text-yellow-500">
+                <div className="flex items-center gap-2 text-xs uppercase tracking-wider font-semibold text-yellow-500">
                   <div className="h-1.5 w-1.5 rounded-full bg-yellow-500 animate-pulse" />
                   Phase 3 — Funding & Monitoring
                 </div>
@@ -337,17 +337,17 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
                   </p>
 
                   <div className="space-y-2">
-                    <div className="text-[10px] uppercase tracking-wider text-white/30 font-medium">Deposit Address</div>
+                    <div className="text-xs uppercase tracking-wider text-white/30 font-medium">Deposit Address</div>
                     {depositAddressError ? (
                       <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/[0.05] p-4 space-y-3">
-                        <p className="text-[11px] text-yellow-400/80 leading-relaxed font-mono">
+                        <p className="text-sm text-yellow-400/80 leading-relaxed font-mono">
                           {depositAddressError}
                         </p>
                         {depositAddressError.includes('NetworkRejectedDKGVerification') && (
                           <button
                             onClick={handleCreateDwallet}
                             disabled={isCreatingDwallet}
-                            className="flex items-center gap-2 rounded-lg bg-yellow-500/20 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-yellow-500 hover:bg-yellow-500/30 transition-all disabled:opacity-50"
+                            className="flex items-center gap-2 rounded-lg bg-yellow-500/20 px-3 py-2 text-xs font-bold uppercase tracking-wider text-yellow-500 hover:bg-yellow-500/30 transition-all disabled:opacity-50"
                           >
                             {isCreatingDwallet ? (
                               <div className="h-3 w-3 animate-spin rounded-full border-2 border-yellow-500/20 border-t-yellow-500" />
@@ -360,11 +360,11 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
                     ) : (
                       <div className="flex items-center gap-2 rounded-lg border border-white/5 bg-black/20 p-3">
                         <div className="flex flex-col gap-1 flex-1">
-                          <span className="font-mono text-[11px] text-white/80 break-all">
+                          <span className="font-mono text-sm text-white/80 break-all">
                             {isFetchingAddress ? 'Resolving vault (approx. 60-90s)…' : depositAddress || '—'}
                           </span>
                           {isFetchingAddress && (
-                            <span className="text-[9px] text-yellow-500/50 animate-pulse font-medium uppercase tracking-tight">
+                            <span className="text-xs text-yellow-500/50 animate-pulse font-medium uppercase tracking-tight">
                               Waiting for IKA Network DKG Finalization
                             </span>
                           )}
@@ -386,13 +386,13 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
                   </div>
 
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between text-[10px] uppercase tracking-wider">
+                    <div className="flex items-center justify-between text-xs uppercase tracking-wider">
                       <span className="text-white/30 font-medium">Monitoring Status</span>
                       <span className="text-yellow-500 animate-pulse">Active</span>
                     </div>
                     <div className="space-y-1.5">
                       <Progress value={isPolling ? 66 : 33} className="h-1.5 bg-white/5" />
-                      <div className="flex justify-between text-[9px] text-white/20 font-mono">
+                      <div className="flex justify-between text-xs text-white/20 font-mono">
                         <span>Waiting for Tx</span>
                         <span>Confirming</span>
                         <span>Verified</span>
@@ -419,7 +419,7 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
                         }}
                       />
                     </div>
-                    <span className="text-[9px] text-white/30 uppercase tracking-widest font-semibold mt-1">Scan to Fund</span>
+                    <span className="text-xs text-white/30 uppercase tracking-widest font-semibold mt-1">Scan to Fund</span>
                   </div>
                 )}
               </div>
@@ -465,18 +465,18 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-bold text-white tracking-tight">Collateral successfully registered and secured.</h3>
-                  <p className="mt-1 text-[11px] text-white/40 leading-relaxed max-w-xl">
+                  <p className="mt-1 text-sm text-white/40 leading-relaxed max-w-xl">
                     Your {CHAIN_LABELS[collateral.chainId as IkaChain]} collateral has been locked and verified through the IKA custody flow. 
                     Your credit facility is now fully secured and awaiting final USDC disbursement from the vault.
                   </p>
                   <div className="mt-4 flex items-center gap-6">
                     <div className="flex flex-col">
-                      <span className="font-mono text-[8px] uppercase tracking-widest text-white/20">Custody Confirmation</span>
-                      <span className="font-mono text-[10px] text-emerald-400/80 mt-0.5">Verified by IKA Oracle</span>
+                      <span className="font-mono text-xs uppercase tracking-widest text-white/20">Custody Confirmation</span>
+                      <span className="font-mono text-xs text-emerald-400/80 mt-0.5">Verified by IKA Oracle</span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="font-mono text-[8px] uppercase tracking-widest text-white/20">Secured At</span>
-                      <span className="font-mono text-[10px] text-white/50 mt-0.5">
+                      <span className="font-mono text-xs uppercase tracking-widest text-white/20">Secured At</span>
+                      <span className="font-mono text-xs text-white/50 mt-0.5">
                         {new Date(Number(collateral.lockedTs) * 1000).toLocaleString()}
                       </span>
                     </div>
@@ -491,10 +491,10 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
               {/* Facility Readiness Panel */}
               <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-5 space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-white/[0.05]">
-                  <div className="font-mono text-[8px] uppercase tracking-widest text-white/30">Facility Readiness</div>
+                  <div className="font-mono text-xs uppercase tracking-widest text-white/30">Facility Readiness</div>
                   <div className="flex items-center gap-1.5">
                     <div className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="font-mono text-[8px] uppercase tracking-widest text-emerald-400/70">Ready</span>
+                    <span className="font-mono text-xs uppercase tracking-widest text-emerald-400/70">Ready</span>
                   </div>
                 </div>
                 <div className="space-y-3">
@@ -507,9 +507,9 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
                     <div key={idx} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <item.icon className="h-3 w-3 text-white/20" />
-                        <span className="font-mono text-[9px] uppercase tracking-widest text-white/30">{item.label}</span>
+                        <span className="font-mono text-xs uppercase tracking-widest text-white/30">{item.label}</span>
                       </div>
-                      <span className={cn("font-mono text-[10px]", item.ok ? "text-emerald-400/60" : "text-white/60")}>{item.value}</span>
+                      <span className={cn("font-mono text-xs", item.ok ? "text-emerald-400/60" : "text-white/60")}>{item.value}</span>
                     </div>
                   ))}
                 </div>
@@ -517,7 +517,7 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
 
               {/* Funding Pipeline Tracker */}
               <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-5 space-y-4">
-                <div className="font-mono text-[8px] uppercase tracking-widest text-white/30 pb-2 border-b border-white/[0.05]">Funding Pipeline</div>
+                <div className="font-mono text-xs uppercase tracking-widest text-white/30 pb-2 border-b border-white/[0.05]">Funding Pipeline</div>
                 <div className="space-y-3 relative">
                   {[
                     { label: 'Credit Approval', status: 'done' as const },
@@ -535,7 +535,7 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
                         {step.status === 'done' ? <CheckCircle2 className="h-2.5 w-2.5" /> : <div className={cn("h-1 w-1 rounded-full", step.status === 'active' ? "bg-white" : "bg-white/10")} />}
                       </div>
                       <span className={cn(
-                        "font-mono text-[9px] uppercase tracking-wider",
+                        "font-mono text-xs uppercase tracking-wider",
                         step.status === 'done' ? "text-emerald-400/50" : step.status === 'active' ? "text-white/70" : "text-white/10"
                       )}>
                         {step.label}
@@ -553,13 +553,13 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
                   <Clock className="h-5 w-5 text-amber-400/40 shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-amber-200/80 uppercase tracking-wider">Disbursement Execution Pending</span>
-                      <span className="font-mono text-[9px] text-amber-500/50">Next: Admin Action</span>
+                      <span className="text-sm font-bold text-amber-200/80 uppercase tracking-wider">Disbursement Execution Pending</span>
+                      <span className="font-mono text-xs text-amber-500/50">Next: Admin Action</span>
                     </div>
-                    <p className="mt-1.5 text-[11px] leading-relaxed text-white/40 max-w-xl">
+                    <p className="mt-1.5 text-sm leading-relaxed text-white/40 max-w-xl">
                       <span className="text-amber-200/60 font-bold uppercase tracking-tight">Important:</span> USDC has not yet been transferred to your wallet. Funding occurs after the final vault disbursement execution by the Protocol Admin.
                     </p>
-                    <div className="mt-4 flex items-center gap-2 text-[10px] text-white/20">
+                    <div className="mt-4 flex items-center gap-2 text-xs text-white/20">
                       <Activity className="h-3 w-3" />
                       <span>Your collateral is now protecting the credit facility. Repayment controls will activate once the loan enters <span className="text-white/40 font-bold italic">Active</span> status.</span>
                     </div>
@@ -572,18 +572,18 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
                   <BadgeCheck className="h-5 w-5 text-emerald-400/40 shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-emerald-200/80 uppercase tracking-wider">Facility Fully Funded</span>
-                      <span className="font-mono text-[9px] text-emerald-500/50">Status: Active</span>
+                      <span className="text-sm font-bold text-emerald-200/80 uppercase tracking-wider">Facility Fully Funded</span>
+                      <span className="font-mono text-xs text-emerald-500/50">Status: Active</span>
                     </div>
-                    <p className="mt-1.5 text-[11px] leading-relaxed text-white/40 max-w-xl">
+                    <p className="mt-1.5 text-sm leading-relaxed text-white/40 max-w-xl">
                       USDC principal has been disbursed to your wallet. Your credit facility is now active and accruing interest according to the protocol schedule.
                     </p>
                     <div className="mt-4 flex items-center gap-4">
-                      <div className="flex items-center gap-2 text-[10px] text-white/20">
+                      <div className="flex items-center gap-2 text-xs text-white/20">
                         <Activity className="h-3 w-3" />
                         <span>Interest Accruing</span>
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] text-white/20">
+                      <div className="flex items-center gap-2 text-xs text-white/20">
                         <Wallet className="h-3 w-3" />
                         <span>USDC Delivered</span>
                       </div>
@@ -598,11 +598,11 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
               <div className="mt-5 space-y-4">
                 <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-5">
                   <div className="flex items-center justify-between mb-4">
-                    <span className="font-mono text-[10px] text-white/40 uppercase tracking-widest">Active Repayment</span>
+                    <span className="font-mono text-xs text-white/40 uppercase tracking-widest">Active Repayment</span>
                     {fiatStatus?.status === 'pending' && (
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-                        <span className="font-mono text-[9px] text-amber-500/80 uppercase">Fiat Intent Pending</span>
+                        <span className="font-mono text-xs text-amber-500/80 uppercase">Fiat Intent Pending</span>
                       </div>
                     )}
                   </div>
@@ -616,7 +616,7 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
                         placeholder="Enter amount..."
                         className="w-full rounded-sm border border-white/[0.1] bg-black/40 px-3 py-2.5 font-mono text-xs text-white placeholder:text-white/10 focus:border-emerald-500/30 focus:outline-none transition-colors"
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[9px] text-white/20 uppercase">USDC</span>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs text-white/20 uppercase">USDC</span>
                     </div>
                     <button
                       disabled={repayMutation.isPending || !repayAmount}
@@ -628,7 +628,7 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
                         });
                         setRepayAmount('');
                       }}
-                      className="rounded-sm bg-emerald-500/80 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-emerald-950 hover:bg-emerald-400 disabled:opacity-50 transition-all"
+                      className="rounded-sm bg-emerald-500/80 px-4 py-2 text-xs font-bold uppercase tracking-widest text-emerald-950 hover:bg-emerald-400 disabled:opacity-50 transition-all"
                     >
                       {repayMutation.isPending ? 'Processing…' : 'Repay'}
                     </button>
@@ -636,20 +636,20 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
 
                   <div className="mt-4 flex items-center justify-between border-t border-white/[0.05] pt-4">
                     <div className="flex flex-col gap-0.5">
-                      <span className="font-mono text-[8px] text-white/20 uppercase">Total Repaid</span>
-                      <span className="font-mono text-[11px] text-emerald-400/60">
+                      <span className="font-mono text-xs text-white/20 uppercase">Total Repaid</span>
+                      <span className="font-mono text-sm text-emerald-400/60">
                         ${loan ? (Number(loan.totalRepaid.toString()) / 1_000_000).toLocaleString() : '0.00'} USDC
                       </span>
                     </div>
                     <div className="flex flex-col items-center gap-0.5">
-                      <span className="font-mono text-[8px] text-white/20 uppercase">Accrued Interest</span>
-                      <span className="font-mono text-[11px] text-amber-400/60">
+                      <span className="font-mono text-xs text-white/20 uppercase">Accrued Interest</span>
+                      <span className="font-mono text-sm text-amber-400/60">
                         ${(Number(accruedInterest) / 1_000_000).toLocaleString(undefined, { minimumFractionDigits: 4 })} USDC
                       </span>
                     </div>
                     <div className="flex flex-col items-end gap-0.5">
-                      <span className="font-mono text-[8px] text-white/20 uppercase">Total Debt</span>
-                      <span className="font-mono text-[11px] text-white/60">
+                      <span className="font-mono text-xs text-white/20 uppercase">Total Debt</span>
+                      <span className="font-mono text-sm text-white/60">
                         ${(Number(totalDebt) / 1_000_000).toLocaleString()} USDC
                       </span>
                     </div>
@@ -663,7 +663,7 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
               <button
                 disabled={releaseMutation.isPending}
                 onClick={() => releaseMutation.mutate({ vaultId, loanId })}
-                className="w-full rounded-sm border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-blue-400 hover:bg-blue-500/20 transition-all disabled:opacity-50"
+                className="w-full rounded-sm border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm font-bold uppercase tracking-widest text-blue-400 hover:bg-blue-500/20 transition-all disabled:opacity-50"
               >
                 {releaseMutation.isPending ? 'Releasing…' : 'Release Collateral'}
               </button>
@@ -671,9 +671,9 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
               <div className="rounded-sm border border-white/[0.04] bg-white/[0.02] p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Shield className="h-4 w-4 text-white/10" />
-                  <span className="font-mono text-[10px] text-white/20 uppercase tracking-widest">Facility Protection Active</span>
+                  <span className="font-mono text-xs text-white/20 uppercase tracking-widest">Facility Protection Active</span>
                 </div>
-                <div className="font-mono text-[9px] text-white/20 italic">
+                <div className="font-mono text-xs text-white/20 italic">
                   Settlement required for collateral release
                 </div>
               </div>
@@ -747,7 +747,7 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.02] backdrop-blur-sm p-6 space-y-8">
       {/* Debug Info */}
-      <div className="p-2 bg-black/40 rounded border border-white/5 font-mono text-[8px] text-white/20 mb-4 break-all">
+      <div className="p-2 bg-black/40 rounded border border-white/5 font-mono text-xs text-white/20 mb-4 break-all">
         Vault: {vaultPda.toBase58()}<br/>
         Loan: {loanPda.toBase58()} (ID: {loanId})<br/>
         Prog: {PRISM_CORE_PROGRAM_ID.toBase58()}
@@ -764,7 +764,7 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
         {/* ── Step 1: IKA Wallet card — only shown when no dWallet exists yet ─ */}
         {!dwalletIdHex && (
           <div className="rounded-xl border border-purple-500/20 bg-purple-500/[0.03] p-5 space-y-4">
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-semibold text-purple-400">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider font-semibold text-purple-400">
               <div className="h-1 w-1 rounded-full bg-purple-400" />
               Step 1 — Create your IKA Wallet
             </div>
@@ -772,7 +772,7 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
             {suiAddress ? (
               <div className="space-y-2">
                 <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-black/20 px-4 py-2.5">
-                  <span className="flex-1 font-mono text-[11px] text-white/60 truncate">{suiAddress}</span>
+                  <span className="flex-1 font-mono text-sm text-white/60 truncate">{suiAddress}</span>
                   <button
                     type="button"
                     onClick={handleCopyAddress}
@@ -784,27 +784,27 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
                   <button
                     type="button"
                     onClick={() => disconnect()}
-                    className="text-[10px] text-white/20 hover:text-red-400 transition-colors"
+                    className="text-xs text-white/20 hover:text-red-400 transition-colors"
                   >
                     Disconnect
                   </button>
                 </div>
                 <div className="flex items-center gap-4 px-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] uppercase tracking-wider text-white/30">SUI</span>
+                    <span className="text-xs uppercase tracking-wider text-white/30">SUI</span>
                     <span className={`font-mono text-xs font-medium ${suiBalances && suiBalances.sui > 0 ? 'text-green-400' : 'text-white/40'}`}>
                       {suiBalances ? suiBalances.sui.toFixed(4) : '—'}
                     </span>
                   </div>
                   <div className="h-3 w-px bg-white/10" />
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] uppercase tracking-wider text-white/30">IKA</span>
+                    <span className="text-xs uppercase tracking-wider text-white/30">IKA</span>
                     <span className={`font-mono text-xs font-medium ${suiBalances && suiBalances.ika > 0 ? 'text-purple-400' : 'text-white/40'}`}>
                       {suiBalances ? suiBalances.ika.toFixed(4) : '—'}
                     </span>
                   </div>
                   {(!suiBalances || (suiBalances.sui === 0 && suiBalances.ika === 0)) && (
-                    <span className="ml-auto text-[10px] text-yellow-400/70">needs funding</span>
+                    <span className="ml-auto text-xs text-yellow-400/70">needs funding</span>
                   )}
                 </div>
               </div>
@@ -818,7 +818,7 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
                     <button
                       key={wallet.name}
                       onClick={() => connect({ wallet })}
-                      className="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[11px] font-medium text-white/70 hover:bg-white/[0.05] hover:text-white transition-all"
+                      className="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm font-medium text-white/70 hover:bg-white/[0.05] hover:text-white transition-all"
                     >
                       {wallet.icon && <img src={wallet.icon} alt="" className="h-3 w-3" />}
                       Connect {wallet.name}
@@ -869,7 +869,7 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
                   localStorage.setItem('prism_ika_dwallet', hex);
                   toast.success('Simulated dWallet ID ready (dev mode)');
                 }}
-                className="rounded-lg border border-yellow-500/30 bg-yellow-500/[0.08] px-3 py-2 text-[11px] font-medium text-yellow-400 hover:bg-yellow-500/[0.15] transition-all"
+                className="rounded-lg border border-yellow-500/30 bg-yellow-500/[0.08] px-3 py-2 text-sm font-medium text-yellow-400 hover:bg-yellow-500/[0.15] transition-all"
               >
                 Simulate
               </button>
@@ -885,12 +885,12 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
               IKA dWallet ready
             </span>
             <div className="flex items-center gap-4">
-              <span className="font-mono text-[11px] text-green-400/60">{dwalletIdHex.slice(0, 12)}…</span>
+              <span className="font-mono text-sm text-green-400/60">{dwalletIdHex.slice(0, 12)}…</span>
               <button
                 type="button"
                 onClick={handleCreateDwallet}
                 disabled={isCreatingDwallet}
-                className="text-[11px] text-green-400/40 hover:text-green-400 hover:underline disabled:opacity-50 transition-colors"
+                className="text-sm text-green-400/40 hover:text-green-400 hover:underline disabled:opacity-50 transition-colors"
               >
                 {isCreatingDwallet ? 'Recreating…' : 'Recreate'}
               </button>
@@ -900,14 +900,14 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
 
         {/* ── Register collateral ──────────────────────────────────────────── */}
         <div className="space-y-6">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-semibold text-white/40">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-wider font-semibold text-white/40">
             <div className="h-1 w-1 rounded-full bg-white/20" />
             {dwalletIdHex ? 'Register Collateral' : 'Step 2 — Register Collateral'}
           </div>
 
           <div className="grid sm:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="block text-[10px] uppercase tracking-wider font-medium text-white/40">Chain</label>
+              <label className="block text-xs uppercase tracking-wider font-medium text-white/40">Chain</label>
               <div className="relative">
                 <select
                   value={chainId}
@@ -922,7 +922,7 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
             </div>
 
             <div className="space-y-2">
-              <label className="block text-[10px] uppercase tracking-wider font-medium text-white/40">
+              <label className="block text-xs uppercase tracking-wider font-medium text-white/40">
                 Collateral Value (USD)
               </label>
               <div className="group relative">
@@ -941,7 +941,7 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
 
           {!dwalletIdHex && (
             <div className="space-y-2">
-              <label className="block text-[10px] uppercase tracking-wider font-medium text-white/40">
+              <label className="block text-xs uppercase tracking-wider font-medium text-white/40">
                 dWallet ID (optional)
               </label>
               <input
@@ -954,7 +954,7 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
           )}
 
           <div className="space-y-2">
-            <label className="block text-[10px] uppercase tracking-wider font-medium text-white/40">
+            <label className="block text-xs uppercase tracking-wider font-medium text-white/40">
               IKA Oracle Public Key
             </label>
             <input
@@ -964,7 +964,7 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
               className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 font-mono text-xs text-white focus:outline-none focus:ring-2 focus:ring-purple-500/40"
             />
             {oracleKey === TEST_ORACLE_PUBKEY && (
-              <p className="text-[10px] text-purple-400/60 px-1 italic">Using local test oracle</p>
+              <p className="text-xs text-purple-400/60 px-1 italic">Using local test oracle</p>
             )}
           </div>
         </div>

@@ -40,7 +40,7 @@ export function MarketHeader() {
       label: 'Total Protocol TVL',
       value: isLoading ? '---' : `$${formatUsdc(totalTvl, 0)}`,
       sub: '+2.4% last 24h',
-      subColor: 'text-emerald-400/70',
+      subColor: 'text-emerald-400/80',
       sparkIdx: 0,
       sparkColor: '#10b981'
     },
@@ -48,7 +48,7 @@ export function MarketHeader() {
       label: 'Active Credit',
       value: isLoading ? '---' : `$${formatUsdc(totalActiveCredit, 0)}`,
       sub: 'Structural utilization high',
-      subColor: 'text-white/30',
+      subColor: 'text-white/40',
       sparkIdx: 1,
       sparkColor: '#f59e0b'
     },
@@ -56,7 +56,7 @@ export function MarketHeader() {
       label: 'Avg Prime Yield',
       value: isLoading ? '---' : `${avgPrimeYield.toFixed(2)}%`,
       sub: 'Top-tier senior credit',
-      subColor: 'text-blue-400/70',
+      subColor: 'text-blue-400/80',
       sparkIdx: 2,
       sparkColor: '#3b82f6'
     },
@@ -64,7 +64,7 @@ export function MarketHeader() {
       label: 'Active Vaults',
       value: isLoading ? '---' : activeVaults.toString(),
       sub: 'Verified institutional pools',
-      subColor: 'text-white/30',
+      subColor: 'text-white/40',
       sparkIdx: 3,
       sparkColor: '#a855f7'
     }
@@ -73,13 +73,13 @@ export function MarketHeader() {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 overflow-hidden rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] divide-x divide-white/[0.08]">
       {stats.map((stat) => (
-        <div key={stat.label} className="group flex flex-col justify-between px-6 py-6 transition-colors hover:bg-white/[0.04] min-h-[140px]">
-          <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/30">
+        <div key={stat.label} className="group flex flex-col justify-between px-5 py-5 transition-colors hover:bg-white/[0.04]">
+          <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-white/40">
             {stat.label}
           </span>
-          
+
           <div className="mt-3 flex items-center justify-between gap-4">
-            <div className="font-mono text-3xl font-medium leading-none text-white/90 tabular-nums">
+            <div className="font-mono text-3xl font-medium leading-none text-white tabular-nums">
               {stat.value}
             </div>
             <Sparkline points={SPARKLINE_DATA[stat.sparkIdx]} color={stat.sparkColor} />

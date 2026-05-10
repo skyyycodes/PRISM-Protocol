@@ -74,9 +74,9 @@ function StatusBar() {
         >
           <div className="flex items-center gap-1.5">
             {dot && <div className={cn('h-1.5 w-1.5 rounded-full', dot)} />}
-            <span className="font-mono text-[8px] uppercase tracking-[0.2em] text-white/20">{label}</span>
+            <span className="font-mono text-xs uppercase tracking-[0.2em] text-white/20">{label}</span>
           </div>
-          <span className={cn('font-mono text-[11px] font-medium whitespace-nowrap', accent)}>
+          <span className={cn('font-mono text-sm font-medium whitespace-nowrap', accent)}>
             {value}
           </span>
         </div>
@@ -91,18 +91,18 @@ function PageHeader() {
   return (
     <div className="mb-6 flex items-end justify-between gap-4">
       <div>
-        <div className="mb-2 flex items-center gap-2">
-          <span className="rounded-sm border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 font-mono text-[8px] uppercase tracking-[0.22em] text-white/30">
+        <div className="mb-4 flex items-center gap-2">
+          <span className="rounded-sm border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 font-mono text-xs uppercase tracking-[0.22em] text-white/30">
             Structured Credit Terminal
           </span>
-          <span className="rounded-sm border border-white/[0.05] bg-white/[0.01] px-2.5 py-1 font-mono text-[8px] uppercase tracking-[0.22em] text-white/20">
+          <span className="rounded-sm border border-white/[0.05] bg-white/[0.01] px-2.5 py-1 font-mono text-xs uppercase tracking-[0.22em] text-white/20">
             IKA Collateral
           </span>
         </div>
         <h1 className="font-display text-4xl leading-none tracking-tight text-white">
           Credit Facility Application
         </h1>
-        <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/25">
+        <p className="mt-4 font-mono text-xs uppercase tracking-[0.18em] text-white/25">
           Institutional underwriting · Threshold custody · On-chain execution
         </p>
       </div>
@@ -114,7 +114,7 @@ function PageHeader() {
             window.location.reload();
           }
         }}
-        className="shrink-0 rounded-sm border border-white/[0.06] bg-white/[0.01] px-3 py-2 font-mono text-[8px] uppercase tracking-widest text-white/20 hover:border-white/10 hover:text-white/35 transition-colors"
+        className="shrink-0 rounded-sm border border-white/[0.06] bg-white/[0.01] px-3 py-2 font-mono text-xs uppercase tracking-widest text-white/20 hover:border-white/10 hover:text-white/35 transition-colors"
       >
         Reset Session
       </button>
@@ -125,8 +125,8 @@ function PageHeader() {
 // ─── Inner Layout (needs BorrowerProvider context) ────────────────────────────
 function BorrowerPageInner() {
   return (
-    <div data-app-scroll className="relative flex-1 overflow-y-auto px-5 py-8 [overscroll-behavior:contain]">
-      <div className="mx-auto w-full max-w-[1440px]">
+    <div data-app-scroll className="relative flex-1 overflow-y-auto px-4 pt-7 pb-4 [overscroll-behavior:contain]">
+      <div className="mx-auto w-full max-w-[1800px]">
         <PageHeader />
         <StatusBar />
 
@@ -140,13 +140,13 @@ function BorrowerPageInner() {
           {/* Right — Intelligence Panel */}
           <aside className="space-y-0">
             <div className="mb-3 flex items-center gap-2">
-              <span className="font-mono text-[8px] uppercase tracking-[0.22em] text-white/20">
+              <span className="font-mono text-xs uppercase tracking-[0.22em] text-white/20">
                 Live Intelligence
               </span>
               <div className="h-px flex-1 bg-white/[0.04]" />
               <div className="flex items-center gap-1.5">
                 <div className="h-1.5 w-1.5 rounded-full bg-emerald-500/60 animate-pulse" />
-                <span className="font-mono text-[8px] uppercase tracking-wider text-white/20">Live</span>
+                <span className="font-mono text-xs uppercase tracking-wider text-white/20">Live</span>
               </div>
             </div>
             <LoanIntelligencePanel />

@@ -235,7 +235,7 @@ export function LoanRepayment({ loanId, vaultId = VAULT_ID }: LoanRepaymentProps
 
         <TabsContent value="usdc" className="mt-4 space-y-4">
           <div className="space-y-2">
-            <label className="text-[10px] text-white/30 uppercase font-bold tracking-widest">
+            <label className="text-xs text-white/30 uppercase font-bold tracking-widest">
               Amount to Repay (USDC)
             </label>
             <div className="relative">
@@ -246,7 +246,7 @@ export function LoanRepayment({ loanId, vaultId = VAULT_ID }: LoanRepaymentProps
                 placeholder="0.00"
                 className="w-full bg-white/[0.03] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500/50 transition-colors"
               />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/20 uppercase">
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-white/20 uppercase">
                 USDC
               </div>
             </div>
@@ -267,7 +267,7 @@ export function LoanRepayment({ loanId, vaultId = VAULT_ID }: LoanRepaymentProps
             )}
           </button>
 
-          <p className="text-[10px] text-center text-white/30 leading-relaxed italic">
+          <p className="text-xs text-center text-white/30 leading-relaxed italic">
             Repayment will restore the vault&apos;s USDC reserves. Once fully repaid,
             your IKA collateral will be eligible for withdrawal.
           </p>
@@ -279,7 +279,7 @@ export function LoanRepayment({ loanId, vaultId = VAULT_ID }: LoanRepaymentProps
           {fiatStatus !== 'credited' ? (
             <>
               <div className="space-y-2">
-                <label className="text-[10px] text-white/30 uppercase font-bold tracking-widest">
+                <label className="text-xs text-white/30 uppercase font-bold tracking-widest">
                   Amount to Pay (USD)
                 </label>
                 <div className="relative">
@@ -295,7 +295,7 @@ export function LoanRepayment({ loanId, vaultId = VAULT_ID }: LoanRepaymentProps
                       dodoCheckout.isPending
                     }
                   />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/20 uppercase">
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-white/20 uppercase">
                     USD
                   </div>
                 </div>
@@ -320,7 +320,7 @@ export function LoanRepayment({ loanId, vaultId = VAULT_ID }: LoanRepaymentProps
                   </>
                 )}
               </button>
-              <p className="text-[10px] text-center text-white/30 italic">
+              <p className="text-xs text-center text-white/30 italic">
                 UPI, cards, and 40+ payment methods across 220+ countries via Dodo
                 Payments. Fiat is bridged to USDC server-side; you sign the final
                 on-chain settlement yourself.
@@ -332,7 +332,7 @@ export function LoanRepayment({ loanId, vaultId = VAULT_ID }: LoanRepaymentProps
                 <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <div className="font-semibold">Settled on-chain</div>
-                  <div className="text-[11px] opacity-80 mt-0.5">
+                  <div className="text-sm opacity-80 mt-0.5">
                     Your fiat payment has been bridged to USDC and the loan was
                     repaid on Solana. Vault reserve restored.
                   </div>
@@ -340,13 +340,13 @@ export function LoanRepayment({ loanId, vaultId = VAULT_ID }: LoanRepaymentProps
                     href={`https://explorer.solana.com/tx/${onChainTxSig}?cluster=devnet`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-2 inline-block break-all text-[11px] underline opacity-80 hover:opacity-100"
+                    className="mt-2 inline-block break-all text-sm underline opacity-80 hover:opacity-100"
                   >
                     {onChainTxSig?.slice(0, 24)}…
                   </a>
                 </div>
               </div>
-              <p className="text-[10px] text-center text-white/30 italic">
+              <p className="text-xs text-center text-white/30 italic">
                 If your loan is fully repaid, head back to the collateral panel
                 to release your IKA-attested collateral.
               </p>
@@ -391,7 +391,7 @@ function FiatStatusBanner({
       <div className="mt-0.5">{meta.icon}</div>
       <div className="flex-1">
         <div className="font-semibold">{meta.title}</div>
-        <div className="text-[11px] opacity-80">{meta.body}</div>
+        <div className="text-sm opacity-80">{meta.body}</div>
         {txSig ? (
           <a
             href={`https://explorer.solana.com/tx/${txSig}?cluster=devnet`}

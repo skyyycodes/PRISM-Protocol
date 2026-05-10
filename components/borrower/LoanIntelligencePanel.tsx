@@ -21,9 +21,9 @@ function PanelSection({ title, icon: Icon, children }: { title: string; icon: Re
     <div className="rounded-sm border border-white/[0.06] bg-white/[0.01]">
       <div className="flex items-center gap-2 border-b border-white/[0.04] px-4 py-2.5">
         <Icon className="h-3 w-3 text-white/25" />
-        <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/30">{title}</span>
+        <span className="font-mono text-xs uppercase tracking-[0.2em] text-white/30">{title}</span>
       </div>
-      <div className="p-4 space-y-3">{children}</div>
+      <div className="p-5 space-y-5">{children}</div>
     </div>
   );
 }
@@ -34,11 +34,11 @@ function Metric({
   label: string; value: string; sub?: string; color?: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-2">
-      <span className="font-mono text-[9px] uppercase tracking-wider text-white/25 leading-tight">{label}</span>
+    <div className="flex items-start justify-between gap-4 py-1 border-b border-white/[0.04] last:border-0 last:pb-0">
+      <span className="font-mono text-xs uppercase tracking-wider text-white/30 leading-tight">{label}</span>
       <div className="text-right">
-        <div className={cn('font-mono text-[11px] font-semibold leading-tight', color ?? 'text-white/65')}>{value}</div>
-        {sub && <div className="mt-0.5 font-mono text-[8px] uppercase tracking-wider text-white/20">{sub}</div>}
+        <div className={cn('font-mono text-sm font-semibold leading-tight', color ?? 'text-white/70')}>{value}</div>
+        {sub && <div className="mt-1 font-mono text-xs uppercase tracking-wider text-white/25">{sub}</div>}
       </div>
     </div>
   );
@@ -112,8 +112,8 @@ export function LoanIntelligencePanel() {
             <div className="flex items-center gap-3 rounded-sm border border-emerald-500/10 bg-emerald-500/[0.03] p-3">
               <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
               <div className="flex-1">
-                <div className="font-mono text-[10px] font-bold text-white/90">Identity Verified</div>
-                <div className="font-mono text-[8px] uppercase tracking-wider text-white/30">Ref: PRISM-AUTH-9921</div>
+                <div className="font-mono text-xs font-bold text-white/90">Identity Verified</div>
+                <div className="font-mono text-xs uppercase tracking-wider text-white/30">Ref: PRISM-AUTH-9921</div>
               </div>
             </div>
 
@@ -142,8 +142,8 @@ export function LoanIntelligencePanel() {
           {selectedVaultId !== null ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-white/25">Selected Pool</span>
-                <span className="font-mono text-[10px] font-bold text-white">#{selectedVaultId}</span>
+                <span className="font-mono text-xs uppercase tracking-wider text-white/25">Selected Pool</span>
+                <span className="font-mono text-xs font-bold text-white">#{selectedVaultId}</span>
               </div>
               <Metric
                 label="Pool Health"
@@ -158,8 +158,8 @@ export function LoanIntelligencePanel() {
               />
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[9px] uppercase tracking-wider text-white/25">Market Utilization</span>
-                  <span className={cn("font-mono text-[10px]", utilization > 85 ? 'text-rose-400' : 'text-white/60')}>
+                  <span className="font-mono text-xs uppercase tracking-wider text-white/25">Market Utilization</span>
+                  <span className={cn("font-mono text-xs", utilization > 85 ? 'text-rose-400' : 'text-white/60')}>
                     {utilization.toFixed(1)}%
                   </span>
                 </div>
@@ -168,8 +168,8 @@ export function LoanIntelligencePanel() {
             </div>
           ) : (
             <div className="py-4 text-center border border-dashed border-white/[0.06] rounded-sm">
-              <div className="font-mono text-[9px] uppercase tracking-widest text-white/20">Awaiting Selection</div>
-              <div className="mt-1 text-[9px] text-white/15">Select a market to view depth</div>
+              <div className="font-mono text-xs uppercase tracking-widest text-white/20">Awaiting Selection</div>
+              <div className="mt-1 text-xs text-white/15">Select a market to view depth</div>
             </div>
           )}
         </PanelSection>
@@ -186,10 +186,10 @@ export function LoanIntelligencePanel() {
             <div className="h-px w-full bg-white/[0.04]" />
             
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[9px] uppercase tracking-wider text-white/25">Repayment at Maturity</span>
+              <span className="font-mono text-xs uppercase tracking-wider text-white/25">Repayment at Maturity</span>
               <div className="text-right">
                 <div className="font-mono text-sm font-bold text-white">${totalDue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-                <div className="font-mono text-[8px] uppercase tracking-wider text-white/20">USDC Settlement</div>
+                <div className="font-mono text-xs uppercase tracking-wider text-white/20">USDC Settlement</div>
               </div>
             </div>
           </div>
@@ -203,16 +203,16 @@ export function LoanIntelligencePanel() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[9px] uppercase tracking-wider text-white/25">Approval Confidence</span>
+                  <span className="font-mono text-xs uppercase tracking-wider text-white/25">Approval Confidence</span>
                   <span className={cn(
-                    'font-mono text-[11px] font-bold',
+                    'font-mono text-sm font-bold',
                     approvalProb > 80 ? 'text-emerald-400' : approvalProb > 50 ? 'text-amber-400' : 'text-rose-400',
                   )}>
                     {approvalProb}%
                   </span>
                 </div>
                 <ProgressBar value={approvalProb} color={approvalColor} />
-                <p className="text-[9px] text-white/25 leading-relaxed italic">
+                <p className="text-xs text-white/25 leading-relaxed italic">
                   {approvalProb > 80 ? 'Optimized for institutional approval.' : 
                    approvalProb > 50 ? 'Consider increasing collateral to improve odds.' : 
                    'High risk profile. Protocol rejection likely.'}
@@ -234,13 +234,13 @@ export function LoanIntelligencePanel() {
               ].map(({ label, pct, color, note }) => (
                 <div key={label}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-mono text-[9px] uppercase tracking-wider text-white/25">{label}</span>
-                    <span className="font-mono text-[8px] text-white/20">{note}</span>
+                    <span className="font-mono text-xs uppercase tracking-wider text-white/25">{label}</span>
+                    <span className="font-mono text-xs text-white/20">{note}</span>
                   </div>
                   <ProgressBar value={pct} color={color} />
                 </div>
               ))}
-              <p className="text-[9px] text-white/20 leading-relaxed pt-2 border-t border-white/[0.03]">
+              <p className="text-xs text-white/20 leading-relaxed pt-2 border-t border-white/[0.03]">
                 Your facility is backed by tiered liquidity. The Alpha tranche provides loss-absorption protection.
               </p>
             </div>

@@ -29,11 +29,13 @@ export function ConnectWalletButton() {
       <button
         type="button"
         onClick={() => setVisible(true)}
-        className="inline-flex h-11 w-11 items-center justify-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 text-sm font-semibold text-pink-200 shadow-[0_10px_24px_rgba(236,72,153,0.12)] transition-colors hover:bg-pink-500/20 md:w-auto md:px-5"
         aria-label="Connect wallet"
+        className="group flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-pink-500/70 bg-pink-500/50 text-sm font-semibold text-pink-200 shadow-[0_10px_32px_rgba(236,72,153,0.25)] transition-all duration-300 hover:w-[172px] hover:px-5"
       >
-        <Wallet className="h-4 w-4" />
-        <span className="hidden md:inline">Connect Wallet</span>
+        <Wallet className="h-5 w-5 shrink-0" />
+        <span className="max-w-0 overflow-hidden whitespace-nowrap transition-all duration-300 group-hover:ml-2 group-hover:max-w-[100px]">
+          Connect Wallet
+        </span>
       </button>
     );
   }
@@ -45,25 +47,39 @@ export function ConnectWalletButton() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-11 w-11 items-center justify-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 text-sm font-semibold text-pink-200 shadow-[0_10px_24px_rgba(236,72,153,0.12)] transition-colors hover:bg-pink-500/20 md:w-auto md:px-4"
         aria-label="Wallet menu"
+        className={[
+          "group flex h-14 items-center justify-center overflow-hidden rounded-full border border-pink-500/70 bg-pink-500/50 text-sm font-semibold text-pink-200 shadow-[0_10px_32px_rgba(236,72,153,0.25)] transition-all duration-300",
+          open ? "w-[172px] px-5" : "w-14 hover:w-[172px] hover:px-5",
+        ].join(" ")}
       >
         {wallet?.adapter.icon ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={wallet.adapter.icon} alt="" className="h-4 w-4" />
+          <img src={wallet.adapter.icon} alt="" className="h-5 w-5 shrink-0" />
         ) : (
-          <Wallet className="h-4 w-4" />
+          <Wallet className="h-5 w-5 shrink-0" />
         )}
-        <span className="hidden font-mono text-xs md:inline">{shortAddress(address)}</span>
+        <span
+          className={[
+            "overflow-hidden whitespace-nowrap font-mono text-xs transition-all duration-300",
+            open
+              ? "ml-2 max-w-[80px]"
+              : "ml-0 max-w-0 group-hover:ml-2 group-hover:max-w-[80px]",
+          ].join(" ")}
+        >
+          {shortAddress(address)}
+        </span>
         <ChevronDown
           className={[
-            "hidden h-3.5 w-3.5 transition-transform md:block",
-            open ? "rotate-180" : "",
+            "h-3.5 w-3.5 shrink-0 transition-all duration-300",
+            open
+              ? "ml-1.5 max-w-[14px] rotate-180"
+              : "ml-0 max-w-0 group-hover:ml-1.5 group-hover:max-w-[14px]",
           ].join(" ")}
         />
       </button>
 
-      {open ? (
+      {open && (
         <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-md border border-white/10 bg-black/95 shadow-2xl backdrop-blur">
           <div className="border-b border-white/10 px-3 py-2 text-[11px] text-white/50">
             Connected via {wallet?.adapter.name ?? "wallet"}
@@ -101,7 +117,7 @@ export function ConnectWalletButton() {
             Disconnect
           </button>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

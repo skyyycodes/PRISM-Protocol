@@ -6,48 +6,52 @@ import { usePathname } from 'next/navigation';
 import {
   Home,
   Wallet,
-  User,
-  BarChart,
   Key,
-  HelpCircle,
   LogOut,
   Shield,
   Cpu,
   LineChart,
+  BookOpen,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
-  { icon: Home,      label: 'Dashboard',    href: '/dashboard' },
-  { icon: Wallet,    label: 'Market',       href: '/earn'      },
-  { icon: LineChart, label: 'Trade',        href: '/trade'     },
-  { icon: Cpu,       label: 'Terminal',     href: '/terminal'  },
-  { icon: Key,       label: 'Borrow',       href: '/borrow'    },
+  { icon: Home,      label: 'Dashboard', href: '/dashboard' },
+  { icon: Wallet,    label: 'Earn',      href: '/earn'      },
+  { icon: LineChart, label: 'Trade',     href: '/trade'     },
+  { icon: Cpu,       label: 'Terminal',  href: '/terminal'  },
+  { icon: Key,       label: 'Borrow',    href: '/borrow'    },
 ];
 
 const BOTTOM_ITEMS = [
-  { icon: Shield,     label: 'Admin',  href: '/admin' },
-  { icon: HelpCircle, label: 'Help',   href: '/docs'  },
-  { icon: LogOut,     label: 'Logout', href: '/'      },
+  { icon: Shield,   label: 'Admin',   href: '/admin', external: false },
+  { icon: BookOpen, label: 'Docs',    href: 'https://docs.prismprotocol.dev', external: true },
+  { icon: LogOut,   label: 'Log out', href: '/', external: false },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 z-50 flex h-full w-[72px] flex-col items-center border-r border-white/[0.05] bg-transparent py-6">
-      {/* Logo */}
-      <Link href="/dashboard" className="mb-10 flex h-10 w-10 items-center justify-center">
-        <Image 
-          src="/icon-dark-64x64.png"
-          alt="PRISM"
-          width={32}
-          height={32}
-          className="h-8 w-8 object-contain"
-        />
+    <aside className="group/sidebar fixed left-0 top-0 z-50 flex h-full w-[72px] hover:w-[240px] flex-col overflow-hidden border-r border-white/[0.05] bg-black/20 py-5 transition-[width] duration-300 ease-out">
+      {/* Logo + Title */}
+      <Link href="/dashboard" className="mb-8 flex items-center gap-3 pl-[14px] pr-3">
+        <span className="relative h-11 w-11 shrink-0">
+          <Image
+            src="/icon-dark-64x64.png"
+            alt="PRISM"
+            fill
+            className="object-contain"
+          />
+        </span>
+        <div className="flex items-baseline gap-2 whitespace-nowrap opacity-0 transition-opacity duration-200 group-hover/sidebar:opacity-100">
+          <span className="font-display text-xl leading-none tracking-tight text-white">PRISM</span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/50">Protocol</span>
+        </div>
       </Link>
 
       {/* Navigation */}
-      <nav className="flex flex-1 flex-col gap-6">
+      <nav className="flex flex-1 flex-col gap-1.5">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -55,31 +59,60 @@ export function AppSidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`group relative flex h-10 w-10 items-center justify-center transition-all duration-300 ${
-                isActive 
-                  ? 'bg-white text-black rounded-full shadow-[0_0_15px_rgba(255,255,255,0.2)]' 
-                  : 'text-white/20 hover:text-white'
-              }`}
-              title={item.label}
+              className="group/item flex items-center gap-3 h-11 pl-4 pr-3"
             >
-              <Icon className="h-[22px] w-[22px]" strokeWidth={isActive ? 2 : 1.5} />
+              <div
+                className={cn(
+                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all duration-200',
+                  isActive
+                    ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)]'
+                    : 'text-white/30 group-hover/item:text-white',
+                )}
+              >
+                <Icon className="h-[20px] w-[20px]" strokeWidth={isActive ? 2 : 1.5} />
+              </div>
+              <span
+                className={cn(
+                  'whitespace-nowrap font-mono text-sm transition-opacity duration-200 opacity-0 group-hover/sidebar:opacity-100',
+                  isActive ? 'text-white font-semibold' : 'text-white/60 group-hover/item:text-white',
+                )}
+              >
+                {item.label}
+              </span>
             </Link>
           );
         })}
       </nav>
 
       {/* Bottom Actions */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
         {BOTTOM_ITEMS.map((item) => {
           const Icon = item.icon;
-          return (
-            <Link
+          const content = (
+            <>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white/30 transition-colors group-hover/item:text-white">
+                <Icon className="h-[20px] w-[20px]" strokeWidth={1.5} />
+              </div>
+              <span className="whitespace-nowrap font-mono text-sm text-white/60 transition-opacity duration-200 opacity-0 group-hover/sidebar:opacity-100 group-hover/item:text-white">
+                {item.label}
+              </span>
+            </>
+          );
+          const className = "group/item flex items-center gap-3 h-11 pl-4 pr-3";
+
+          return item.external ? (
+            <a
               key={item.href}
               href={item.href}
-              className="group relative flex h-12 w-12 items-center justify-center text-white/30 transition-all duration-300 hover:text-white"
-              title={item.label}
+              target="_blank"
+              rel="noreferrer"
+              className={className}
             >
-              <Icon className="h-[22px] w-[22px]" strokeWidth={1.5} />
+              {content}
+            </a>
+          ) : (
+            <Link key={item.href} href={item.href} className={className}>
+              {content}
             </Link>
           );
         })}
