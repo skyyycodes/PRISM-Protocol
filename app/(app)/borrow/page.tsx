@@ -187,25 +187,25 @@ function StatusBar() {
 
   return (
     <div className={cn(
-      'grid grid-cols-2 sm:grid-cols-4 overflow-hidden rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.03] divide-x divide-white/[0.08] mb-5',
+      'grid grid-cols-2 sm:grid-cols-4 overflow-hidden rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] divide-x divide-white/[0.08] mb-5',
       cols === 5 && 'xl:grid-cols-5',
     )}>
       {stats.map((s) => {
         const Icon = s.icon;
         return (
-          <div key={s.label} className="group flex items-center gap-3.5 px-5 py-4 transition-colors hover:bg-white/[0.03]">
+          <div key={s.label} className="group flex items-center gap-3.5 px-5 py-5 transition-colors hover:bg-white/[0.04]">
             <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border', s.iconBg)}>
               <Icon className={cn('h-4 w-4', s.iconColor)} strokeWidth={1.75} />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/30">{s.label}</span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/30">{s.label}</span>
                 {s.pulseDot && <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />}
               </div>
-              <div className="mt-1 font-mono text-base font-medium text-white tabular-nums truncate">
+              <div className="font-mono text-[22px] font-medium leading-none text-white/90 tabular-nums truncate mt-1">
                 {s.value}
               </div>
-              <div className={cn('mt-0.5 font-mono text-[10px] uppercase tracking-widest truncate', s.subColor)}>
+              <div className={cn('mt-1 font-mono text-[10px] truncate', s.subColor)}>
                 {s.sub}
               </div>
             </div>

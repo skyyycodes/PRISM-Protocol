@@ -747,10 +747,17 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.02] backdrop-blur-sm p-6 space-y-8">
       {/* Debug Info */}
-      <div className="p-2 bg-black/40 rounded border border-white/5 font-mono text-xs text-white/20 mb-4 break-all">
-        Vault: {vaultPda.toBase58()}<br/>
-        Loan: {loanPda.toBase58()} (ID: {loanId})<br/>
-        Prog: {PRISM_CORE_PROGRAM_ID.toBase58()}
+      <div className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] px-5 py-4 mb-4 space-y-3">
+        {[
+          { label: 'Vault', value: vaultPda.toBase58() },
+          { label: 'Loan',  value: `${loanPda.toBase58()} (ID: ${loanId})` },
+          { label: 'Prog',  value: PRISM_CORE_PROGRAM_ID.toBase58() },
+        ].map(({ label, value }) => (
+          <div key={label} className="flex flex-col gap-1">
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/25">{label}</span>
+            <span className="font-mono text-xs text-white/40 break-all">{value}</span>
+          </div>
+        ))}
       </div>
       <div>
         <h3 className="text-lg font-semibold text-white">Attach IKA Collateral</h3>
@@ -973,11 +980,11 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
       <button
         disabled={attachMutation.isPending || !dwalletIdHex}
         onClick={handleAttach}
-        className="w-full rounded-xl bg-purple-600 px-4 py-4 text-sm font-bold text-white shadow-lg shadow-purple-900/20 hover:bg-purple-500 active:scale-[0.98] transition-all disabled:opacity-50"
+        className="w-full rounded-xl bg-white px-4 py-4 font-mono text-sm font-bold uppercase tracking-[0.18em] text-black shadow-lg shadow-black/20 hover:bg-white/90 active:scale-[0.98] transition-all disabled:opacity-40"
       >
         {attachMutation.isPending ? (
           <div className="flex items-center justify-center gap-2">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-black/20 border-t-black" />
             <span>Registering Collateral…</span>
           </div>
         ) : (

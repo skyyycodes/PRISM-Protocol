@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 
 function PanelSection({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) {
   return (
-    <div className="rounded-sm border border-white/[0.06] bg-white/[0.01]">
+    <div className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04]">
       <div className="flex items-center gap-2 border-b border-white/[0.04] px-4 py-2.5">
         <Icon className="h-3 w-3 text-white/25" />
         <span className="font-mono text-xs uppercase tracking-[0.2em] text-white/30">{title}</span>
@@ -109,7 +109,7 @@ export function LoanIntelligencePanel() {
       {(currentStep === 1 || currentStep === 6 || currentStep === 7) && (
         <PanelSection title="Borrower Status" icon={ShieldCheck}>
           <div className="space-y-4">
-            <div className="flex items-center gap-3 rounded-sm border border-emerald-500/10 bg-emerald-500/[0.03] p-3">
+            <div className="flex items-center gap-3 rounded-xl border border-emerald-500/10 backdrop-blur-md bg-emerald-500/[0.03] p-3">
               <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
               <div className="flex-1">
                 <div className="font-mono text-xs font-bold text-white/90">Identity Verified</div>
@@ -167,7 +167,7 @@ export function LoanIntelligencePanel() {
               </div>
             </div>
           ) : (
-            <div className="py-4 text-center border border-dashed border-white/[0.06] rounded-sm">
+            <div className="py-4 text-center border border-dashed border-white/[0.10] rounded-xl">
               <div className="font-mono text-xs uppercase tracking-widest text-white/20">Awaiting Selection</div>
               <div className="mt-1 text-xs text-white/15">Select a market to view depth</div>
             </div>

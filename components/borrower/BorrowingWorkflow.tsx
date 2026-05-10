@@ -118,7 +118,7 @@ function VaultCard({
     <button
       onClick={onSelect}
       className={cn(
-        'group w-full rounded-sm border p-6 text-left transition-all duration-300',
+        'group w-full rounded-xl border p-6 text-left transition-all duration-300',
         isSelected
           ? 'border-white/30 bg-white/[0.08] shadow-xl shadow-black/40 translate-x-1'
           : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]',
@@ -210,7 +210,7 @@ function StepProfile({
       />
 
       {/* Wallet Identity Card */}
-      <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-6">
+      <div className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] p-6">
         <FieldLabel>Authenticated Entity</FieldLabel>
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm border border-white/[0.1] bg-white/[0.05]">
@@ -259,7 +259,7 @@ function StepProfile({
               key={value}
               onClick={() => setBorrowerType(value)}
               className={cn(
-                'group relative overflow-hidden rounded-sm border p-6 text-left transition-all duration-300',
+                'group relative overflow-hidden rounded-xl border p-6 text-left transition-all duration-300',
                 borrowerType === value
                   ? 'border-white/30 bg-white/[0.07] shadow-lg shadow-black/20'
                   : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]',
@@ -270,7 +270,7 @@ function StepProfile({
               )}
               <div className="flex items-center justify-between mb-4">
                 <div className={cn(
-                  'flex h-8 w-8 items-center justify-center rounded-sm border transition-colors',
+                  'flex h-8 w-8 items-center justify-center rounded-xl border transition-colors',
                   borrowerType === value ? 'border-white/20 bg-white/10 text-white' : 'border-white/10 bg-white/5 text-white/20',
                 )}>
                   <Icon className="h-4 w-4" />
@@ -309,7 +309,7 @@ function StepProfile({
       </div>
 
       {/* Compliance Notice */}
-      <div className="rounded-sm border border-white/[0.04] bg-white/[0.01] p-5">
+      <div className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] p-5">
         <div className="flex items-start gap-4">
           <BadgeCheck className="mt-1 h-5 w-5 text-white/20" />
           <div>
@@ -345,14 +345,14 @@ function StepPoolSelection({
       />
 
       {allVaults.isLoading ? (
-        <div className="flex flex-col items-center justify-center rounded-sm border border-white/[0.06] bg-white/[0.01] p-12 text-center">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] p-12 text-center">
           <div className="h-6 w-6 rounded-full border-2 border-white/10 border-t-white/40 animate-spin mb-4" />
           <span className="font-mono text-xs uppercase tracking-widest text-white/30">
             Querying Protocol Credit Markets…
           </span>
         </div>
       ) : vaults.length === 0 ? (
-        <div className="rounded-sm border border-dashed border-white/[0.1] bg-white/[0.01] p-12 text-center">
+        <div className="rounded-xl border border-dashed border-white/[0.1] backdrop-blur-md bg-white/[0.04] p-12 text-center">
           <AlertTriangle className="mx-auto mb-4 h-8 w-8 text-amber-500/30" />
           <div className="font-mono text-sm font-bold uppercase tracking-widest text-white/40">
             No Active Markets Detected
@@ -375,8 +375,8 @@ function StepPoolSelection({
       )}
 
       {selectedVaultId !== null && (
-        <div className="flex items-center gap-4 rounded-sm border border-emerald-500/20 bg-emerald-500/[0.03] p-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-emerald-500/10">
+        <div className="flex items-center gap-4 rounded-xl border border-emerald-500/20 backdrop-blur-md bg-emerald-500/[0.03] p-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/10">
             <CheckCircle2 className="h-4 w-4 text-emerald-500/60" />
           </div>
           <div className="flex-1">
@@ -494,7 +494,7 @@ function StepLoanStructuring({
                   key={value}
                   onClick={() => setPurpose(value)}
                   className={cn(
-                    'group rounded-sm border p-4 text-left transition-all duration-300',
+                    'group rounded-xl border p-4 text-left transition-all duration-300',
                     purpose === value
                       ? 'border-white/30 bg-white/[0.08]'
                       : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]',
@@ -516,7 +516,7 @@ function StepLoanStructuring({
 
         {/* Right Column: Projections & Real-time Metrics */}
         <div className="col-span-5 space-y-6">
-          <div className="rounded-sm border border-white/[0.08] bg-white/[0.03] overflow-hidden sticky top-0">
+          <div className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] overflow-hidden sticky top-0">
             <div className="border-b border-white/[0.08] bg-white/[0.02] px-6 py-4">
               <h3 className="font-mono text-xs uppercase tracking-[0.25em] text-white/60">Facility Projection</h3>
             </div>
@@ -538,7 +538,7 @@ function StepLoanStructuring({
                 </div>
               </div>
 
-              <div className="rounded-sm bg-black/40 p-4 space-y-3">
+              <div className="rounded-xl backdrop-blur-md bg-black/40 p-4 space-y-3">
                 <div className="flex items-center gap-2">
                   <Clock className="h-3.5 w-3.5 text-white/20" />
                   <span className="font-mono text-xs uppercase tracking-widest text-white/40">Repayment Schedule</span>
@@ -563,7 +563,7 @@ function StepLoanStructuring({
             </div>
           </div>
 
-          <div className="rounded-sm border border-emerald-500/10 bg-emerald-500/[0.02] p-5">
+          <div className="rounded-xl border border-emerald-500/10 backdrop-blur-md bg-emerald-500/[0.02] p-5">
             <div className="flex gap-3">
               <TrendingUp className="h-5 w-5 text-emerald-500/40 shrink-0" />
               <div>
@@ -619,7 +619,7 @@ function StepCollateral({
             desc: 'Auto-liquidation threshold'
           },
         ].map(({ label, value, color, desc }) => (
-          <div key={label} className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-5">
+          <div key={label} className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] p-5">
             <FieldLabel>{label}</FieldLabel>
             <div className={cn('font-mono text-xl font-bold tracking-tight mb-1', color)}>{value}</div>
             <div className="text-xs text-white/20 uppercase tracking-widest">{desc}</div>
@@ -628,7 +628,7 @@ function StepCollateral({
       </div>
 
       {/* Collateral Requirements Info */}
-      <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] overflow-hidden">
+      <div className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] overflow-hidden">
         <div className="border-b border-white/[0.08] bg-white/[0.03] px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-4 w-4 text-white/40" />
@@ -637,8 +637,8 @@ function StepCollateral({
         </div>
 
         <div className="p-6 space-y-6">
-          <div className="flex items-start gap-4 p-4 rounded-sm bg-white/[0.03] border border-white/[0.05]">
-            <div className="h-10 w-10 shrink-0 flex items-center justify-center rounded-sm border border-white/10 bg-white/5">
+          <div className="flex items-start gap-4 p-4 rounded-xl backdrop-blur-md bg-white/[0.04] border border-white/[0.10]">
+            <div className="h-10 w-10 shrink-0 flex items-center justify-center rounded-xl border border-white/10 backdrop-blur-md bg-white/5">
               <Lock className="h-5 w-5 text-white/30" />
             </div>
             <div>
@@ -650,7 +650,7 @@ function StepCollateral({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 rounded-sm border border-white/[0.05] bg-white/[0.01]">
+            <div className="p-4 rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04]">
               <div className="flex items-center gap-2 mb-3">
                 <Activity className="h-3.5 w-3.5 text-white/20" />
                 <span className="font-mono text-xs uppercase tracking-widest text-white/40">Oracle Valuation</span>
@@ -658,7 +658,7 @@ function StepCollateral({
               <div className="font-mono text-sm text-white/60">Real-time</div>
               <div className="mt-1 font-mono text-xs uppercase tracking-widest text-white/15">IKA Network Attestation</div>
             </div>
-            <div className="p-4 rounded-sm border border-white/[0.05] bg-white/[0.01]">
+            <div className="p-4 rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04]">
               <div className="flex items-center gap-2 mb-3">
                 <Zap className="h-3.5 w-3.5 text-white/20" />
                 <span className="font-mono text-xs uppercase tracking-widest text-white/40">Min. Collateral</span>
@@ -670,7 +670,7 @@ function StepCollateral({
             </div>
           </div>
 
-          <div className="rounded-sm border border-amber-500/10 bg-amber-500/[0.03] p-4 flex items-start gap-3">
+          <div className="rounded-xl border border-amber-500/10 backdrop-blur-md bg-amber-500/[0.03] p-4 flex items-start gap-3">
             <AlertTriangle className="h-4 w-4 text-amber-500/40 mt-0.5 shrink-0" />
             <p className="text-xs leading-relaxed text-white/30">
               Collateral attachment is only enabled after admin approval and on-chain loan origination. Submit your application first — you will be guided through the IKA dWallet setup once approved.
@@ -740,7 +740,7 @@ function StepRiskReview({
                   color: 'bg-rose-500/20 text-rose-400'
                 },
               ].map((t) => (
-                <div key={t.name} className="flex items-center gap-4 rounded-sm border border-white/[0.06] bg-white/[0.01] p-4 transition-all hover:bg-white/[0.03]">
+                <div key={t.name} className="flex items-center gap-4 rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] p-4 transition-all hover:bg-white/[0.04]">
                   <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-sm font-mono text-xs font-bold', t.color)}>
                     {t.name.charAt(0)}
                   </div>
@@ -759,7 +759,7 @@ function StepRiskReview({
           {/* Scenario Stress Test */}
           <div>
             <FieldLabel>Stress Scenario Analysis</FieldLabel>
-            <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] overflow-hidden">
+            <div className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] overflow-hidden">
               <table className="w-full text-left font-mono text-xs">
                 <thead className="bg-white/[0.04] text-white/25 uppercase tracking-widest">
                   <tr>
@@ -793,7 +793,7 @@ function StepRiskReview({
         </div>
 
         <div className="col-span-5 space-y-6">
-          <div className="rounded-sm border border-white/[0.1] bg-white/[0.03] p-6 space-y-6">
+          <div className="rounded-xl border border-white/[0.1] backdrop-blur-md bg-white/[0.04] p-6 space-y-6">
             <h3 className="font-mono text-xs uppercase tracking-[0.25em] text-white/60 mb-2">Final Terms</h3>
             
             <div className="space-y-4">
@@ -816,7 +816,7 @@ function StepRiskReview({
               </div>
             </div>
 
-            <div className="p-4 rounded-sm bg-rose-500/5 border border-rose-500/10">
+            <div className="p-4 rounded-xl bg-rose-500/5 border border-rose-500/10">
               <div className="flex gap-3">
                 <AlertTriangle className="h-4 w-4 text-rose-500/40 shrink-0" />
                 <div className="text-xs leading-relaxed text-white/30">
@@ -826,7 +826,7 @@ function StepRiskReview({
             </div>
           </div>
 
-          <div className="rounded-sm border border-white/[0.05] bg-white/[0.01] p-5">
+          <div className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] p-5">
             <div className="flex items-center gap-3">
               <FileCheck className="h-5 w-5 text-white/20" />
               <div>
@@ -872,7 +872,7 @@ function StepSubmission({
       <StepHeader step={6} title="Final Submission" subtitle="Formal execution · Loan instrument issuance · Electronic signature" />
 
       {/* Contract Summary */}
-      <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-5">
+      <div className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] p-5">
         <div className="font-mono text-xs uppercase tracking-[0.22em] text-white/25 mb-4">
           Loan Instrument Summary
         </div>
@@ -896,7 +896,7 @@ function StepSubmission({
       </div>
 
       {/* Borrower Obligations */}
-      <div className="rounded-sm border border-white/[0.05] bg-white/[0.01] p-4">
+      <div className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] p-4">
         <div className="font-mono text-xs uppercase tracking-[0.22em] text-white/25 mb-3">
           Borrower Obligations
         </div>
@@ -919,7 +919,7 @@ function StepSubmission({
       <button
         onClick={() => setAcknowledged(!acknowledged)}
         className={cn(
-          'flex w-full items-start gap-3 rounded-sm border p-4 text-left transition-all duration-150',
+          'flex w-full items-start gap-3 rounded-xl border p-4 text-left transition-all duration-150',
           acknowledged ? 'border-white/15 bg-white/[0.04]' : 'border-white/[0.06] bg-white/[0.01] hover:border-white/10',
         )}
       >
@@ -940,7 +940,7 @@ function StepSubmission({
           onClick={onSubmit}
           disabled={!acknowledged || isSubmitting || selectedVaultId === null}
           className={cn(
-            'flex w-full items-center justify-center gap-3 rounded-sm py-4 font-mono text-sm font-bold uppercase tracking-[0.2em] transition-all duration-200',
+            'flex w-full items-center justify-center gap-3 rounded-xl py-4 font-mono text-sm font-bold uppercase tracking-[0.2em] transition-all duration-200',
             acknowledged && !isSubmitting && selectedVaultId !== null
               ? 'bg-white text-black hover:bg-white/90 active:scale-[0.99]'
               : 'bg-white/[0.05] text-white/20 cursor-not-allowed',
@@ -994,7 +994,7 @@ function StepTracking({
       <StepHeader step={7} title="Approval Tracking" subtitle="Operational status · Lifecycle monitoring · Funding pipeline" />
 
       {/* Progress */}
-      <div className="rounded-sm border border-white/[0.06] bg-white/[0.01] p-5">
+      <div className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] p-5">
         <div className="flex items-center justify-between mb-3">
           <span className="font-mono text-xs uppercase tracking-widest text-white/25">Workflow Progress</span>
           <span className="font-mono text-xs text-white/40">{doneCount}/{trackingStages.length} stages</span>
@@ -1013,7 +1013,7 @@ function StepTracking({
           <div
             key={idx}
             className={cn(
-              'flex items-center gap-4 rounded-sm border px-4 py-3 transition-all',
+              'flex items-center gap-4 rounded-xl border px-4 py-3 transition-all',
               stage.done   ? 'border-white/10 bg-white/[0.03]' :
               stage.active ? 'border-white/10 bg-white/[0.02]' :
                              'border-white/[0.04] bg-transparent',
@@ -1057,7 +1057,7 @@ function StepTracking({
 
       {/* Status Detail */}
       <div className={cn(
-        'rounded-sm border p-5',
+        'rounded-xl border p-5',
         existingApp?.status === 'approved'
           ? 'border-emerald-500/15 bg-emerald-500/[0.03]'
           : 'border-white/[0.06] bg-white/[0.01]',
@@ -1095,7 +1095,7 @@ function StepTracking({
             {existingApp.loanId !== undefined && (
               <button
                 onClick={onAttachCollateral}
-                className="shrink-0 rounded-sm border border-white/15 bg-white/[0.05] px-4 py-2 font-mono text-xs uppercase tracking-widest text-white/60 hover:bg-white/[0.08] hover:text-white/80 transition-all"
+                className="shrink-0 rounded-xl border border-white/15 backdrop-blur-md bg-white/[0.05] px-4 py-2 font-mono text-xs uppercase tracking-widest text-white/60 hover:bg-white/[0.08] hover:text-white/80 transition-all"
               >
                 Attach Collateral →
               </button>
@@ -1178,7 +1178,7 @@ export function BorrowingWorkflow() {
 
   if (!connected) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-sm border border-dashed border-white/[0.08] bg-black/30 p-20 text-center">
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.10] backdrop-blur-md bg-black/30 p-20 text-center">
         <Lock className="mb-5 h-8 w-8 text-white/[0.08]" />
         <h3 className="font-display text-xl text-white">Wallet Connection Required</h3>
         <p className="mt-2 text-sm text-white/30 max-w-sm leading-relaxed">
@@ -1212,17 +1212,26 @@ export function BorrowingWorkflow() {
 
         {/* ── Persistent Action Header ─────────────────────────────────────── */}
         <div className={cn(
-          'rounded-sm border px-5 py-4 flex items-center justify-between gap-4',
-          loanIsRepaid ? 'border-blue-500/20 bg-blue-500/[0.04]'
-          : loanIsActive ? 'border-amber-500/25 bg-amber-500/[0.05]'
-          : isLocked ? 'border-emerald-500/25 bg-emerald-500/[0.06]'
-          : isCollateralStage ? 'border-purple-500/25 bg-purple-500/[0.06]'
-          : isAwaitingOrigin ? 'border-amber-500/20 bg-amber-500/[0.04]'
-          : 'border-white/[0.08] bg-white/[0.02]',
+          'relative overflow-hidden rounded-xl border backdrop-blur-md bg-white/[0.04]',
+          loanIsRepaid ? 'border-blue-500/20'
+          : loanIsActive ? 'border-amber-500/25'
+          : isLocked ? 'border-emerald-500/25'
+          : isCollateralStage ? 'border-purple-500/25'
+          : isAwaitingOrigin ? 'border-amber-500/20'
+          : 'border-white/[0.10]',
         )}>
-          <div className="flex items-center gap-4 min-w-0">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                'radial-gradient(ellipse 70% 80% at 100% 0%, rgba(232,121,160,0.10) 0%, transparent 55%), radial-gradient(ellipse 50% 60% at 0% 100%, rgba(168,85,247,0.08) 0%, transparent 50%)',
+            }}
+          />
+          <div className="relative flex items-center justify-between gap-6 px-6 py-5">
+          <div className="flex items-center gap-5 min-w-0">
             <div className={cn(
-              'flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border',
+              'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border',
               loanIsRepaid ? 'border-blue-500/30 bg-blue-500/10 text-blue-400'
               : loanIsActive ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
               : isLocked ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
@@ -1239,9 +1248,9 @@ export function BorrowingWorkflow() {
                : <Clock className="h-4 w-4" />}
             </div>
             <div className="min-w-0">
-              <div className="font-mono text-xs uppercase tracking-[0.25em] text-white/25">Current Required Action</div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-white/25">Current Required Action</div>
               <div className={cn(
-                'text-sm font-bold leading-tight',
+                'text-base font-semibold leading-snug mt-2',
                 loanIsRepaid ? 'text-blue-400'
                 : loanIsActive ? 'text-amber-200'
                 : isLocked ? 'text-emerald-400'
@@ -1257,7 +1266,7 @@ export function BorrowingWorkflow() {
                  : isAwaitingOrigin ? 'Awaiting On-Chain Origination'
                  : 'Application Under Review'}
               </div>
-              <div className="font-mono text-xs text-white/25 mt-0.5 truncate">
+              <div className="font-mono text-xs text-white/30 mt-2 truncate">
                 {loanIsRepaid
                   ? 'Facility closed · release IKA collateral when ready'
                   : loanIsActive
@@ -1274,11 +1283,11 @@ export function BorrowingWorkflow() {
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <div className="text-right hidden sm:block">
-              <div className="font-display text-xl text-white">${existingApp.requestedUSDC.toLocaleString()}</div>
-              <div className="font-mono text-xs uppercase tracking-widest text-white/20">{existingApp.maturityDays}d facility</div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/25 mb-1.5">{existingApp.maturityDays}D Facility</div>
+              <div className="font-display text-2xl text-white/90">${existingApp.requestedUSDC.toLocaleString()}</div>
             </div>
             <div className={cn(
-              'flex items-center gap-1.5 rounded-sm border px-2.5 py-1 font-mono text-xs uppercase tracking-[0.15em]',
+              'flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-mono text-xs uppercase tracking-[0.15em]',
               loanIsRepaid ? 'border-blue-500/20 text-blue-400/70'
               : loanIsActive ? 'border-amber-500/20 text-amber-400/70'
               : isCollateralStage ? 'border-purple-500/20 text-purple-400/70'
@@ -1292,10 +1301,11 @@ export function BorrowingWorkflow() {
               {loanIsRepaid ? 'Closed' : loanIsActive ? 'Repayment Due' : isCollateralStage ? 'Action Required' : isApproved ? 'Approved' : 'In Review'}
             </div>
           </div>
+          </div>
         </div>
 
         {/* ── Compact Horizontal Progress Strip ────────────────────────────── */}
-        <div className="flex items-center rounded-sm border border-white/[0.05] bg-white/[0.01] px-5 py-2.5">
+        <div className="flex items-center rounded-xl border border-white/[0.05] bg-white/[0.01] px-5 py-2.5">
           {hStages.map((stage, idx) => (
             <div key={idx} className="flex items-center flex-1 last:flex-none">
               <div className="flex items-center gap-1.5 shrink-0">
@@ -1346,7 +1356,7 @@ export function BorrowingWorkflow() {
             {/* Right — context intelligence panel */}
             <div className="space-y-3">
 
-              <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-5 space-y-3">
+              <div className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] p-5 space-y-3">
                 <div className="font-mono text-xs uppercase tracking-[0.25em] text-white/20 pb-2 border-b border-white/[0.05]">Facility Summary</div>
                 {[
                   { label: 'Principal',  value: `$${existingApp.requestedUSDC.toLocaleString()}` },
@@ -1362,7 +1372,7 @@ export function BorrowingWorkflow() {
                 ))}
               </div>
 
-              <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-5 space-y-3">
+              <div className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] p-5 space-y-3">
                 <div className="font-mono text-xs uppercase tracking-[0.25em] text-white/20 pb-2 border-b border-white/[0.05]">Collateral Requirements</div>
                 {[
                   { label: 'Min. Collateral', value: `$${minCollateral.toLocaleString()}`, accent: true },
@@ -1378,7 +1388,7 @@ export function BorrowingWorkflow() {
                 ))}
               </div>
 
-              <div className="rounded-sm border border-purple-500/10 bg-purple-500/[0.03] p-4 space-y-2">
+              <div className="rounded-xl border border-purple-500/10 backdrop-blur-md bg-purple-500/[0.03] p-4 space-y-2">
                 <div className="flex items-center gap-2">
                   <div className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
                   <span className="font-mono text-xs uppercase tracking-widest text-white/30">Oracle Status</span>
@@ -1387,7 +1397,7 @@ export function BorrowingWorkflow() {
                 <div className="font-mono text-xs text-white/30">Disbursement unlocks after collateral lock confirmation</div>
               </div>
 
-              <div className="rounded-sm border border-rose-500/10 bg-rose-500/[0.02] p-4">
+              <div className="rounded-xl border border-rose-500/10 backdrop-blur-md bg-rose-500/[0.02] p-4">
                 <div className="flex items-start gap-2">
                   <AlertTriangle className="h-3.5 w-3.5 text-rose-400/40 shrink-0 mt-0.5" />
                   <div className="font-mono text-xs text-white/25 leading-relaxed">
@@ -1406,7 +1416,7 @@ export function BorrowingWorkflow() {
             <LoanRepayment loanId={existingApp.loanId} vaultId={existingApp.vaultId} />
 
             <div className="space-y-3">
-              <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-5 space-y-3">
+              <div className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] p-5 space-y-3">
                 <div className="font-mono text-xs uppercase tracking-[0.25em] text-white/20 pb-2 border-b border-white/[0.05]">Outstanding Balance</div>
                 {[
                   { label: 'Principal',   value: `$${existingApp.requestedUSDC.toLocaleString()}` },
@@ -1422,7 +1432,7 @@ export function BorrowingWorkflow() {
                 ))}
               </div>
 
-              <div className="rounded-sm border border-amber-500/10 bg-amber-500/[0.03] p-4">
+              <div className="rounded-xl border border-amber-500/10 backdrop-blur-md bg-amber-500/[0.03] p-4">
                 <div className="flex items-start gap-2">
                   <CreditCard className="h-3.5 w-3.5 text-amber-400/50 shrink-0 mt-0.5" />
                   <div className="font-mono text-xs text-white/30 leading-relaxed">
@@ -1436,7 +1446,7 @@ export function BorrowingWorkflow() {
 
         {/* AWAITING ORIGINATION: admin hasn't run initialize_loan yet */}
         {isAwaitingOrigin && (
-          <div className="rounded-sm border border-amber-500/15 bg-amber-500/[0.03] p-8 flex items-start gap-5">
+          <div className="rounded-xl border border-amber-500/15 backdrop-blur-md bg-amber-500/[0.03] p-8 flex items-start gap-5">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm border border-amber-500/20 bg-amber-500/[0.07]">
               <Clock className="h-6 w-6 text-amber-400/70" />
             </div>
@@ -1452,7 +1462,7 @@ export function BorrowingWorkflow() {
                   { label: 'Principal', value: `$${existingApp.requestedUSDC.toLocaleString()}` },
                   { label: 'Term',      value: `${existingApp.maturityDays}d` },
                 ].map(({ label, value }) => (
-                  <div key={label} className="rounded-sm border border-white/[0.05] bg-white/[0.01] px-3 py-2">
+                  <div key={label} className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] px-3 py-2">
                     <div className="font-mono text-xs uppercase tracking-widest text-white/20">{label}</div>
                     <div className="font-mono text-xs text-white/50 mt-0.5">{value}</div>
                   </div>
@@ -1464,7 +1474,7 @@ export function BorrowingWorkflow() {
 
         {/* PENDING REVIEW: submitted, awaiting admin decision */}
         {isPending && (
-          <div className="rounded-sm border border-white/[0.06] bg-white/[0.01] p-8 flex items-start gap-5">
+          <div className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] p-8 flex items-start gap-5">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm border border-white/10 bg-white/[0.03]">
               <Activity className="h-6 w-6 text-white/20" />
             </div>
@@ -1480,7 +1490,7 @@ export function BorrowingWorkflow() {
                   { label: 'Principal', value: `$${existingApp.requestedUSDC.toLocaleString()}` },
                   { label: 'Term',      value: `${existingApp.maturityDays}d` },
                 ].map(({ label, value }) => (
-                  <div key={label} className="rounded-sm border border-white/[0.04] bg-white/[0.01] px-3 py-2">
+                  <div key={label} className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] px-3 py-2">
                     <div className="font-mono text-xs uppercase tracking-widest text-white/20">{label}</div>
                     <div className="font-mono text-xs text-white/45 mt-0.5">{value}</div>
                   </div>
@@ -1497,7 +1507,7 @@ export function BorrowingWorkflow() {
   return (
     <div className="space-y-0">
       {/* Step Navigation Rail */}
-      <nav className="mb-6 flex items-center gap-0 rounded-sm border border-white/[0.06] bg-black/30 overflow-hidden">
+      <nav className="mb-6 flex items-center gap-0 rounded-xl border border-white/[0.10] backdrop-blur-md bg-black/30 overflow-hidden">
         {STEPS.map((step, idx) => {
           const Icon = step.icon;
           const isCompleted = currentStep > step.id;
@@ -1552,7 +1562,7 @@ export function BorrowingWorkflow() {
 
       {/* Selected Pool Persistent Bar */}
       {selectedVaultId !== null && currentStep > 2 && (
-        <div className="mb-4 flex items-center gap-3 rounded-sm border border-white/[0.06] bg-white/[0.01] px-4 py-2.5">
+        <div className="mb-4 flex items-center gap-3 rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] px-4 py-2.5">
           <div className="h-1.5 w-1.5 rounded-full bg-emerald-500/60" />
           <span className="font-mono text-xs uppercase tracking-[0.22em] text-white/25">Selected Market</span>
           <div className="h-3 w-px bg-white/[0.08]" />
