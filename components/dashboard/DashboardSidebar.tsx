@@ -7,7 +7,6 @@ import {
   ArrowRight,
   TrendingDown,
   AlertTriangle,
-  Target,
 } from 'lucide-react';
 
 interface DashboardSidebarProps {
@@ -15,42 +14,10 @@ interface DashboardSidebarProps {
   insights: Array<{ text: string; type: 'info' | 'warning' | 'alert' }>;
 }
 
-export function DashboardSidebar({ exposure = [], insights = [] }: DashboardSidebarProps) {
+export function DashboardSidebar({ insights = [] }: DashboardSidebarProps) {
   return (
-    <aside className="space-y-1">
+    <aside className="space-y-2">
       <div className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] divide-y divide-white/[0.06]">
-
-        {/* Risk Distribution */}
-        <section className="p-6">
-          <div className="flex items-center gap-2.5 mb-6">
-            <Target className="h-4 w-4 text-white/35" />
-            <h2 className="font-mono text-xs uppercase tracking-[0.25em] text-white/40">Risk Distribution</h2>
-          </div>
-
-          <div className="space-y-5">
-            {exposure?.map((item) => (
-              <div key={item.label} className="group cursor-default">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-mono text-xs text-white/40 uppercase tracking-widest">
-                    {item.label} Concentration
-                  </span>
-                  <span className="font-mono text-sm text-white/65 font-medium">{item.value}%</span>
-                </div>
-                <div className="h-1.5 w-full bg-white/[0.04] rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-1000 ease-out"
-                    style={{ width: `${item.value}%`, backgroundColor: item.color }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-7 flex items-center justify-between pt-5 border-t border-white/[0.04]">
-            <span className="font-mono text-xs text-white/20 uppercase tracking-widest">Diversification Score</span>
-            <span className="font-mono text-sm text-emerald-400 font-bold tracking-tighter">OPTIMAL (9.2/10)</span>
-          </div>
-        </section>
 
         {/* Insights */}
         <section className="p-6 bg-white/[0.02]">
@@ -79,6 +46,7 @@ export function DashboardSidebar({ exposure = [], insights = [] }: DashboardSide
         </section>
 
         {/* Quick Commands */}
+
         <section className="p-6">
           <div className="flex items-center gap-2.5 mb-6">
             <ShieldCheck className="h-4 w-4 text-white/35" />

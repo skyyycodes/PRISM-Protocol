@@ -313,8 +313,8 @@ function HorizontalTicker() {
       </div>
 
       <div className="relative overflow-hidden py-3">
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-[#060606] to-transparent" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-[#060606] to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-black/60 to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-black/60 to-transparent" />
 
         <div className="flex whitespace-nowrap marquee-ticker">
           {doubled.map((event, i) => {
@@ -344,7 +344,7 @@ export default function PrismOverview() {
   const data = useDashboardData();
 
   return (
-    <div className="w-full space-y-6 pb-12">
+    <div className="w-full max-w-[1800px] mx-auto space-y-6 pb-16">
       <PageHeader data={data} />
       <DataState data={data} />
 
@@ -362,6 +362,7 @@ export default function PrismOverview() {
           <DashboardHero
             tranches={data.tranches}
             userPositions={data.userPositions}
+            exposure={data.exposure}
           />
           <LoansSection
             loans={data.loans}
@@ -369,13 +370,11 @@ export default function PrismOverview() {
           />
         </div>
 
-        <div className="relative">
-          <div className="sticky top-6">
-            <DashboardSidebar
-              exposure={data.exposure}
-              insights={data.insights}
-            />
-          </div>
+        <div className="sticky top-6">
+          <DashboardSidebar
+            exposure={data.exposure}
+            insights={data.insights}
+          />
         </div>
       </div>
 
