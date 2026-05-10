@@ -134,7 +134,7 @@ function VaultCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className={cn(
-              'text-lg font-semibold leading-none transition-colors',
+              'font-display text-lg leading-none transition-colors',
               isSelected ? 'text-white' : 'text-white/60 group-hover:text-white/80',
             )}>
               {poolName}
@@ -313,7 +313,7 @@ function StepProfile({
         <div className="flex items-start gap-4">
           <BadgeCheck className="mt-1 h-5 w-5 text-white/20" />
           <div>
-            <div className="text-sm font-medium text-white/60">Compliance & Eligibility</div>
+            <div className="font-mono text-xs uppercase tracking-[0.2em] text-white/40">Compliance & Eligibility</div>
             <p className="mt-1.5 text-sm leading-relaxed text-white/30 max-w-lg">
               Your profile has been pre-cleared for Tier 1 institutional access based on your on-chain history. 
               Further KYC documentation may be required for facilities exceeding $1M USDC.
@@ -567,7 +567,7 @@ function StepLoanStructuring({
             <div className="flex gap-3">
               <TrendingUp className="h-5 w-5 text-emerald-500/40 shrink-0" />
               <div>
-                <div className="text-xs font-semibold text-white/70">Institutional APR: {apr.toFixed(2)}%</div>
+                <div className="font-mono text-xs uppercase tracking-[0.2em] text-white/40">Institutional APR: {apr.toFixed(2)}%</div>
                 <p className="mt-1.5 text-xs leading-relaxed text-white/30">
                   Fixed rate locked for {duration} days. No prepayment penalties apply for institutional facilities.
                 </p>
@@ -622,7 +622,7 @@ function StepCollateral({
           <div key={label} className="rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04] p-5">
             <FieldLabel>{label}</FieldLabel>
             <div className={cn('font-mono text-xl font-bold tracking-tight mb-1', color)}>{value}</div>
-            <div className="text-xs text-white/20 uppercase tracking-widest">{desc}</div>
+            <div className="font-mono text-xs text-white/20 uppercase tracking-widest">{desc}</div>
           </div>
         ))}
       </div>
@@ -642,7 +642,7 @@ function StepCollateral({
               <Lock className="h-5 w-5 text-white/30" />
             </div>
             <div>
-              <div className="text-sm font-medium text-white/80">Collateral Locked After Approval</div>
+              <div className="font-display text-sm text-white/70">Collateral Locked After Approval</div>
               <p className="mt-1 text-sm leading-relaxed text-white/30">
                 Once your application is approved and originated on-chain, you will attach BTC or ETH via IKA dWallet. The protocol holds these funds in a programmatic escrow — only accessible in the event of a margin call or maturity default.
               </p>
@@ -745,7 +745,7 @@ function StepRiskReview({
                     {t.name.charAt(0)}
                   </div>
                   <div className="flex-1">
-                    <div className="text-xs font-semibold text-white/80">{t.name}</div>
+                    <div className="font-mono text-xs font-bold tracking-[0.1em] text-white/80">{t.name}</div>
                     <div className="text-xs text-white/30 mt-0.5">{t.desc}</div>
                   </div>
                   <div className="text-right">
@@ -763,10 +763,10 @@ function StepRiskReview({
               <table className="w-full text-left font-mono text-xs">
                 <thead className="bg-white/[0.04] text-white/25 uppercase tracking-widest">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Scenario</th>
-                    <th className="px-4 py-3 font-medium">Collateral Value</th>
-                    <th className="px-4 py-3 font-medium">LTV Post</th>
-                    <th className="px-4 py-3 font-medium text-right">Status</th>
+                    <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/30">Scenario</th>
+                    <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/30">Collateral Value</th>
+                    <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/30">LTV Post</th>
+                    <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-[0.2em] text-white/30 text-right">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04]">
@@ -778,7 +778,7 @@ function StepRiskReview({
                         <td className="px-4 py-3 text-white/40">${s.collateralPost.toLocaleString()}</td>
                         <td className="px-4 py-3 text-white/40">{ltvPost.toFixed(1)}%</td>
                         <td className={cn(
-                          'px-4 py-3 text-right font-bold tracking-widest uppercase',
+                          'px-4 py-3 text-right font-mono font-bold tracking-[0.2em] uppercase',
                           s.outcome === 'Safe' ? 'text-emerald-500/60' : s.outcome === 'Warning' ? 'text-amber-500/60' : 'text-rose-500/60'
                         )}>
                           {s.outcome}
@@ -811,7 +811,7 @@ function StepRiskReview({
               </div>
               <div className="h-px bg-white/[0.08]" />
               <div className="flex justify-between items-end pt-2">
-                <span className="text-sm font-bold text-white/60">Interest APR</span>
+                <span className="font-mono text-xs uppercase tracking-[0.2em] text-white/40">Interest APR</span>
                 <span className="font-mono text-xl font-bold text-emerald-400">{apr.toFixed(2)}%</span>
               </div>
             </div>
@@ -830,7 +830,7 @@ function StepRiskReview({
             <div className="flex items-center gap-3">
               <FileCheck className="h-5 w-5 text-white/20" />
               <div>
-                <div className="text-xs font-semibold text-white/70">Institutional Attestation</div>
+                <div className="font-mono text-xs uppercase tracking-[0.2em] text-white/40">Institutional Attestation</div>
                 <p className="mt-1 text-xs leading-relaxed text-white/25">
                   Your facility structure has been verified against protocol risk parameters. Approval is expected within 12 seconds of submission.
                 </p>
@@ -1035,7 +1035,7 @@ function StepTracking({
             </div>
 
             <span className={cn(
-              'flex-1 text-sm font-medium',
+              'flex-1 font-mono text-sm',
               stage.done   ? 'text-white/70' :
               stage.active ? 'text-white/60' :
                              'text-white/20',
@@ -1070,7 +1070,7 @@ function StepTracking({
           <div className="flex items-center gap-4">
             <Clock className="h-5 w-5 text-amber-500/50 shrink-0" />
             <div>
-              <div className="text-sm font-semibold text-white/70">Underwriting in Progress</div>
+              <div className="font-display text-base text-white/80">Underwriting in Progress</div>
               <p className="mt-1 font-mono text-xs uppercase tracking-widest text-white/30">
                 Estimated completion: 2–4 business hours · On-chain processing
               </p>
@@ -1084,7 +1084,7 @@ function StepTracking({
             <div className="flex items-center gap-4">
               <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
               <div>
-                <div className="text-sm font-bold text-white">Credit Facility Approved</div>
+                <div className="font-display text-base text-white">Credit Facility Approved</div>
                 <p className="mt-1 font-mono text-xs uppercase tracking-widest text-emerald-400/60">
                   {existingApp.loanId !== undefined
                     ? `Loan ID: #${existingApp.loanId} · APR: ${((existingApp.approvedAprBps ?? 850) / 100).toFixed(2)}%`
@@ -1105,7 +1105,7 @@ function StepTracking({
           <div className="flex items-center gap-4">
             <AlertTriangle className="h-5 w-5 text-rose-400/60 shrink-0" />
             <div>
-              <div className="text-sm font-semibold text-rose-300/70">Application Rejected</div>
+              <div className="font-display text-base text-rose-300/80">Application Rejected</div>
               <p className="mt-1 font-mono text-xs text-white/30">
                 Please review your collateral and resubmit.
               </p>
@@ -1250,7 +1250,7 @@ export function BorrowingWorkflow() {
             <div className="min-w-0">
               <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-white/25">Current Required Action</div>
               <div className={cn(
-                'text-base font-semibold leading-snug mt-2',
+                'font-display text-base leading-snug mt-2',
                 loanIsRepaid ? 'text-blue-400'
                 : loanIsActive ? 'text-amber-200'
                 : isLocked ? 'text-emerald-400'
@@ -1451,7 +1451,7 @@ export function BorrowingWorkflow() {
               <Clock className="h-6 w-6 text-amber-400/70" />
             </div>
             <div className="flex-1">
-              <div className="text-sm font-semibold text-white/80">Loan Origination Pending</div>
+              <div className="font-display text-base text-white/80">Loan Origination Pending</div>
               <p className="mt-2 text-sm leading-relaxed text-white/40 max-w-lg">
                 Your application is approved. The admin is recording your loan on-chain via <span className="font-mono text-white/50">initialize_loan</span>. Collateral registration will surface automatically once the transaction is confirmed.
               </p>
@@ -1479,7 +1479,7 @@ export function BorrowingWorkflow() {
               <Activity className="h-6 w-6 text-white/20" />
             </div>
             <div className="flex-1">
-              <div className="text-sm font-semibold text-white/60">Underwriting In Progress</div>
+              <div className="font-display text-base text-white/70">Underwriting In Progress</div>
               <p className="mt-2 text-sm leading-relaxed text-white/30 max-w-lg">
                 Your credit facility is being evaluated against protocol risk parameters. The underwriting team reviews collateral eligibility, principal sizing, and market conditions before origination.
               </p>
