@@ -21,7 +21,7 @@ export function useRepayLoan() {
       if (!wallet) throw new Error('Wallet not connected');
 
       const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
-      const program = new Program<PrismCore>(prismCoreIdl as PrismCore, provider);
+      const program = new Program<PrismCore>(prismCoreIdl as PrismCore, provider) as any;
 
       const [configPda] = getConfigPda();
       const [vaultPda] = getVaultPda(vaultId);

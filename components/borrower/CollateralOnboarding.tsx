@@ -519,12 +519,12 @@ export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: 
               <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-5 space-y-4">
                 <div className="font-mono text-xs uppercase tracking-widest text-white/30 pb-2 border-b border-white/[0.05]">Funding Pipeline</div>
                 <div className="space-y-3 relative">
-                  {[
-                    { label: 'Credit Approval', status: 'done' as const },
-                    { label: 'Collateral Secured', status: (isCollateralSecured ? 'done' : 'active') as const },
-                    { label: 'Vault Disbursement', status: (isDisbursed ? 'done' : (isCollateralSecured ? 'active' : 'pending')) as const },
-                    { label: 'Funds Delivered', status: (isFundsDelivered ? 'done' : 'pending') as const },
-                  ].map((step, idx, arr) => (
+                  {([
+                    { label: 'Credit Approval', status: 'done' },
+                    { label: 'Collateral Secured', status: isCollateralSecured ? 'done' : 'active' },
+                    { label: 'Vault Disbursement', status: isDisbursed ? 'done' : (isCollateralSecured ? 'active' : 'pending') },
+                    { label: 'Funds Delivered', status: isFundsDelivered ? 'done' : 'pending' },
+                  ] as Array<{ label: string; status: 'done' | 'active' | 'pending' }>).map((step, idx, arr) => (
                     <div key={idx} className="flex items-center gap-3 relative z-10">
                       <div className={cn(
                         "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all",
