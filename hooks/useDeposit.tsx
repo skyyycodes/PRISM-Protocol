@@ -11,7 +11,8 @@ import {
 import { SystemProgram } from '@solana/web3.js';
 import { toast } from 'sonner';
 
-import { getCoreIdl } from '@/app/lib/program';
+import prismCoreIdl from '@/app/lib/idl/prism_core.json';
+import type { Idl } from '@coral-xyz/anchor';
 import { USDC_MINT, TrancheKind } from '@/app/lib/constants';
 import {
   getConfigPda,
@@ -45,7 +46,7 @@ export function useDeposit() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const provider = new AnchorProvider(connection, wallet as any, { commitment: 'confirmed' });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const program = new Program(getCoreIdl(), provider);
+      const program = new Program(prismCoreIdl as Idl, provider);
 
       const [configPda] = getConfigPda();
       const [vaultPda] = getVaultPda(vaultId);
