@@ -215,26 +215,26 @@ export function LoanRepayment({ loanId }: LoanRepaymentProps) {
   }, []);
 
   return (
-    <div className="rounded-md border border-white/30 bg-black/35 p-5 shadow-[0_8px_24px_rgba(60,46,22,0.05)]">
-      <div className="mb-3 flex items-center gap-2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-pink-400/10 border border-pink-400/20">
-          <Banknote className="h-3.5 w-3.5 text-pink-400" />
+    <div className="rounded-md border border-white/10 bg-black/35 p-6 shadow-[0_8px_24px_rgba(60,46,22,0.05)]">
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+          <Banknote className="h-5 w-5 text-emerald-400" />
         </div>
         <div>
           <h3 className="text-lg font-semibold text-white">Loan Repayment</h3>
-          <p className="text-sm text-pink-400/70">Loan ID: {loanId}</p>
+          <p className="text-sm text-emerald-400/70">Loan ID: {loanId}</p>
         </div>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as 'usdc' | 'fiat')}>
-        <TabsList className="grid w-full grid-cols-2 bg-white/[0.10]">
+        <TabsList className="grid w-full grid-cols-2 bg-white/[0.04]">
           <TabsTrigger value="usdc">Repay with USDC</TabsTrigger>
           <TabsTrigger value="fiat">Pay with Dodo (UPI/Cards)</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="usdc" className="mt-2 space-y-3">
-          <div className="space-y-3">
-            <label className="text-sm text-white/65 uppercase font-bold tracking-widest">
+        <TabsContent value="usdc" className="mt-4 space-y-4">
+          <div className="space-y-2">
+            <label className="text-[10px] text-white/30 uppercase font-bold tracking-widest">
               Amount to Repay (USDC)
             </label>
             <div className="relative">
@@ -243,9 +243,9 @@ export function LoanRepayment({ loanId }: LoanRepaymentProps) {
                 value={repayAmount}
                 onChange={(e) => setRepayAmount(e.target.value)}
                 placeholder="0.00"
-                className="w-full bg-white/[0.09] border border-white/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-pink-400/50 transition-colors"
+                className="w-full bg-white/[0.03] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500/50 transition-colors"
               />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-white/85 uppercase">
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/20 uppercase">
                 USDC
               </div>
             </div>
@@ -254,31 +254,31 @@ export function LoanRepayment({ loanId }: LoanRepaymentProps) {
           <button
             onClick={handleManualRepay}
             disabled={loading || !repayAmount}
-            className="w-full flex items-center justify-center gap-2 rounded-lg bg-pink-400/20 border border-pink-400/30 py-2 text-sm font-semibold text-emerald-200 hover:bg-pink-400/30 disabled:opacity-40 transition-all shadow-[0_0_20px_rgba(16,185,129,0.05)]"
+            className="w-full flex items-center justify-center gap-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 py-3 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/30 disabled:opacity-40 transition-all shadow-[0_0_20px_rgba(16,185,129,0.05)]"
           >
             {loading ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <>
-                <CheckCircle2 className="h-3.5 w-3.5" />
+                <CheckCircle2 className="h-4 w-4" />
                 Complete Repayment
               </>
             )}
           </button>
 
-          <p className="text-sm text-center text-white/65 leading-relaxed italic">
+          <p className="text-[10px] text-center text-white/30 leading-relaxed italic">
             Repayment will restore the vault&apos;s USDC reserves. Once fully repaid,
             your IKA collateral will be eligible for withdrawal.
           </p>
         </TabsContent>
 
-        <TabsContent value="fiat" className="mt-2 space-y-3">
+        <TabsContent value="fiat" className="mt-4 space-y-4">
           <FiatStatusBanner status={fiatStatus} txSig={fiatTxSig} />
 
           {fiatStatus !== 'credited' ? (
             <>
-              <div className="space-y-3">
-                <label className="text-sm text-white/65 uppercase font-bold tracking-widest">
+              <div className="space-y-2">
+                <label className="text-[10px] text-white/30 uppercase font-bold tracking-widest">
                   Amount to Pay (USD)
                 </label>
                 <div className="relative">
@@ -287,14 +287,14 @@ export function LoanRepayment({ loanId }: LoanRepaymentProps) {
                     value={fiatAmount}
                     onChange={(e) => setFiatAmount(e.target.value)}
                     placeholder="0.00"
-                    className="w-full bg-white/[0.09] border border-white/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-pink-400/50 transition-colors"
+                    className="w-full bg-white/[0.03] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500/50 transition-colors"
                     disabled={
                       fiatStatus === 'pending' ||
                       fiatStatus === 'paid' ||
                       dodoCheckout.isPending
                     }
                   />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-white/85 uppercase">
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/20 uppercase">
                     USD
                   </div>
                 </div>
@@ -308,18 +308,18 @@ export function LoanRepayment({ loanId }: LoanRepaymentProps) {
                   fiatStatus === 'pending' ||
                   fiatStatus === 'paid'
                 }
-                className="w-full flex items-center justify-center gap-2 rounded-lg bg-purple-500/20 border border-purple-500/30 py-2 text-sm font-semibold text-purple-100 hover:bg-purple-500/30 disabled:opacity-40 transition-all"
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-purple-500/20 border border-purple-500/30 py-3 text-sm font-semibold text-purple-100 hover:bg-purple-500/30 disabled:opacity-40 transition-all"
               >
                 {dodoCheckout.isPending ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <CreditCard className="h-3.5 w-3.5" />
+                    <CreditCard className="h-4 w-4" />
                     Pay with Dodo
                   </>
                 )}
               </button>
-              <p className="text-sm text-center text-white/65 italic">
+              <p className="text-[10px] text-center text-white/30 italic">
                 UPI, cards, and 40+ payment methods across 220+ countries via Dodo
                 Payments. Fiat is bridged to USDC server-side; you sign the final
                 on-chain settlement yourself.
@@ -327,11 +327,11 @@ export function LoanRepayment({ loanId }: LoanRepaymentProps) {
             </>
           ) : alreadySettled ? (
             <div className="space-y-3">
-              <div className="rounded-lg border border-pink-400/40 bg-pink-400/10 px-4 py-2 text-sm text-emerald-100 flex items-start gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+              <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100 flex items-start gap-3">
+                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <div className="font-semibold">Settled on-chain</div>
-                  <div className="text-xs opacity-80 mt-0.5">
+                  <div className="text-[11px] opacity-80 mt-0.5">
                     Your fiat payment has been bridged to USDC and the loan was
                     repaid on Solana. Vault reserve restored.
                   </div>
@@ -339,13 +339,13 @@ export function LoanRepayment({ loanId }: LoanRepaymentProps) {
                     href={`https://explorer.solana.com/tx/${onChainTxSig}?cluster=devnet`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-2 inline-block break-all text-xs underline opacity-80 hover:opacity-100"
+                    className="mt-2 inline-block break-all text-[11px] underline opacity-80 hover:opacity-100"
                   >
                     {onChainTxSig?.slice(0, 24)}…
                   </a>
                 </div>
               </div>
-              <p className="text-sm text-center text-white/65 italic">
+              <p className="text-[10px] text-center text-white/30 italic">
                 If your loan is fully repaid, head back to the collateral panel
                 to release your IKA-attested collateral.
               </p>
@@ -354,13 +354,13 @@ export function LoanRepayment({ loanId }: LoanRepaymentProps) {
             <button
               onClick={handleSettleFromFiat}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 rounded-lg bg-pink-400/30 border border-pink-400/50 py-2 text-sm font-semibold text-emerald-100 hover:bg-pink-400/40 disabled:opacity-40 transition-all shadow-[0_0_24px_rgba(16,185,129,0.18)]"
+              className="w-full flex items-center justify-center gap-2 rounded-lg bg-emerald-500/30 border border-emerald-500/50 py-3 text-sm font-semibold text-emerald-100 hover:bg-emerald-500/40 disabled:opacity-40 transition-all shadow-[0_0_24px_rgba(16,185,129,0.18)]"
             >
               {loading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  <ShieldCheck className="h-3.5 w-3.5" />
+                  <ShieldCheck className="h-4 w-4" />
                   Sign on-chain settlement
                 </>
               )}
@@ -384,19 +384,19 @@ function FiatStatusBanner({
   return (
     <div
       className={
-        'rounded-md border px-3 py-2 text-xs flex items-start gap-2 ' + meta.classes
+        'rounded-md border px-3 py-3 text-xs flex items-start gap-3 ' + meta.classes
       }
     >
       <div className="mt-0.5">{meta.icon}</div>
       <div className="flex-1">
         <div className="font-semibold">{meta.title}</div>
-        <div className="text-xs opacity-80">{meta.body}</div>
+        <div className="text-[11px] opacity-80">{meta.body}</div>
         {txSig ? (
           <a
             href={`https://explorer.solana.com/tx/${txSig}?cluster=devnet`}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-2 inline-block break-all underline opacity-80 hover:opacity-100"
+            className="mt-1.5 inline-block break-all underline opacity-80 hover:opacity-100"
           >
             {txSig.slice(0, 16)}…
           </a>
@@ -414,24 +414,24 @@ const STATUS_META: Record<
     title: 'Awaiting fiat payment',
     body: 'Complete the checkout on Dodo. We will pick up the webhook automatically.',
     classes: 'border-yellow-500/30 bg-yellow-500/10 text-yellow-100',
-    icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
+    icon: <Loader2 className="h-4 w-4 animate-spin" />,
   },
   paid: {
     title: 'Fiat received — bridging USDC',
     body: 'Dodo confirmed your payment. Admin treasury is sending USDC to your wallet.',
     classes: 'border-blue-500/30 bg-blue-500/10 text-blue-100',
-    icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
+    icon: <Loader2 className="h-4 w-4 animate-spin" />,
   },
   credited: {
     title: 'USDC received — sign to settle',
     body: 'The bridge transfer landed. Sign the on-chain settlement to repay your loan.',
-    classes: 'border-pink-400/40 bg-pink-400/10 text-emerald-100',
-    icon: <ShieldCheck className="h-3.5 w-3.5" />,
+    classes: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100',
+    icon: <ShieldCheck className="h-4 w-4" />,
   },
   failed: {
     title: 'Payment failed',
     body: 'Dodo reported the payment did not complete. Try again or use direct USDC.',
     classes: 'border-red-500/30 bg-red-500/10 text-red-200',
-    icon: <Banknote className="h-3.5 w-3.5" />,
+    icon: <Banknote className="h-4 w-4" />,
   },
 };
