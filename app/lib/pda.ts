@@ -4,7 +4,7 @@ import { Buffer } from 'buffer';
 import { PRISM_AMM_PROGRAM_ID, PRISM_CORE_PROGRAM_ID, TrancheKind } from './constants';
 
 export function getConfigPda(programId: PublicKey = PRISM_CORE_PROGRAM_ID): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync([Buffer.from('config')], programId);
+  return PublicKey.findProgramAddressSync([Buffer.from('config2')], programId);
 }
 
 export function getVaultPda(
@@ -110,7 +110,27 @@ export function getIkaCollateralPda(
   programId: PublicKey = PRISM_CORE_PROGRAM_ID,
 ): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('ika_collateral'), loan.toBuffer()],
+    [Buffer.from('ika_collateral_v2'), loan.toBuffer()],
+    programId,
+  );
+}
+
+export function getEncryptHealthPda(
+  loan: PublicKey,
+  programId: PublicKey = PRISM_CORE_PROGRAM_ID,
+): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('encrypt_health'), loan.toBuffer()],
+    programId,
+  );
+}
+
+export function getCloakPayoutPda(
+  vault: PublicKey,
+  programId: PublicKey = PRISM_CORE_PROGRAM_ID,
+): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('cloak_payout'), vault.toBuffer()],
     programId,
   );
 }

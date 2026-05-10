@@ -2,7 +2,7 @@ use crate::ID;
 use anchor_lang::prelude::*;
 
 pub fn config_pda() -> (Pubkey, u8) {
-    Pubkey::find_program_address(&[b"config"], &ID)
+    Pubkey::find_program_address(&[b"config2"], &ID)
 }
 
 pub fn vault_pda(vault_id: u32) -> (Pubkey, u8) {
@@ -31,4 +31,12 @@ pub fn loan_pda(vault: &Pubkey, loan_id: u32) -> (Pubkey, u8) {
 
 pub fn credit_event_pda(vault: &Pubkey, seq: u32) -> (Pubkey, u8) {
     Pubkey::find_program_address(&[b"credit_event", vault.as_ref(), &seq.to_le_bytes()], &ID)
+}
+
+pub fn encrypt_health_pda(loan: &Pubkey) -> (Pubkey, u8) {
+    Pubkey::find_program_address(&[b"encrypt_health", loan.as_ref()], &ID)
+}
+
+pub fn cloak_payout_pda(vault: &Pubkey) -> (Pubkey, u8) {
+    Pubkey::find_program_address(&[b"cloak_payout", vault.as_ref()], &ID)
 }

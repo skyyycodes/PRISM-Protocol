@@ -145,6 +145,7 @@ export function LoanApplicationForm({ onSubmitted }: Props) {
         requestedUSDC: usd,
         maturityDays,
         purpose,
+        vaultId: 0,
       });
       toast.success('Application submitted! The admin will review shortly.');
       onSubmitted?.();

@@ -9,7 +9,7 @@ export default async function EarnVaultDetailPage({
 }) {
   const { vaultId } = await params;
 
-  if (vaultId !== '0') {
+  if (isNaN(Number(vaultId)) || Number(vaultId) < 0) {
     notFound();
   }
 

@@ -56,21 +56,38 @@ export async function fetchProtocolEvents(
   limit = 20,
 ): Promise<ProtocolEvent[]> {
   try {
-    const res = await fetch(
+    // 1. Fetch from Dune SIM (Mainnet Target)
+    const dunePromise = fetch(
       `/api/dune?endpoint=beta/svm/transactions/${address}&limit=${limit}`,
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    const txs: RawDuneTx[] = data.transactions ?? [];
-    return txs.map((tx) => ({
-      // block_time from Dune SIM is in microseconds
-      timestamp: Math.floor(tx.block_time / 1_000_000),
-      signature: tx.raw_transaction.transaction.signatures[0] ?? '',
-      success: tx.raw_transaction.meta.status.err === null,
-      signer: tx.raw_transaction.transaction.message.accountKeys[0] ?? '',
-      eventType: inferEventType(tx.raw_transaction.meta.logMessages),
-    }));
-  } catch {
+    ).then(res => res.ok ? res.json() : { transactions: [] })
+     .then(data => {
+        const txs: RawDuneTx[] = data.transactions ?? [];
+        return txs.map((tx) => ({
+          timestamp: Math.floor(tx.block_time / 1_000_000),
+          signature: tx.raw_transaction.transaction.signatures[0] ?? '',
+          success: tx.raw_transaction.meta.status.err === null,
+          signer: tx.raw_transaction.transaction.message.accountKeys[0] ?? '',
+          eventType: inferEventType(tx.raw_transaction.meta.logMessages),
+        }));
+     });
+
+    // 2. Fetch from Local DB Indexer (Devnet/Testnet)
+    // We add sync=true to trigger the on-chain crawler to update our DB with real transactions
+    const localPromise = fetch(`/api/events?limit=${limit}&sync=true`)
+      .then(res => res.ok ? res.json() : { events: [] })
+      .then(data => data.events as ProtocolEvent[]);
+
+    const [duneEvents, localEvents] = await Promise.all([dunePromise, localPromise]);
+
+    // Merge and sort by timestamp
+    const allEvents = [...localEvents, ...duneEvents];
+    const uniqueEvents = Array.from(new Map(allEvents.map(e => [e.signature, e])).values());
+    
+    return uniqueEvents
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, limit);
+  } catch (err) {
+    console.error('Error fetching events:', err);
     return [];
   }
 }

@@ -10,6 +10,7 @@ const Body = z.object({
   trancheKind: z.number().int().min(0).max(2),
   amountUsd: z.number().positive().max(500_000),
   investorPubkey: z.string().min(32).max(64),
+  returnPath: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -21,10 +22,11 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
-  const { trancheKind, amountUsd, investorPubkey } = parsed.data;
+  const { trancheKind, amountUsd, investorPubkey, returnPath } = parsed.data;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const successUrl = `${appUrl}/dashboard?dodo=invested&tranche=${trancheKind}`;
+  const targetPath = returnPath || '/dashboard';
+  const successUrl = `${appUrl}${targetPath}${targetPath.includes('?') ? '&' : '?'}dodo=invested&tranche=${trancheKind}`;
   const amountUsdCents = Math.round(amountUsd * 100);
   const amountUsdMicro = BigInt(amountUsdCents) * 10_000n;
 

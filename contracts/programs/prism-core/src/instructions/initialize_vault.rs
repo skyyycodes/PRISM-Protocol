@@ -9,7 +9,7 @@ pub struct InitializeVault<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
 
-    #[account(seeds = [b"config"], bump, has_one = admin @ PrismError::Unauthorized)]
+    #[account(seeds = [b"config2"], bump, has_one = admin @ PrismError::Unauthorized)]
     pub config: Box<Account<'info, GlobalConfig>>,
 
     #[account(
@@ -29,7 +29,7 @@ pub struct InitializeVaultReserves<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
 
-    #[account(seeds = [b"config"], bump, has_one = admin @ PrismError::Unauthorized)]
+    #[account(seeds = [b"config2"], bump, has_one = admin @ PrismError::Unauthorized)]
     pub config: Box<Account<'info, GlobalConfig>>,
 
     #[account(mut, seeds = [b"vault", &vault.id.to_le_bytes()], bump = vault.bump)]
@@ -58,7 +58,7 @@ pub struct InitializeVaultLossBucket<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
 
-    #[account(seeds = [b"config"], bump, has_one = admin @ PrismError::Unauthorized)]
+    #[account(seeds = [b"config2"], bump, has_one = admin @ PrismError::Unauthorized)]
     pub config: Box<Account<'info, GlobalConfig>>,
 
     #[account(mut, seeds = [b"vault", &vault.id.to_le_bytes()], bump = vault.bump)]

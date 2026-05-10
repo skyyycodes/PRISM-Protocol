@@ -11,6 +11,7 @@ export interface LoanApplication {
   status: 'pending' | 'approved' | 'rejected';
   submittedAt: number;
   loanId?: number;          // set by admin after on-chain origination
+  vaultId: number;          // the capital pool selected during application
   approvedAprBps?: number;
 }
 
@@ -19,6 +20,7 @@ const LS_KEY = 'prism_loan_applications';
 interface ContextValue {
   applications: LoanApplication[];
   submit: (app: Omit<LoanApplication, 'id' | 'status' | 'submittedAt'>) => void;
+  updateStatus: (id: string, status: 'pending' | 'approved' | 'rejected') => void;
   approve: (id: string, loanId: number, aprBps: number) => void;
   reject: (id: string) => void;
   getByBorrower: (pubkey: string) => LoanApplication | undefined;
@@ -55,6 +57,10 @@ export function LoanApplicationProvider({ children }: { children: ReactNode }) {
     ]);
   }, []);
 
+  const updateStatus = useCallback((id: string, status: 'pending' | 'approved' | 'rejected') => {
+    setApplications((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
+  }, []);
+
   const approve = useCallback((id: string, loanId: number, aprBps: number) => {
     setApplications((prev) =>
       prev.map((a) => (a.id === id ? { ...a, status: 'approved', loanId, approvedAprBps: aprBps } : a)),
@@ -76,7 +82,7 @@ export function LoanApplicationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <Ctx.Provider value={{ applications, submit, approve, reject, getByBorrower, clearApplications }}>
+    <Ctx.Provider value={{ applications, submit, updateStatus, approve, reject, getByBorrower, clearApplications }}>
       {children}
     </Ctx.Provider>
   );

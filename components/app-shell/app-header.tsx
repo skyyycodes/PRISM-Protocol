@@ -12,7 +12,8 @@ const NAV_LINKS = [
   { label: "Earn", href: "/earn" },
   { label: "Protect", href: "/protect" },
   { label: "Trade", href: "/trade" },
-  { label: "Borrow", href: "/borrower" },
+  { label: "Borrow", href: "/borrow" },
+  { label: "Terminal", href: "/terminal" },
   { label: "Docs", href: "https://docs.prismprotocol.dev/" },
 ] as const;
 
@@ -140,12 +141,12 @@ export function AppHeader() {
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
-            <TestnetFaucetButton />
+
             <ConnectWalletButton />
           </div>
 
           <div className="flex items-center gap-2 md:hidden">
-            <TestnetFaucetButton />
+
             <ConnectWalletButton />
             <button
               type="button"

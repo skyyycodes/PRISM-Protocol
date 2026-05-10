@@ -9,8 +9,7 @@ import {
   ArrowRight,
   ArrowUp,
   ArrowUpRight,
-  BarChart3,
-  ChevronDown,
+  BarChart,
   CircleDollarSign,
   Database,
   Layers3,
@@ -21,10 +20,14 @@ import {
 } from 'lucide-react';
 
 import { Q64_ONE, TRANCHE_CONFIG, TrancheKind } from '@/app/lib/constants';
-import { formatNavQ, formatUsdc, shortKey, stateName, toBigInt } from '@/app/lib/format';
+import { formatNavQ, formatUsdc, parseUsdc, shortKey, stateName, toBigInt } from '@/app/lib/format';
+import { AllocationTerminal } from '@/components/vault-detail/AllocationTerminal';
 import { EventTickerPanel } from '@/components/simulation/EventTickerPanel';
 import { useDeposit } from '@/hooks/useDeposit';
+import { useIdentityBalances } from '@/hooks/useIdentityBalances';
+import { useSwap, SWAP_DIR_USDC_TO_TRANCHE, type SwapDirection } from '@/hooks/useSwap';
 import { useUserPosition } from '@/hooks/useUserPosition';
+import { useVaultList, type VaultEntry } from '@/hooks/useVaultRegistry';
 import { useVaultState } from '@/hooks/useVaultState';
 
 const TRANCHE_ORDER = [TrancheKind.Prime, TrancheKind.Core, TrancheKind.Alpha] as const;
@@ -67,6 +70,12 @@ const TRANCHE_META = {
     risk: 'Takes the first dollar of loss. Levered exposure to vault performance.',
   },
 } as const;
+
+const TRANCHE_PROTECTION: Record<TrancheKind, string> = {
+  [TrancheKind.Prime]: 'Maximum',
+  [TrancheKind.Core]: 'High',
+  [TrancheKind.Alpha]: 'None',
+};
 
 const FEATURED_STACK = [
   { kind: TrancheKind.Prime, width: 70 },
@@ -147,6 +156,48 @@ function usePrismData(): PrismData {
     vaultCapital: trancheAssets > 0n ? trancheAssets : reserveBalance,
     yieldDistributed: sum(tranches.map((tranche) => tranche.cumulativeYield)),
     poolLiquidity: sum(tranches.map((tranche) => tranche.ammQuoteBalance)),
+    lossBucket: toBigInt(data?.lossBucketBalance ?? 0n),
+    isLoading: vaultQuery.isLoading,
+    error: vaultQuery.error instanceof Error ? vaultQuery.error : undefined,
+  };
+}
+
+function usePrismDataById(vaultId: number): PrismData {
+  const { connected, publicKey } = useWallet();
+  const vaultQuery = useVaultState(vaultId);
+  const data = vaultQuery.data;
+
+  const tranches: DashboardTranche[] = TRANCHE_ORDER.map((kind) => {
+    const config = TRANCHE_CONFIG[kind];
+    const live = data?.tranches.find((tranche) => tranche.kind === kind);
+    const meta = TRANCHE_META[kind];
+    return {
+      kind,
+      key: config.key,
+      label: meta.label,
+      totalAssets: live?.totalAssets ?? 0n,
+      totalSupply: live?.totalSupply ?? 0n,
+      navPerShareQ: live?.navPerShareQ ?? 0n,
+      cumulativeYield: live?.cumulativeYield ?? 0n,
+      cumulativeLoss: live?.cumulativeLoss ?? 0n,
+      ammQuoteBalance: live?.ammQuoteBalance ?? 0n,
+      ammTrancheBalance: live?.ammTrancheBalance ?? 0n,
+      pdaLabel: live ? shortKey(live.pda) : meta.token,
+    };
+  });
+
+  const trancheAssets = sum(tranches.map((t) => t.totalAssets));
+  const reserveBalance = toBigInt(data?.reserveBalance ?? 0n);
+
+  return {
+    connected,
+    walletLabel: connected && publicKey ? shortKey(publicKey) : 'Not connected',
+    vaultLabel: data ? shortKey(data.vaultPda) : `Vault #${vaultId}`,
+    vaultStatus: stateName(data?.vault?.state),
+    tranches,
+    vaultCapital: trancheAssets > 0n ? trancheAssets : reserveBalance,
+    yieldDistributed: sum(tranches.map((t) => t.cumulativeYield)),
+    poolLiquidity: sum(tranches.map((t) => t.ammQuoteBalance)),
     lossBucket: toBigInt(data?.lossBucketBalance ?? 0n),
     isLoading: vaultQuery.isLoading,
     error: vaultQuery.error instanceof Error ? vaultQuery.error : undefined,
@@ -652,6 +703,97 @@ function TrancheRows({ data }: { data: PrismData }) {
   );
 }
 
+function VaultCard({ entry }: { entry: VaultEntry }) {
+  const data = usePrismDataById(entry.vault_id);
+  const aprPrime = (entry.prime_bps / 100).toFixed(1);
+  const aprAlpha = (entry.alpha_bps / 100).toFixed(1);
+
+  return (
+    <div id={`vault-${entry.vault_id}`} className="scroll-mt-24">
+      <Card className="mt-12 overflow-hidden">
+        <div className="grid gap-6 border-b border-white/10 bg-white/[0.055] p-7 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Eyebrow>Vault #{entry.vault_id}</Eyebrow>
+              <Pill tone="green">{data.vaultStatus || 'Active'}</Pill>
+              <Pill>USDC</Pill>
+            </div>
+            <h2 className="mt-5 font-display text-4xl text-white">{entry.name}</h2>
+            <p className="mt-3 text-white/50">
+              Solana credit positions · {aprPrime}%–{aprAlpha}% APR range · USDC denominated
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-px border-l border-white/10 pl-7">
+            <div>
+              <Eyebrow>Vault TVL</Eyebrow>
+              <div className="mt-3 font-display text-4xl text-white">${formatUsdc(data.vaultCapital, 2)}</div>
+            </div>
+            <div>
+              <Eyebrow>Tranches</Eyebrow>
+              <div className="mt-3 font-display text-4xl text-white">3</div>
+            </div>
+          </div>
+        </div>
+        <div className="grid lg:grid-cols-[440px_minmax(0,1fr)]">
+          <div className="min-h-[520px] border-b border-white/10 p-7 lg:border-r lg:border-b-0">
+            <Eyebrow>The waterfall</Eyebrow>
+            <p className="mt-4 text-sm text-white/50">Cash flows top-down. Losses absorb bottom-up.</p>
+            <div className="mt-8">
+              <div className="mb-4 font-mono text-xs uppercase tracking-[0.24em] text-white/45">Cashflow</div>
+              <div className="relative pl-9 pr-7">
+                <div className="absolute bottom-3 left-3 top-0 border-l border-dashed border-white/30" />
+                <ArrowDown className="absolute left-1 bottom-0 h-4 w-4 text-white/45" strokeWidth={1.7} />
+                <div className="absolute bottom-3 right-0 top-0 border-r border-dashed border-[#c47f68]/55" />
+                <ArrowUp className="absolute -right-2 top-0 h-4 w-4 text-[#c47f68]" strokeWidth={1.7} />
+                {TRANCHE_ORDER.map((kind) => {
+                  const meta = TRANCHE_META[kind];
+                  const bps = kind === TrancheKind.Prime ? entry.prime_bps : kind === TrancheKind.Core ? entry.core_bps : entry.alpha_bps;
+                  const apyLabel = `${(bps / 100).toFixed(1)}%`;
+                  return (
+                    <div
+                      key={meta.label}
+                      className="relative mb-4 h-20 overflow-hidden rounded-lg text-white"
+                      style={{ backgroundColor: meta.soft }}
+                    >
+                      <div className="absolute inset-y-0 left-0 rounded-lg" style={{ width: `${meta.allocation}%`, backgroundColor: meta.color }} />
+                      <div className="relative flex h-full items-center justify-between gap-4 px-4 sm:px-5">
+                        <div className="min-w-0 [text-shadow:0_1px_8px_rgba(0,0,0,0.26)]">
+                          <div className="font-mono text-sm uppercase tracking-[0.22em] text-white sm:text-base sm:tracking-[0.26em]">{meta.label}</div>
+                          <div className="mt-3 text-sm text-white/90 sm:text-base">{meta.allocation}% filled</div>
+                        </div>
+                        <div className="font-mono text-3xl text-white drop-shadow-sm sm:text-4xl">{apyLabel}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="mt-5 flex justify-between text-xs text-white/50">
+              <span className="inline-flex items-center gap-1">Paid first <ArrowDown className="h-3 w-3" strokeWidth={1.7} /></span>
+              <span className="inline-flex items-center gap-1 text-[#c47f68]"><ArrowUp className="h-3 w-3" strokeWidth={1.7} /> Loss first</span>
+            </div>
+          </div>
+          <TrancheRows data={data} />
+        </div>
+        <div className="grid border-t border-white/10 bg-white/[0.055] md:grid-cols-5">
+          {[
+            ['Underlying', 'Solana credit + USDC'],
+            ['Originator', data.vaultLabel],
+            ['Maturity', `${entry.maturity_days}d`],
+            ['30d default rate', '0.00%'],
+            ['Details', <Link key="link" href={`/earn/vault/${entry.vault_id}`} className="text-white/60 hover:text-white transition-colors">Open vault →</Link>],
+          ].map(([label, value]) => (
+            <div key={String(label)} className="border-b border-white/10 p-6 md:border-r md:border-b-0">
+              <Eyebrow>{label}</Eyebrow>
+              <div className="mt-3 text-sm text-white">{value}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 const UPCOMING_VAULTS = [
   {
     label: 'Vault #1 · Queued',
@@ -719,6 +861,9 @@ function MoreVaultsComing() {
 
 export function PrismEarn() {
   const data = usePrismData();
+  const { data: registeredVaults, isLoading: vaultsLoading } = useVaultList();
+
+  const vaultCount = registeredVaults?.length ?? 0;
 
   return (
     <PageFrame>
@@ -733,102 +878,31 @@ export function PrismEarn() {
         </div>
         <div className="text-right">
           <Eyebrow>Vaults</Eyebrow>
-          <div className="mt-6 font-display text-6xl text-white">1</div>
+          <div className="mt-6 font-display text-6xl text-white">{vaultsLoading ? '…' : vaultCount}</div>
           <p className="mt-2 text-sm text-white/50">Active on Devnet</p>
         </div>
       </section>
 
-      <div id="vault-0" className="scroll-mt-24">
-      <Card className="mt-12 overflow-hidden">
-        <div className="grid gap-6 border-b border-white/10 bg-white/[0.055] p-7 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Eyebrow>Vault #0</Eyebrow>
-              <Pill tone="green">Active</Pill>
-              <Pill>USDC</Pill>
-            </div>
-            <h2 className="mt-5 font-display text-4xl text-white">PRISM Credit Vault</h2>
-            <p className="mt-3 text-white/50">Solana credit positions · transparent tranche accounting · USDC denominated</p>
-          </div>
-          <div className="grid grid-cols-2 gap-px border-l border-white/10 pl-7">
-            <div>
-              <Eyebrow>Vault TVL</Eyebrow>
-              <div className="mt-3 font-display text-4xl text-white">${formatUsdc(data.vaultCapital, 2)}</div>
-            </div>
-            <div>
-              <Eyebrow>Tranches</Eyebrow>
-              <div className="mt-3 font-display text-4xl text-white">3</div>
-            </div>
-          </div>
+      {/* Registered vaults */}
+      {registeredVaults && registeredVaults.length > 0 ? (
+        registeredVaults.map((entry) => <VaultCard key={entry.vault_id} entry={entry} />)
+      ) : (
+        <div className="mt-16 rounded-md border border-white/10 bg-white/[0.025] px-8 py-12 text-center">
+          <p className="font-mono text-xs uppercase tracking-widest text-white/30">No vaults registered</p>
+          <p className="mt-3 text-sm text-white/40">
+            Go to <Link href="/admin" className="underline hover:text-white/70">Admin → New Vault</Link> to initialize your first vault.
+          </p>
         </div>
-        <div className="grid lg:grid-cols-[440px_minmax(0,1fr)]">
-          <div className="min-h-[520px] border-b border-white/10 p-7 lg:border-r lg:border-b-0">
-            <Eyebrow>The waterfall</Eyebrow>
-            <p className="mt-4 text-sm text-white/50">Cash flows top-down. Losses absorb bottom-up.</p>
-            <div className="mt-8">
-              <div className="mb-4 font-mono text-xs uppercase tracking-[0.24em] text-white/45">Cashflow</div>
-              <div className="relative pl-9 pr-7">
-                <div className="absolute bottom-3 left-3 top-0 border-l border-dashed border-white/30" />
-                <ArrowDown className="absolute left-1 bottom-0 h-4 w-4 text-white/45" strokeWidth={1.7} />
-                <div className="absolute bottom-3 right-0 top-0 border-r border-dashed border-[#c47f68]/55" />
-                <ArrowUp className="absolute -right-2 top-0 h-4 w-4 text-[#c47f68]" strokeWidth={1.7} />
-                {TRANCHE_ORDER.map((kind) => {
-                  const meta = TRANCHE_META[kind];
-                  const apyLabel = `${Number.parseFloat(meta.apy).toFixed(1)}%`;
+      )}
 
-                  return (
-                    <div
-                      key={meta.label}
-                      className="relative mb-4 h-20 overflow-hidden rounded-lg text-white"
-                      style={{ backgroundColor: meta.soft }}
-                    >
-                      <div
-                        className="absolute inset-y-0 left-0 rounded-lg"
-                        style={{ width: `${meta.allocation}%`, backgroundColor: meta.color }}
-                      />
-                      <div className="relative flex h-full items-center justify-between gap-4 px-4 sm:px-5">
-                        <div className="min-w-0 [text-shadow:0_1px_8px_rgba(0,0,0,0.26)]">
-                          <div className="font-mono text-sm uppercase tracking-[0.22em] text-white sm:text-base sm:tracking-[0.26em]">{meta.label}</div>
-                          <div className="mt-3 text-sm text-white/90 sm:text-base">{meta.allocation}% filled</div>
-                        </div>
-                        <div className="font-mono text-3xl text-white drop-shadow-sm sm:text-4xl">{apyLabel}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="mt-5 flex justify-between text-xs text-white/50">
-              <span className="inline-flex items-center gap-1">Paid first <ArrowDown className="h-3 w-3" strokeWidth={1.7} /></span>
-              <span className="inline-flex items-center gap-1 text-[#c47f68]"><ArrowUp className="h-3 w-3" strokeWidth={1.7} /> Loss first</span>
-            </div>
-          </div>
-          <TrancheRows data={data} />
-        </div>
-        <div className="grid border-t border-white/10 bg-white/[0.055] md:grid-cols-5">
-          {[
-            ['Underlying', 'Solana credit + USDC'],
-            ['Originator', data.vaultLabel],
-            ['Weighted APY', 'Portfolio driven'],
-            ['30d default rate', '0.00%'],
-            ['Details', 'Open vault ->'],
-          ].map(([label, value]) => (
-            <div key={label} className="border-b border-white/10 p-6 md:border-r md:border-b-0">
-              <Eyebrow>{label}</Eyebrow>
-              <div className="mt-3 text-sm text-white">{value}</div>
-            </div>
-          ))}
-        </div>
-      </Card>
-      </div>
       <EarnGuideBanner />
-      <MoreVaultsComing />
     </PageFrame>
   );
 }
 
 export function PrismVaultDetail({ vaultId }: { vaultId: string }) {
   const data = usePrismData();
+  const [, setActiveTranche] = useState<TrancheKind>(TrancheKind.Prime);
 
   if (vaultId !== '0') {
     return (
@@ -918,6 +992,24 @@ export function PrismVaultDetail({ vaultId }: { vaultId: string }) {
           <TrancheRows data={data} />
         </div>
       </Card>
+
+      <section className="mt-8 space-y-4" id="allocation-terminal">
+        <Eyebrow>Tranche Allocation Terminal · USDC &amp; Fiat</Eyebrow>
+        <AllocationTerminal
+          vaultStatus={data.vaultStatus}
+          tranches={TRANCHE_ORDER.map((k) => ({
+            kind: k,
+            label: TRANCHE_META[k].label,
+            apy: TRANCHE_META[k].apy,
+            color: TRANCHE_META[k].color,
+            risk: TRANCHE_META[k].risk,
+            protection: TRANCHE_PROTECTION[k],
+            nav: data.tranches.find((t) => t.kind === k)?.navPerShareQ ?? Q64_ONE,
+          }))}
+          onTrancheChange={setActiveTranche}
+        />
+      </section>
+
       <EarnGuideBanner />
     </PageFrame>
   );
@@ -1094,147 +1186,367 @@ function TradeMetric({
   );
 }
 
-function TradeField({
-  label,
-  placeholder,
-  menu = false,
-}: {
-  label: string;
-  placeholder: string;
-  menu?: boolean;
-}) {
-  return (
-    <label className="block">
-      <span className="text-xs uppercase tracking-[0.14em] text-white/40">{label}</span>
-      {menu ? (
-        <button
-          type="button"
-          className="mt-2 flex h-12 w-full items-center justify-between rounded-md border border-white/10 bg-black/40 px-4 text-left text-sm text-white transition-colors hover:border-white/20"
-        >
-          {placeholder}
-          <ChevronDown className="h-4 w-4 text-white/45" />
-        </button>
-      ) : (
-        <input
-          className="mt-2 h-12 w-full rounded-md border border-white/10 bg-black/40 px-4 font-mono text-sm text-white outline-none transition-colors placeholder:font-sans placeholder:text-white/32 focus:border-pink-500/40"
-          placeholder={placeholder}
-          defaultValue={label === 'Slippage' ? placeholder : undefined}
-        />
-      )}
-    </label>
-  );
+// ─── Swap helpers ─────────────────────────────────────────────────────────────
+
+type SwapSide = 'usdc' | TrancheKind;
+
+const SIDE_INFO: Record<string, { symbol: string; color: string }> = {
+  usdc: { symbol: 'USDC', color: '#4ade80' },
+  [String(TrancheKind.Prime)]: { symbol: 'pPRIME', color: '#38596a' },
+  [String(TrancheKind.Core)]: { symbol: 'pCORE', color: '#ad7b21' },
+  [String(TrancheKind.Alpha)]: { symbol: 'pALPHA', color: '#9f442b' },
+};
+
+function sideKey(s: SwapSide): string {
+  return s === 'usdc' ? 'usdc' : String(s);
 }
 
-function SwapPanel({
-  data,
-  reinvest,
-  setReinvest,
-}: {
-  data: PrismData;
-  reinvest: boolean;
-  setReinvest: (value: boolean) => void;
-}) {
-  const fields = [
-    ['Token in', '0x... tranche token or underlying'],
-    ...(!reinvest ? [['Token out', '0x... target token']] : []),
-    ['Amount', '0.0'],
-    ['Slippage', '1'],
-    ...(reinvest ? [['Target vault', '0x... PRISM vault address'], ['Target tranche', 'Prime']] : []),
+function cpAmountOut(amountIn: bigint, reserveIn: bigint, reserveOut: bigint, feeBps: number): bigint {
+  if (amountIn === 0n || reserveIn === 0n || reserveOut === 0n) return 0n;
+  const feeNum = BigInt(10000 - feeBps);
+  const amtFee = amountIn * feeNum;
+  const num = reserveOut * amtFee;
+  const den = reserveIn * 10000n + amtFee;
+  return den === 0n ? 0n : num / den;
+}
+
+// ─── SwapPanel ────────────────────────────────────────────────────────────────
+
+function SwapPanel({ data }: { data: PrismData }) {
+  const vaultState = useVaultState();
+  const { data: balances, isLoading: balsLoading } = useIdentityBalances();
+  const swap = useSwap();
+
+  const [sellToken, setSellToken] = useState<SwapSide>('usdc');
+  const [buyTrancheKind, setBuyTrancheKind] = useState<TrancheKind>(TrancheKind.Prime);
+  const [amtStr, setAmtStr] = useState('');
+  const [slippage, setSlippage] = useState('1.0');
+
+  const isFromUsdc = sellToken === 'usdc';
+  const activeKind: TrancheKind = isFromUsdc ? buyTrancheKind : (sellToken as TrancheKind);
+  const direction: SwapDirection = isFromUsdc ? SWAP_DIR_USDC_TO_TRANCHE : 0;
+  const buyToken: SwapSide = isFromUsdc ? buyTrancheKind : 'usdc';
+
+  const poolTranche = vaultState.data?.tranches.find((t) => t.kind === activeKind);
+  const ammTranche = poolTranche?.ammTrancheBalance ?? 0n;
+  const ammQuote = poolTranche?.ammQuoteBalance ?? 0n;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const feeBps = Number((poolTranche?.pool as any)?.feeBps ?? 30);
+  const poolEmpty = ammTranche === 0n || ammQuote === 0n;
+
+  const amountIn = (() => {
+    try { return parseUsdc(amtStr); } catch { return 0n; }
+  })();
+
+  const [reserveIn, reserveOut] = direction === SWAP_DIR_USDC_TO_TRANCHE
+    ? [ammQuote, ammTranche]
+    : [ammTranche, ammQuote];
+
+  const amountOut = cpAmountOut(amountIn, reserveIn, reserveOut, feeBps);
+  const slipPct = Math.max(0.01, Math.min(50, parseFloat(slippage) || 1.0));
+  const minAmountOut = amountOut > 0n
+    ? (amountOut * BigInt(Math.round((100 - slipPct) * 100))) / 10000n
+    : 0n;
+
+  const impliedPrice =
+    amountIn > 0n && amountOut > 0n
+      ? Number(direction === SWAP_DIR_USDC_TO_TRANCHE
+          ? (amountIn * 1_000_000n) / amountOut
+          : (amountOut * 1_000_000n) / amountIn) / 1_000_000
+      : null;
+
+  const sellBalance = isFromUsdc
+    ? (balances?.usdc ?? 0n)
+    : (balances?.tranches.find((t) => t.kind === sellToken)?.balance ?? 0n);
+  const buyBalance = buyToken === 'usdc'
+    ? (balances?.usdc ?? 0n)
+    : (balances?.tranches.find((t) => t.kind === buyToken)?.balance ?? 0n);
+
+  const sellInfo = SIDE_INFO[sideKey(sellToken)];
+  const buyInfo = SIDE_INFO[sideKey(buyToken)];
+
+  function handleMax() {
+    setAmtStr(formatUsdc(sellBalance));
+  }
+
+  function handleFlip() {
+    if (isFromUsdc) {
+      setSellToken(buyTrancheKind);
+    } else {
+      const prev = sellToken as TrancheKind;
+      setSellToken('usdc');
+      setBuyTrancheKind(prev);
+    }
+    setAmtStr('');
+  }
+
+  function handleSellChange(v: string) {
+    const next: SwapSide = v === 'usdc' ? 'usdc' : (Number(v) as TrancheKind);
+    setSellToken(next);
+    if (next !== 'usdc' && next === buyTrancheKind) {
+      setBuyTrancheKind(next === TrancheKind.Prime ? TrancheKind.Core : TrancheKind.Prime);
+    }
+    setAmtStr('');
+  }
+
+  const insufficientBalance = amountIn > 0n && amountIn > sellBalance;
+
+  function handleSwap() {
+    if (amountIn === 0n || poolEmpty || insufficientBalance) return;
+    swap.mutate({ trancheKind: activeKind, amountIn, minAmountOut, direction });
+  }
+
+  const canSwap = amountIn > 0n && !poolEmpty && !swap.isPending && !insufficientBalance;
+
+  // Holdings items
+  const holdings = [
+    { symbol: 'USDC', color: '#4ade80', balance: balances?.usdc ?? 0n },
+    { symbol: 'pPRIME', color: '#38596a', balance: balances?.tranches.find((t) => t.kind === TrancheKind.Prime)?.balance ?? 0n },
+    { symbol: 'pCORE', color: '#ad7b21', balance: balances?.tranches.find((t) => t.kind === TrancheKind.Core)?.balance ?? 0n },
+    { symbol: 'pALPHA', color: '#9f442b', balance: balances?.tranches.find((t) => t.kind === TrancheKind.Alpha)?.balance ?? 0n },
   ];
 
   return (
     <section className="space-y-5">
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+      {/* Holdings strip */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-white/10 bg-white/[0.03] sm:grid-cols-4">
+        {balsLoading ? (
+          <div className="col-span-4 flex items-center gap-2 bg-[#070707] px-5 py-4 font-mono text-xs text-white/30">
+            <RefreshCw className="h-3 w-3 animate-spin" />
+            Loading balances…
+          </div>
+        ) : (
+          holdings.map((item) => (
+            <div key={item.symbol} className="bg-[#070707] px-5 py-4">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/22">{item.symbol}</span>
+                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: item.color }} />
+              </div>
+              <div className="mt-2 font-mono text-xl text-white">{formatUsdc(item.balance, 2)}</div>
+              <div className="mt-0.5 font-mono text-[10px] text-white/18">token units</div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Swap widget + pool sidebar */}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <Card className="overflow-hidden">
-          <div className="border-b border-white/10 bg-white/[0.045] p-6">
-            <div className="flex flex-wrap items-start justify-between gap-5">
+          <div className="border-b border-white/10 bg-white/[0.045] px-6 py-5">
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <Eyebrow>Secondary market</Eyebrow>
-                <h1 className="mt-3 font-display text-[clamp(2.4rem,5vw,4.6rem)] leading-none text-white">
-                  Rotate tranche exposure.
-                </h1>
-                <p className="mt-4 max-w-2xl text-sm leading-6 text-white/55">
-                  Swap tranche tokens through PRISM AMM pools, or reinvest directly into another tranche route.
+                <Eyebrow>Swap · PRISM AMM</Eyebrow>
+                <p className="mt-2 text-sm text-white/50">
+                  Trade USDC against tranche tokens through constant-product pools.
                 </p>
               </div>
               <Pill tone="green">Devnet</Pill>
             </div>
           </div>
 
-          <div className="p-6">
-            <div className="mb-5 inline-flex rounded-full border border-white/10 bg-black/40 p-1">
+          <div className="space-y-3 p-6">
+            {/* Sell side */}
+            <div className="rounded-md border border-white/10 bg-black/40 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">You sell</span>
+                <button type="button" onClick={handleMax} className="font-mono text-[10px] text-white/30 transition-colors hover:text-white/60">
+                  Balance: {formatUsdc(sellBalance, 2)}&nbsp;
+                  <span className="rounded border border-white/10 px-1 py-0.5 text-white/45">MAX</span>
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={sideKey(sellToken)}
+                  onChange={(e) => handleSellChange(e.target.value)}
+                  className="h-10 shrink-0 rounded border border-white/15 bg-black/60 px-3 font-mono text-sm focus:outline-none"
+                  style={{ color: sellInfo.color }}
+                >
+                  <option value="usdc" style={{ color: '#4ade80' }}>USDC</option>
+                  <option value={String(TrancheKind.Prime)} style={{ color: '#38596a' }}>pPRIME</option>
+                  <option value={String(TrancheKind.Core)} style={{ color: '#ad7b21' }}>pCORE</option>
+                  <option value={String(TrancheKind.Alpha)} style={{ color: '#9f442b' }}>pALPHA</option>
+                </select>
+                <input
+                  type="number"
+                  min="0"
+                  value={amtStr}
+                  onChange={(e) => setAmtStr(e.target.value)}
+                  placeholder="0.00"
+                  className="min-w-0 flex-1 rounded border border-white/10 bg-black/40 px-3 py-2.5 font-mono text-base text-white placeholder-white/20 focus:border-white/20 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Flip */}
+            <div className="flex justify-center">
               <button
                 type="button"
-                onClick={() => setReinvest(false)}
-                aria-pressed={!reinvest}
-                className={cx(
-                  'rounded-full px-4 py-2 text-sm font-medium transition-colors',
-                  !reinvest ? 'bg-white text-black' : 'text-white/45 hover:bg-white/10 hover:text-white',
-                )}
+                onClick={handleFlip}
+                title="Flip direction"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white/40 transition-all hover:border-white/25 hover:text-white/70 hover:rotate-180"
               >
-                Swap
-              </button>
-              <button
-                type="button"
-                onClick={() => setReinvest(true)}
-                aria-pressed={reinvest}
-                className={cx(
-                  'rounded-full px-4 py-2 text-sm font-medium transition-colors',
-                  reinvest ? 'bg-white text-black' : 'text-white/45 hover:bg-white/10 hover:text-white',
-                )}
-              >
-                Swap & Reinvest
+                <ArrowDown className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="grid gap-4">
-              {fields.map(([label, placeholder]) => (
-                <TradeField
-                  key={label}
-                  label={label}
-                  placeholder={placeholder}
-                  menu={label === 'Target tranche'}
-                />
-              ))}
-              <button
-                type="button"
-                disabled
-                className="mt-1 h-12 rounded-full border border-white/10 bg-white text-sm font-semibold text-black disabled:cursor-not-allowed disabled:opacity-55"
-              >
-                Preview {reinvest ? 'reinvestment' : 'swap'}
-              </button>
+            {/* Buy side */}
+            <div className="rounded-md border border-white/10 bg-black/40 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">You receive</span>
+                <span className="font-mono text-[10px] text-white/25">Balance: {formatUsdc(buyBalance, 2)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {isFromUsdc ? (
+                  <select
+                    value={String(buyTrancheKind)}
+                    onChange={(e) => { setBuyTrancheKind(Number(e.target.value) as TrancheKind); setAmtStr(''); }}
+                    className="h-10 shrink-0 rounded border border-white/15 bg-black/60 px-3 font-mono text-sm focus:outline-none"
+                    style={{ color: buyInfo.color }}
+                  >
+                    <option value={String(TrancheKind.Prime)} style={{ color: '#38596a' }}>pPRIME</option>
+                    <option value={String(TrancheKind.Core)} style={{ color: '#ad7b21' }}>pCORE</option>
+                    <option value={String(TrancheKind.Alpha)} style={{ color: '#9f442b' }}>pALPHA</option>
+                  </select>
+                ) : (
+                  <div
+                    className="flex h-10 shrink-0 items-center rounded border border-white/15 bg-black/60 px-3 font-mono text-sm"
+                    style={{ color: buyInfo.color }}
+                  >
+                    {buyInfo.symbol}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1 rounded border border-white/[0.05] bg-black/20 px-3 py-2.5 font-mono text-base text-white/55">
+                  {amountOut > 0n ? `~${formatUsdc(amountOut, 4)}` : '—'}
+                </div>
+              </div>
+              {impliedPrice !== null && (
+                <div className="mt-2 font-mono text-[10px] text-white/25">
+                  1 {direction === SWAP_DIR_USDC_TO_TRANCHE ? buyInfo.symbol : sellInfo.symbol} ≈ {impliedPrice.toFixed(6)} USDC
+                </div>
+              )}
             </div>
+
+            {/* Slippage row */}
+            <div className="flex items-center justify-between gap-3 rounded-md border border-white/[0.06] bg-black/20 px-4 py-2.5">
+              <span className="font-mono text-[11px] text-white/30">Slippage</span>
+              <div className="flex items-center gap-1">
+                {['0.5', '1.0', '2.0'].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setSlippage(v)}
+                    className={cx(
+                      'rounded px-2 py-1 font-mono text-[11px] transition-colors',
+                      slippage === v ? 'bg-white text-black' : 'text-white/40 hover:text-white/70',
+                    )}
+                  >
+                    {v}%
+                  </button>
+                ))}
+                <input
+                  type="number"
+                  min="0.01"
+                  max="50"
+                  step="0.1"
+                  value={slippage}
+                  onChange={(e) => setSlippage(e.target.value)}
+                  className="w-14 rounded border border-white/10 bg-black/40 px-2 py-1 font-mono text-[11px] text-white focus:outline-none"
+                />
+                <span className="font-mono text-[11px] text-white/30">%</span>
+              </div>
+            </div>
+
+            {/* Insufficient balance warning */}
+            {insufficientBalance && (
+              <div className="flex items-center gap-2 rounded-md border border-[#9f442b]/30 bg-[#9f442b]/10 px-4 py-2.5 font-mono text-xs text-[#e8a090]">
+                <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
+                Insufficient balance — you have {formatUsdc(sellBalance, 2)} {sellInfo.symbol}.
+              </div>
+            )}
+
+            {/* Pool-empty warning */}
+            {poolEmpty && (
+              <div className="flex items-center gap-2 rounded-md border border-[#9f442b]/30 bg-[#9f442b]/10 px-4 py-2.5 font-mono text-xs text-[#e8a090]">
+                <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
+                No liquidity in this pool. Add liquidity first or pick another tranche.
+              </div>
+            )}
+
+            {/* Min received summary */}
+            {minAmountOut > 0n && (
+              <div className="flex items-center justify-between px-1 font-mono text-[11px] text-white/25">
+                <span>Min received ({slipPct}% slippage)</span>
+                <span>{formatUsdc(minAmountOut, 4)} {buyInfo.symbol}</span>
+              </div>
+            )}
+
+            {/* Execute */}
+            <button
+              type="button"
+              onClick={handleSwap}
+              disabled={!canSwap}
+              className="h-12 w-full rounded-full border border-white/10 bg-white font-mono text-sm font-semibold text-black transition-colors hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {swap.isPending ? 'Swapping…' : `Swap ${sellInfo.symbol} → ${buyInfo.symbol}`}
+            </button>
           </div>
         </Card>
 
-        <div className="grid gap-5">
+        {/* Pool sidebar */}
+        <div className="grid content-start gap-5">
           <Card className="p-5">
             <Eyebrow>Market snapshot</Eyebrow>
             <div className="mt-5 grid gap-3">
-              <TradeMetric icon={Layers3} label="Pools" value={String(data.tranches.length)} />
-              <TradeMetric icon={BarChart3} label="Liquidity" value={`$${formatUsdc(data.poolLiquidity, 2)}`} />
-              <TradeMetric icon={ShieldCheck} label="Settlement" value="Atomic" />
+              <TradeMetric icon={Layers3} label="Active pools" value={String(data.tranches.filter((t) => t.ammTrancheBalance > 0n).length)} />
+              <TradeMetric icon={BarChart} label="Total liquidity" value={`$${formatUsdc(data.poolLiquidity, 2)}`} />
+              <TradeMetric icon={ShieldCheck} label="Pool fee" value={`${feeBps / 100}%`} />
             </div>
           </Card>
 
           <Card className="p-5">
-            <Eyebrow>Live tranche routes</Eyebrow>
-            <div className="mt-5 grid gap-3">
+            <Eyebrow>Select pool</Eyebrow>
+            <div className="mt-4 grid gap-2">
               {data.tranches.map((tranche) => {
                 const meta = TRANCHE_META[tranche.kind];
+                const isActive = tranche.kind === activeKind;
                 return (
-                  <div key={tranche.key} className="rounded-md border border-white/10 bg-black/30 p-3">
-                    <div className="flex items-center justify-between gap-4">
+                  <button
+                    key={tranche.key}
+                    type="button"
+                    onClick={() => {
+                      if (isFromUsdc) {
+                        setBuyTrancheKind(tranche.kind);
+                      } else {
+                        setSellToken('usdc');
+                        setBuyTrancheKind(tranche.kind);
+                      }
+                      setAmtStr('');
+                    }}
+                    className={cx(
+                      'w-full rounded-md border p-3 text-left transition-colors',
+                      isActive
+                        ? 'border-white/25 bg-white/[0.06]'
+                        : 'border-white/10 bg-black/30 hover:border-white/18 hover:bg-white/[0.03]',
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
                         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: meta.color }} />
                         <span className="font-mono text-xs text-white">{meta.token}</span>
                       </div>
-                      <span className="font-mono text-xs text-white/55">{formatNavQ(tranche.navPerShareQ)}</span>
+                      <span className="font-mono text-[10px] text-white/45">
+                        {tranche.ammQuoteBalance > 0n ? `$${formatUsdc(tranche.ammQuoteBalance, 0)} USDC` : 'No liquidity'}
+                      </span>
                     </div>
-                    <div className="mt-3 h-1.5 rounded-full bg-white/10">
-                      <div className="h-full rounded-full" style={{ width: `${Math.max(meta.allocation, 8)}%`, backgroundColor: meta.color }} />
+                    <div className="mt-1.5 flex items-center justify-between gap-3">
+                      <span className="font-mono text-[10px] text-white/25">
+                        {tranche.ammTrancheBalance > 0n ? `${formatUsdc(tranche.ammTrancheBalance, 0)} tokens` : '—'}
+                      </span>
+                      <span className="font-mono text-[10px]" style={{ color: meta.color }}>
+                        NAV {formatNavQ(tranche.navPerShareQ)}
+                      </span>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -1242,11 +1554,12 @@ function SwapPanel({
         </div>
       </div>
 
+      {/* Steps */}
       <div className="grid gap-3 md:grid-cols-3">
         {[
-          ['01', 'Choose route', 'Select a tranche token or underlying asset.'],
-          ['02', 'Preview execution', 'Check route, slippage, NAV, and pool depth.'],
-          ['03', 'Settle on-chain', 'Vault accounting updates share NAV automatically.'],
+          ['01', 'Select tokens', 'Choose what you sell and what you receive. One side must always be USDC.'],
+          ['02', 'Review output', 'The constant-product AMM computes your output including the pool fee.'],
+          ['03', 'Execute on-chain', 'Transaction signs with the active simulation identity and settles atomically.'],
         ].map(([step, title, copy]) => (
           <Card key={step} className="p-5">
             <div className="font-mono text-xs text-white/35">{step}</div>
@@ -1473,7 +1786,6 @@ function MarginPanel() {
 export function PrismTrade() {
   const data = usePrismData();
   const [active, setActive] = useState('Secondary swap');
-  const [reinvest, setReinvest] = useState(false);
 
   useEffect(() => {
     if (window.location.hash === '#pools') {
@@ -1485,13 +1797,8 @@ export function PrismTrade() {
     <PageFrame>
       <DataState data={data} />
       <section className="mx-auto max-w-[1180px]">
-        <TradeTabs active={active} setActive={(tab) => {
-          setActive(tab);
-          if (tab !== 'Secondary swap') setReinvest(false);
-        }} />
-        {active === 'Secondary swap' ? (
-          <SwapPanel data={data} reinvest={reinvest} setReinvest={setReinvest} />
-        ) : null}
+        <TradeTabs active={active} setActive={setActive} />
+        {active === 'Secondary swap' ? <SwapPanel data={data} /> : null}
         {active === 'AMM pools' ? <PoolsPanel data={data} /> : null}
         {active === 'Cross-chain margin' ? <MarginPanel /> : null}
       </section>

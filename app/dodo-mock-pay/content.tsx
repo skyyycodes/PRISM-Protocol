@@ -12,7 +12,7 @@ export default function DodoMockPayContent() {
 
   const paymentId = params?.get('payment_id') ?? '';
   const amountCents = Number(params?.get('amount_cents') ?? '0');
-  const successUrl = params?.get('success_url') ?? '/borrower';
+  const successUrl = params?.get('success_url') ?? '/borrow';
   const loanId = params?.get('loan_id') ?? '';
   const borrower = params?.get('borrower') ?? '';
 

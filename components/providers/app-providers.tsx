@@ -9,6 +9,7 @@ import { IdentityProvider } from '@/hooks/useIdentity';
 import { SimulationActionProvider } from '@/hooks/useSimulationActions';
 import { SimulationLogProvider } from '@/hooks/useSimulationLog';
 import { LoanApplicationProvider } from '@/hooks/useLoanApplications';
+import { SelectedVaultProvider } from '@/hooks/useSelectedVault';
 import { SolanaWalletProvider } from './solana-wallet-provider';
 
 // IKA contracts are deployed on Sui testnet. 
@@ -35,13 +36,15 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <SuiClientProvider networks={networkConfig} defaultNetwork="testnet">
           <WalletProvider autoConnect>
-            <IdentityProvider>
-              <SimulationLogProvider>
-                <SimulationActionProvider>
-                  <LoanApplicationProvider>{children}</LoanApplicationProvider>
-                </SimulationActionProvider>
-              </SimulationLogProvider>
-            </IdentityProvider>
+            <SelectedVaultProvider>
+              <IdentityProvider>
+                <SimulationLogProvider>
+                  <SimulationActionProvider>
+                    <LoanApplicationProvider>{children}</LoanApplicationProvider>
+                  </SimulationActionProvider>
+                </SimulationLogProvider>
+              </IdentityProvider>
+            </SelectedVaultProvider>
             <Toaster richColors position="bottom-right" />
           </WalletProvider>
         </SuiClientProvider>

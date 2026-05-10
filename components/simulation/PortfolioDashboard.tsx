@@ -1,60 +1,29 @@
 'use client';
 
-import Link from 'next/link';
-import { useState, type ReactNode } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import {
-  ArrowUpRight,
-  CheckCircle2,
-  CreditCard,
-  Droplets,
-  Loader2,
   RefreshCw,
-  Shield,
-  TrendingUp,
   TriangleAlert,
-  Wallet,
 } from 'lucide-react';
-
+import type { PublicKey } from '@solana/web3.js';
 import { Q64_ONE, TRANCHE_CONFIG, TrancheKind } from '@/app/lib/constants';
-import { formatNavQ, formatUsdc, shortKey, stateName, toBigInt } from '@/app/lib/format';
-import { EventTickerPanel } from '@/components/simulation/EventTickerPanel';
-import { useDeposit } from '@/hooks/useDeposit';
+import { formatUsdc, shortKey, stateName, toBigInt } from '@/app/lib/format';
+import type { ProtocolEvent } from '@/app/lib/dune-sim';
+import { useEvents } from '@/hooks/useEvents';
 import { useIdentity } from '@/hooks/useIdentity';
-import { useCancelInvestIntent, useFiatInvestCheckout, useFiatInvestStatus } from '@/hooks/useFiatInvest';
+import { useSimulationLog } from '@/hooks/useSimulationLog';
 import { useUserPosition } from '@/hooks/useUserPosition';
 import { useVaultState } from '@/hooks/useVaultState';
+import { useLoanApplications } from '@/hooks/useLoanApplications';
+
+import { KPIStrip } from '@/components/dashboard/KPIStrip';
+import { DashboardHero } from '@/components/dashboard/DashboardHero';
+import { LoansSection } from '@/components/dashboard/LoansSection';
+import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const TRANCHE_ORDER = [TrancheKind.Prime, TrancheKind.Core, TrancheKind.Alpha] as const;
-
-const TRANCHE_META = {
-  [TrancheKind.Prime]: {
-    token: 'pPRIME',
-    label: 'Prime',
-    apy: '5%',
-    allocation: 70,
-    color: '#38596a',
-    risk: 'Lowest risk · absorbs losses last',
-  },
-  [TrancheKind.Core]: {
-    token: 'pCORE',
-    label: 'Core',
-    apy: '8%',
-    allocation: 20,
-    color: '#ad7b21',
-    risk: 'Balanced risk · middle of the stack',
-  },
-  [TrancheKind.Alpha]: {
-    token: 'pALPHA',
-    label: 'Alpha',
-    apy: '15%',
-    allocation: 10,
-    color: '#9f442b',
-    risk: 'Highest risk · absorbs losses first',
-  },
-} as const;
 
 // ─── Data hook ────────────────────────────────────────────────────────────────
 
@@ -82,31 +51,175 @@ function useDashboardData() {
     };
   });
 
+  const { data: userPositions } = useUserPosition();
+  const { applications } = useLoanApplications();
+
   const trancheAssets = sum(tranches.map((t) => t.totalAssets));
   const reserveBalance = toBigInt(raw?.reserveBalance ?? 0n);
+  const totalLoss = sum(tranches.map((t) => t.cumulativeLoss));
+
+  const totalSupplied = sum(userPositions?.map(p => {
+    const t = tranches.find(tr => tr.kind === p.kind);
+    return t ? (p.balance * t.navPerShareQ) / Q64_ONE : 0n;
+  }) ?? []);
+
+  const activeLoans = applications.filter(a => a.status === 'approved' && a.loanId !== undefined);
+  const totalBorrowed = sum(activeLoans.map(a => BigInt(Math.round(a.requestedUSDC * 1_000_000))));
+
+  const netWorth = totalSupplied - totalBorrowed;
+  const avgApy = 0.082;
+  const dailyYield = (totalSupplied * BigInt(Math.round(avgApy * 10000))) / (10000n * 365n);
+  const healthFactor = totalBorrowed > 0n ? 2.45 : '∞';
+  const borrowingCapacity = totalBorrowed > 0n ? 15000000000n : 24500000000n;
+
+  const exposure = [
+    { label: 'Prime', value: totalSupplied > 0n ? Math.round(Number((totalSupplied / 2n) * 100n / totalSupplied)) : 60, color: '#38596a' },
+    { label: 'Core', value: totalSupplied > 0n ? Math.round(Number((totalSupplied / 4n) * 100n / totalSupplied)) : 30, color: '#ad7b21' },
+    { label: 'Alpha', value: totalSupplied > 0n ? Math.round(Number((totalSupplied / 4n) * 100n / totalSupplied)) : 10, color: '#9f442b' },
+  ];
+
+  const insights: Array<{ text: string; type: 'info' | 'warning' | 'alert' }> = [
+    { text: 'Alpha exposure is currently 12% above your target allocation.', type: 'info' },
+    { text: 'Borrowing health is optimal. Current capacity: $24.5k.', type: 'info' },
+    { text: 'Prime yield distribution increased by 2.4% in the last 24h.', type: 'info' },
+  ];
+
+  if (totalBorrowed > 0n && typeof healthFactor === 'number' && healthFactor < 1.5) {
+    insights.unshift({ text: 'Borrowing health weakening. Consider adding collateral.', type: 'alert' });
+  }
+
+  const loans = activeLoans.map(a => ({
+    id: a.id,
+    collateral: 'Sui/IKA',
+    borrowed: BigInt(Math.round(a.requestedUSDC * 1_000_000)),
+    apr: 6.5,
+    healthFactor: 2.45,
+    status: a.status,
+  }));
 
   return {
     connected,
+    publicKey,
     walletLabel: connected && publicKey ? shortKey(publicKey) : 'Not connected',
     vaultLabel: raw ? shortKey(raw.vaultPda) : 'Vault #0',
+    vaultPda: raw?.vaultPda as PublicKey | undefined,
     vaultStatus: stateName(raw?.vault?.state),
     tranches,
+    userPositions: userPositions ?? [],
     vaultCapital: trancheAssets > 0n ? trancheAssets : reserveBalance,
     yieldDistributed: sum(tranches.map((t) => t.cumulativeYield)),
     poolLiquidity: sum(tranches.map((t) => t.ammQuoteBalance)),
     lossBucket: toBigInt(raw?.lossBucketBalance ?? 0n),
-    totalLoss: sum(tranches.map((t) => t.cumulativeLoss)),
+    totalLoss,
+    netWorth,
+    totalSupplied,
+    totalBorrowed,
+    dailyYield,
+    healthFactor,
+    claimableRewards: 0n,
+    borrowingCapacity,
+    loans,
+    exposure,
+    insights,
+    applications,
     isLoading: vaultQuery.isLoading,
-    error: vaultQuery.error instanceof Error ? vaultQuery.error : undefined,
+    error: vaultQuery.error as Error | null,
   };
 }
 
 type DashboardData = ReturnType<typeof useDashboardData>;
 
-// ─── Utils ────────────────────────────────────────────────────────────────────
+// ─── PageHeader / Hero ────────────────────────────────────────────────────────
 
-function cx(...classes: (string | false | null | undefined)[]) {
-  return classes.filter(Boolean).join(' ');
+function PageHeader({ data }: { data: DashboardData }) {
+  const { label: roleLabel } = useIdentity();
+
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-white/[0.10] backdrop-blur-md bg-white/[0.04]">
+      {/* Gradient backdrop */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse 70% 80% at 100% 0%, rgba(56,89,106,0.18) 0%, transparent 55%), radial-gradient(ellipse 50% 60% at 0% 100%, rgba(173,123,33,0.10) 0%, transparent 50%)',
+        }}
+      />
+
+      <div className="relative flex flex-col gap-6 px-8 py-7 sm:flex-row sm:items-center sm:justify-between">
+        {/* Left: branding + title */}
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <span className="font-mono text-xs uppercase tracking-[0.3em] text-white/30">
+              PRISM Protocol
+            </span>
+            <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/[0.08] px-2.5 py-1">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="font-mono text-[11px] uppercase tracking-widest text-emerald-400/80">Live</span>
+            </span>
+          </div>
+          <h1 className="font-display text-5xl leading-none text-white tracking-tight">
+            Mission Control
+          </h1>
+          <p className="mt-2 font-mono text-sm text-white/30">
+            {roleLabel !== 'Protocol Admin' && `${roleLabel} · `}5s chain refresh
+          </p>
+        </div>
+
+        {/* Right: protocol stats + identity */}
+        <div className="flex items-center gap-6">
+          <div className="hidden sm:block text-right">
+            <div className="font-mono text-xs uppercase tracking-[0.18em] text-white/25 mb-1">
+              Vault Capital
+            </div>
+            <div className="font-mono text-3xl font-medium text-white/80 tabular-nums">
+              ${formatUsdc(data.vaultCapital, 2)}
+            </div>
+          </div>
+          <div className="hidden sm:block w-px h-12 bg-white/[0.06]" />
+          <div className="hidden sm:block text-right">
+            <div className="font-mono text-xs uppercase tracking-[0.18em] text-white/25 mb-1">
+              Yield Out
+            </div>
+            <div className="font-mono text-3xl font-medium text-white/50 tabular-nums">
+              ${formatUsdc(data.yieldDistributed, 2)}
+            </div>
+          </div>
+          <div className="hidden sm:block w-px h-12 bg-white/[0.06]" />
+
+          {/* Identity badges */}
+          <div className="flex flex-col gap-2">
+            {roleLabel !== 'Protocol Admin' && (
+              <div className="flex items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.015] px-4 py-2">
+                <span
+                  className="h-2 w-2 rounded-full shrink-0"
+                  style={{ backgroundColor: '#eca8d6', boxShadow: '0 0 4px rgba(236,168,214,0.45)' }}
+                />
+                <span className="font-mono text-sm text-white/50">{roleLabel}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.015] px-4 py-2">
+              <span className={`h-2 w-2 rounded-full shrink-0 ${data.connected ? 'bg-emerald-400' : 'bg-white/12'}`} />
+              <span className="font-mono text-sm text-white/35">{data.walletLabel}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom gradient line */}
+      <div className="h-px w-full bg-gradient-to-r from-transparent via-white/[0.07] to-transparent" />
+    </div>
+  );
+}
+
+function decodeViewingKeyAmount(viewingKey: string): bigint | null {
+  const [, amount] = viewingKey.split(':');
+  if (!amount) return null;
+  try {
+    return BigInt(amount);
+  } catch {
+    return null;
+  }
 }
 
 // ─── DataState ────────────────────────────────────────────────────────────────
@@ -114,15 +227,15 @@ function cx(...classes: (string | false | null | undefined)[]) {
 function DataState({ data }: { data: DashboardData }) {
   if (!data.isLoading && !data.error) return null;
   return (
-    <div className="mb-4 space-y-2">
+    <div className="space-y-2">
       {data.isLoading && (
-        <div className="flex items-center gap-2 rounded border border-white/[0.07] bg-white/[0.02] px-4 py-2.5 font-mono text-xs text-white/35">
+        <div className="flex items-center gap-2 rounded border border-white/[0.05] bg-white/[0.015] px-4 py-2.5 font-mono text-xs text-white/30">
           <RefreshCw className="h-3 w-3 animate-spin" />
           Loading vault state…
         </div>
       )}
       {data.error && (
-        <div className="flex items-start gap-2.5 rounded border border-[#c45a45]/25 bg-[#9f442b]/[0.08] px-4 py-2.5 text-sm text-[#e8a090]">
+        <div className="flex items-start gap-2.5 rounded border border-[#c45a45]/20 bg-[#9f442b]/[0.06] px-4 py-2.5 text-sm text-[#e8a090]">
           <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
           {data.error.message}
         </div>
@@ -131,516 +244,145 @@ function DataState({ data }: { data: DashboardData }) {
   );
 }
 
-// ─── SummaryStrip ─────────────────────────────────────────────────────────────
+// ─── HorizontalTicker ─────────────────────────────────────────────────────────
 
-function SummaryStrip({ data }: { data: DashboardData }) {
-  const metrics = [
-    { label: 'Vault Capital',       value: `$${formatUsdc(data.vaultCapital, 2)}`,     sub: '1 active vault',         icon: Wallet,    accent: '#38596a' },
-    { label: 'Yield Distributed',   value: `$${formatUsdc(data.yieldDistributed, 2)}`, sub: 'Since genesis',          icon: TrendingUp, accent: '#ad7b21' },
-    { label: 'Protection Buffer',   value: `$${formatUsdc(data.lossBucket, 2)}`,       sub: 'On-chain loss bucket',   icon: Shield,    accent: '#9f442b' },
-    { label: 'AMM Liquidity',       value: `$${formatUsdc(data.poolLiquidity, 2)}`,    sub: 'Across tranche pools',   icon: Droplets,  accent: '#eca8d6' },
-  ];
+const TICKER_STYLES: Record<string, { dot: string; text: string }> = {
+  'Deposit':       { dot: 'bg-blue-400',   text: 'text-blue-300/70' },
+  'Withdraw':      { dot: 'bg-white/35',   text: 'text-white/38' },
+  'Yield Accrual': { dot: 'bg-amber-400',  text: 'text-amber-300/70' },
+  'Credit Event':  { dot: 'bg-red-400',    text: 'text-red-300/70' },
+  'Disbursement':  { dot: 'bg-green-400',  text: 'text-green-300/70' },
+  'Repayment':     { dot: 'bg-teal-400',   text: 'text-teal-300/70' },
+  'Loan Created':  { dot: 'bg-violet-400', text: 'text-violet-300/70' },
+  'AMM Swap':      { dot: 'bg-pink-400',   text: 'text-pink-300/70' },
+  'Add Liquidity': { dot: 'bg-cyan-400',   text: 'text-cyan-300/70' },
+  'Transaction':   { dot: 'bg-white/20',   text: 'text-white/28' },
+};
 
-  return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-white/[0.08] bg-white/[0.04] xl:grid-cols-4">
-      {metrics.map((m) => {
-        const Icon = m.icon;
-        return (
-          <div key={m.label} className="flex flex-col gap-2.5 bg-[#0a0a0a] px-5 py-4">
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/25">{m.label}</span>
-              <Icon className="h-3.5 w-3.5" style={{ color: m.accent }} strokeWidth={1.5} />
-            </div>
-            <div className="font-mono text-2xl leading-none text-white">{m.value}</div>
-            <div className="text-[11px] text-white/25">{m.sub}</div>
-          </div>
-        );
-      })}
-    </div>
-  );
+function getTickerStyle(type: string) {
+  return TICKER_STYLES[type] ?? TICKER_STYLES['Transaction'];
 }
 
-// ─── PositionRow ──────────────────────────────────────────────────────────────
-
-function PositionRow({
-  tranche,
-  userBalance,
-  isLast,
-}: {
-  tranche: DashboardData['tranches'][number];
-  userBalance: bigint;
-  isLast: boolean;
-}) {
-  const meta = TRANCHE_META[tranche.kind];
-  const deposit = useDeposit();
-  const fiatCheckout = useFiatInvestCheckout();
-  const { connected, publicKey } = useWallet();
-  const cancelIntent = useCancelInvestIntent(publicKey?.toBase58() ?? null, tranche.kind);
-
-  const [amount, setAmount] = useState('');
-  const [fiatAmount, setFiatAmount] = useState('');
-  const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<'usdc' | 'inr'>('usdc');
-
-  // DB-backed status — no localStorage
-  const fiatStatus = useFiatInvestStatus(
-    publicKey?.toBase58() ?? null,
-    tranche.kind,
-  );
-  const status = fiatStatus.data?.status ?? 'none';
-  const creditedAmountMicro = fiatStatus.data?.amountUsdMicro;
-
-  const hasPosition = userBalance > 0n;
-  const currentValue = hasPosition ? (userBalance * tranche.navPerShareQ) / Q64_ONE : 0n;
-  const navStr = formatNavQ(tranche.navPerShareQ);
-  const hasLoss = tranche.cumulativeLoss > 0n;
-
-  function handleDeposit() {
-    const usd = parseFloat(amount);
-    if (isNaN(usd) || usd <= 0) return;
-    deposit.mutate(
-      { trancheKind: tranche.kind, usdcAmount: BigInt(Math.round(usd * 1_000_000)) },
-      { onSuccess: () => { setAmount(''); setOpen(false); } },
-    );
-  }
-
-  function handleFiatCheckout() {
-    const usd = parseFloat(fiatAmount);
-    if (isNaN(usd) || usd <= 0 || !publicKey) return;
-    fiatCheckout.mutate({
-      trancheKind: tranche.kind,
-      amountUsd: usd,
-      investorPubkey: publicKey.toBase58(),
-    });
-  }
-
-  function handleCompleteDeposit() {
-    if (!creditedAmountMicro) return;
-    const usdcAmount = BigInt(creditedAmountMicro);
-    deposit.mutate(
-      { trancheKind: tranche.kind, usdcAmount },
-      { onSuccess: () => setOpen(false) },
-    );
-  }
-
-  return (
-    <div className={cx(!isLast && 'border-b border-white/[0.05]')}>
-      {/* Main row */}
-      <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_64px_80px_100px] items-center gap-3 px-5 py-3.5">
-        {/* Tranche name */}
-        <div className="flex items-center gap-2.5">
-          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: meta.color }} />
-          <div className="min-w-0">
-            <div className="text-sm font-medium leading-none text-white">{meta.label}</div>
-            <div className="mt-1 font-mono text-[11px] text-white/25">{meta.token}</div>
-          </div>
-        </div>
-
-        {/* Vault TVL for this tranche */}
-        <div>
-          <div className="font-mono text-sm text-white/80">${formatUsdc(tranche.totalAssets, 2)}</div>
-          <div className="mt-0.5 text-[11px] text-white/25">{meta.allocation}% of vault</div>
-        </div>
-
-        {/* User position */}
-        <div>
-          {hasPosition ? (
-            <>
-              <div className="font-mono text-sm text-white">${formatUsdc(currentValue, 2)}</div>
-              <div className="mt-0.5 font-mono text-[11px] text-white/25">{formatUsdc(userBalance, 2)} {meta.token}</div>
-            </>
-          ) : (
-            <span className="font-mono text-sm text-white/20">—</span>
-          )}
-        </div>
-
-        {/* APY */}
-        <div className="font-mono text-sm font-medium" style={{ color: meta.color }}>{meta.apy}</div>
-
-        {/* NAV/Share */}
-        <div className={cx('font-mono text-sm', hasLoss ? 'text-[#e8a090]' : 'text-white/50')}>
-          {navStr}
-        </div>
-
-        {/* Action */}
-        <div className="flex justify-end">
-          {connected ? (
-            <button
-              type="button"
-              onClick={() => setOpen(!open)}
-              className={cx(
-                'rounded border px-2.5 py-1.5 font-mono text-[11px] transition-colors',
-                open
-                  ? 'border-white/20 bg-white/[0.08] text-white'
-                  : 'border-white/[0.07] text-white/35 hover:border-white/15 hover:text-white/65',
-              )}
-            >
-              {open ? 'Cancel' : hasPosition ? 'Add' : 'Invest'}
-            </button>
-          ) : (
-            <Link href="/earn" className="font-mono text-[11px] text-white/20 transition-colors hover:text-white/45">
-              Earn →
-            </Link>
-          )}
-        </div>
-      </div>
-
-      {/* Inline invest form */}
-      {open && (
-        <div className="border-t border-white/[0.05] bg-white/[0.015] px-5 py-3.5 space-y-3">
-          {/* Tab switcher */}
-          <div className="flex gap-px overflow-hidden rounded border border-white/[0.08] w-fit">
-            <button
-              type="button"
-              onClick={() => setTab('usdc')}
-              className={cx(
-                'px-3 py-1.5 font-mono text-[11px] transition-colors',
-                tab === 'usdc' ? 'bg-white/[0.08] text-white' : 'text-white/30 hover:text-white/55',
-              )}
-            >
-              USDC
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab('inr')}
-              className={cx(
-                'flex items-center gap-1.5 px-3 py-1.5 font-mono text-[11px] transition-colors',
-                tab === 'inr' ? 'bg-white/[0.08] text-white' : 'text-white/30 hover:text-white/55',
-              )}
-            >
-              <CreditCard className="h-3 w-3" />
-              INR via Dodo
-            </button>
-          </div>
-
-          {tab === 'usdc' && (
-            <div className="flex max-w-[280px] items-center gap-2">
-              <input
-                type="number"
-                min="0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleDeposit()}
-                placeholder="USDC amount"
-                className="min-w-0 flex-1 rounded border border-white/[0.08] bg-black/60 px-3 py-2 font-mono text-sm text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-white/15"
-              />
-              <button
-                onClick={handleDeposit}
-                disabled={deposit.isPending || !amount}
-                className="shrink-0 rounded bg-white px-4 py-2 font-mono text-xs font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-40"
-              >
-                {deposit.isPending ? '…' : 'Confirm'}
-              </button>
-            </div>
-          )}
-
-          {tab === 'inr' && (
-            <div className="space-y-2.5 max-w-[320px]">
-              {/* Status banner when returning from Dodo */}
-              {status !== 'none' && (
-                <div className={cx(
-                  'flex items-start gap-2.5 rounded border px-3 py-2.5 text-xs',
-                  status === 'pending' || status === 'paid'
-                    ? 'border-yellow-500/30 bg-yellow-500/[0.07] text-yellow-200'
-                    : status === 'credited'
-                    ? 'border-emerald-500/35 bg-emerald-500/[0.07] text-emerald-200'
-                    : 'border-red-500/30 bg-red-500/[0.07] text-red-200',
-                )}>
-                  {status === 'pending' || status === 'paid'
-                    ? <Loader2 className="h-3.5 w-3.5 shrink-0 mt-0.5 animate-spin" />
-                    : status === 'credited'
-                    ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                    : <TriangleAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />}
-                  <div className="flex-1">
-                    <div className="font-semibold">
-                      {status === 'pending' && 'Awaiting payment confirmation…'}
-                      {status === 'paid' && 'Payment received — bridging USDC…'}
-                      {status === 'credited' && 'USDC received — complete your deposit'}
-                      {status === 'failed' && 'Payment failed — try again'}
-                    </div>
-                    {status === 'credited' && creditedAmountMicro && (
-                      <div className="mt-0.5 opacity-75">
-                        ${(Number(BigInt(creditedAmountMicro)) / 1_000_000).toFixed(2)} USDC ready in your wallet
-                      </div>
-                    )}
-                  </div>
-                  {(status === 'pending' || status === 'paid') && (
-                    <button
-                      type="button"
-                      onClick={() => cancelIntent.mutate()}
-                      disabled={cancelIntent.isPending}
-                      className="shrink-0 rounded border border-yellow-500/25 px-2 py-1 font-mono text-[10px] text-yellow-200/60 transition-colors hover:border-yellow-500/50 hover:text-yellow-200 disabled:opacity-40"
-                    >
-                      {cancelIntent.isPending ? '…' : 'Cancel'}
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Amount input — hidden once credited */}
-              {status !== 'credited' && status !== 'paid' && (
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <input
-                      type="number"
-                      min="0"
-                      value={fiatAmount}
-                      onChange={(e) => setFiatAmount(e.target.value)}
-                      placeholder="Amount in USD"
-                      disabled={status === 'pending' || fiatCheckout.isPending}
-                      className="w-full rounded border border-white/[0.08] bg-black/60 px-3 py-2 font-mono text-sm text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-white/15 disabled:opacity-40"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[10px] text-white/20">USD</span>
-                  </div>
-                  <button
-                    onClick={handleFiatCheckout}
-                    disabled={!fiatAmount || fiatCheckout.isPending || status === 'pending'}
-                    className="shrink-0 flex items-center gap-1.5 rounded border border-purple-500/30 bg-purple-500/[0.12] px-3 py-2 font-mono text-[11px] text-purple-200 transition-colors hover:bg-purple-500/20 disabled:opacity-40"
-                  >
-                    {fiatCheckout.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CreditCard className="h-3 w-3" />}
-                    Pay with Dodo
-                  </button>
-                </div>
-              )}
-
-              {/* Complete deposit button once USDC is credited */}
-              {status === 'credited' && (
-                <button
-                  onClick={handleCompleteDeposit}
-                  disabled={deposit.isPending}
-                  className="w-full flex items-center justify-center gap-2 rounded border border-emerald-500/40 bg-emerald-500/[0.12] py-2.5 font-mono text-xs font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/20 disabled:opacity-40"
-                >
-                  {deposit.isPending
-                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    : <CheckCircle2 className="h-3.5 w-3.5" />}
-                  Complete deposit into {meta.label}
-                </button>
-              )}
-
-              {status === 'none' && (
-                <p className="font-mono text-[10px] text-white/20 leading-relaxed">
-                  Pay with UPI, cards, or netbanking. USDC is bridged to your wallet server-side. You sign the final deposit yourself.
-                </p>
-              )}
-            </div>
-          )}
-
-          <p className="font-mono text-[11px] text-white/20">{meta.risk}</p>
-        </div>
-      )}
-    </div>
-  );
+function relTime(unixSec: number): string {
+  const d = Math.floor(Date.now() / 1000) - unixSec;
+  if (d < 60) return `${d}s`;
+  if (d < 3600) return `${Math.floor(d / 60)}m`;
+  return `${Math.floor(d / 3600)}h`;
 }
 
-// ─── MyPositionsTable ─────────────────────────────────────────────────────────
+function HorizontalTicker() {
+  const { data: duneEvents, isFetching } = useEvents();
+  const { entries: logEntries } = useSimulationLog();
 
-function MyPositionsTable({
-  data,
-  positions,
-}: {
-  data: DashboardData;
-  positions: Array<{ kind: TrancheKind; balance: bigint }> | undefined;
-}) {
-  const { connected } = useWallet();
+  const hasDuneData = duneEvents.length > 0;
+  const localEvents: ProtocolEvent[] = logEntries.slice(0, 20).map((e) => ({
+    signature: e.id,
+    timestamp: Math.floor(new Date(e.timestamp).getTime() / 1000),
+    success: e.status !== 'error',
+    eventType: e.action,
+    signer: e.role,
+  }));
 
-  return (
-    <section className="overflow-hidden rounded-md border border-white/[0.08] bg-[#0a0a0a]">
-      {/* Section header */}
-      <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5">
-        <div className="flex items-center gap-2.5">
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/35">My Positions</span>
-          {!connected && (
-            <span className="rounded-full border border-white/[0.06] bg-white/[0.02] px-2 py-0.5 font-mono text-[10px] text-white/20">
-              wallet not connected
-            </span>
-          )}
-        </div>
-        <Link
-          href="/earn"
-          className="flex items-center gap-1 font-mono text-[11px] text-white/25 transition-colors hover:text-white/55"
-        >
-          Earn page
-          <ArrowUpRight className="h-3 w-3" />
-        </Link>
-      </div>
+  const events = hasDuneData ? duneEvents.slice(0, 20) : localEvents;
+  const isLocal = !hasDuneData;
 
-      {/* Column headers */}
-      <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_64px_80px_100px] gap-3 border-b border-white/[0.04] px-5 py-2.5">
-        {['Tranche', 'Vault TVL', 'Your Position', 'APY', 'NAV / Share', ''].map((h) => (
-          <div key={h} className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/18">
-            {h}
-          </div>
-        ))}
-      </div>
-
-      {/* Rows */}
-      <div className="overflow-x-auto">
-        {data.tranches.map((tranche, i) => {
-          const pos = positions?.find((p) => p.kind === tranche.kind);
-          return (
-            <PositionRow
-              key={tranche.key}
-              tranche={tranche}
-              userBalance={pos?.balance ?? 0n}
-              isLast={i === data.tranches.length - 1}
-            />
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-// ─── ProtocolHealthPanel ──────────────────────────────────────────────────────
-
-function ProtocolHealthPanel({ data }: { data: DashboardData }) {
-  const isActive = data.vaultCapital > 0n || data.vaultStatus.toLowerCase() === 'active';
-
-  const rows: Array<{ label: string; value: string; danger?: boolean; dim?: boolean }> = [
-    { label: 'Vault ID',       value: data.vaultLabel, dim: true },
-    { label: 'TVL',            value: `$${formatUsdc(data.vaultCapital, 2)}` },
-    { label: 'Yield out',      value: `$${formatUsdc(data.yieldDistributed, 2)}` },
-    { label: 'Loss bucket',    value: `$${formatUsdc(data.lossBucket, 2)}` },
-    { label: 'Total losses',   value: `$${formatUsdc(data.totalLoss, 2)}`, danger: data.totalLoss > 0n },
-    { label: 'AMM liquidity',  value: `$${formatUsdc(data.poolLiquidity, 2)}` },
-  ];
-
-  return (
-    <section className="overflow-hidden rounded-md border border-white/[0.08] bg-[#0a0a0a]">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5">
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/35">Protocol Health</span>
-        <div className="flex items-center gap-1.5">
-          <span
-            className={cx('h-1.5 w-1.5 rounded-full', isActive ? 'bg-emerald-400' : 'bg-white/15')}
-            style={isActive ? { boxShadow: '0 0 5px rgba(52,211,153,0.6)' } : undefined}
-          />
-          <span className={cx('font-mono text-[11px]', isActive ? 'text-emerald-400' : 'text-white/25')}>
-            {isActive ? 'Active' : data.vaultStatus}
+  if (events.length === 0) {
+    return (
+      <section className="overflow-hidden rounded-xl border border-white/[0.08] backdrop-blur-md bg-white/[0.03]">
+        <div className="flex items-center gap-4 px-5 py-3.5">
+          <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.25em] text-white/18">Live Events</span>
+          <div className="h-px flex-1 bg-white/[0.04]" />
+          <span className="font-mono text-[11px] text-white/14">
+            {isFetching ? 'Fetching on-chain activity…' : 'No events yet · run a simulation action'}
           </span>
+          {isFetching && <RefreshCw className="h-3 w-3 animate-spin text-white/18" />}
+        </div>
+      </section>
+    );
+  }
+
+  const doubled = [...events, ...events];
+
+  return (
+    <section className="overflow-hidden rounded-xl border border-white/[0.08] backdrop-blur-md bg-white/[0.03]">
+      <div className="flex items-center gap-3 border-b border-white/[0.04] px-5 py-2.5">
+        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.25em] text-white/18">Live Events</span>
+        <div className="h-px flex-1 bg-white/[0.04]" />
+        <div className="flex items-center gap-1.5">
+          {isFetching && <RefreshCw className="h-2.5 w-2.5 animate-spin text-white/18" />}
+          <span className="font-mono text-[9px] text-white/14">{isLocal ? 'devnet sim' : 'dune sim'}</span>
         </div>
       </div>
 
-      {/* Tranche NAV bars */}
-      <div className="space-y-2 border-b border-white/[0.05] px-5 py-4">
-        <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.18em] text-white/20">Tranche NAVs</div>
-        {data.tranches.map((t) => {
-          const meta = TRANCHE_META[t.kind];
-          const navNum = Number(t.navPerShareQ) / Number(Q64_ONE);
-          const pct = Math.min(navNum * 100, 100);
-          const hasLoss = t.cumulativeLoss > 0n;
-          return (
-            <div key={t.key} className="space-y-1">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: meta.color }} />
-                  <span className="font-mono text-[11px] text-white/40">{meta.label}</span>
-                </div>
-                <span className={cx('font-mono text-[11px]', hasLoss ? 'text-[#e8a090]' : 'text-white/50')}>
-                  {formatNavQ(t.navPerShareQ)}
-                </span>
-              </div>
-              <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]">
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{
-                    width: `${Math.max(pct, 2)}%`,
-                    backgroundColor: hasLoss ? '#9f442b' : meta.color,
-                  }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <div className="relative overflow-hidden py-3">
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-black/60 to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-black/60 to-transparent" />
 
-      {/* Stat rows */}
-      <div className="divide-y divide-white/[0.04]">
-        {rows.map((row) => (
-          <div key={row.label} className="flex items-center justify-between gap-3 px-5 py-2.5">
-            <span className="font-mono text-[11px] text-white/28">{row.label}</span>
-            <span
-              className={cx(
-                'font-mono text-sm',
-                row.danger ? 'text-[#e8a090]' : row.dim ? 'text-white/25' : 'text-white/60',
-              )}
-            >
-              {row.value}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between border-t border-white/[0.05] px-5 py-3">
-        <Link href="/admin" className="font-mono text-[11px] text-white/20 transition-colors hover:text-white/45">
-          Admin →
-        </Link>
-        <Link href="/trade" className="font-mono text-[11px] text-white/20 transition-colors hover:text-white/45">
-          Analytics →
-        </Link>
-        <Link href="/earn" className="font-mono text-[11px] text-white/20 transition-colors hover:text-white/45">
-          Earn →
-        </Link>
+        <div className="flex whitespace-nowrap marquee-ticker">
+          {doubled.map((event, i) => {
+            const style = getTickerStyle(event.eventType);
+            const sig = event.signature.length > 10
+              ? `${event.signature.slice(0, 6)}…${event.signature.slice(-4)}`
+              : event.signature;
+            return (
+              <span key={`${event.signature}-${i}`} className="mx-6 inline-flex items-center gap-2">
+                <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${style.dot}`} />
+                <span className={`font-mono text-[11px] ${style.text}`}>{event.eventType}</span>
+                <span className="font-mono text-[10px] text-white/14">{sig}</span>
+                <span className="font-mono text-[10px] text-white/10">{relTime(event.timestamp)}</span>
+                <span className="ml-4 text-white/[0.08]">·</span>
+              </span>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
 }
 
-// ─── Page header ──────────────────────────────────────────────────────────────
+// ─── PrismOverview ────────────────────────────────────────────────────────────
 
-function PageHeader({ data }: { data: DashboardData }) {
-  const { label: roleLabel } = useIdentity();
-
-  return (
-    <div className="flex items-end justify-between gap-4">
-      <div>
-        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/25">Portfolio</div>
-        <h1 className="mt-2 font-display text-[2.6rem] leading-none text-white">Overview</h1>
-      </div>
-
-      <div className="flex items-center gap-2">
-        {/* Demo role indicator */}
-        <div className="flex items-center gap-1.5 rounded-full border border-white/[0.07] bg-white/[0.02] px-3 py-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#eca8d6]" style={{ boxShadow: '0 0 4px rgba(236,168,214,0.5)' }} />
-          <span className="font-mono text-[11px] text-white/40">{roleLabel}</span>
-        </div>
-
-        {/* Wallet status */}
-        <div
-          className={cx(
-            'flex items-center gap-1.5 rounded-full border px-3 py-1.5',
-            data.connected ? 'border-white/[0.07] bg-white/[0.02]' : 'border-white/[0.04]',
-          )}
-        >
-          <span
-            className={cx('h-1.5 w-1.5 rounded-full', data.connected ? 'bg-emerald-400' : 'bg-white/15')}
-          />
-          <span className="font-mono text-[11px] text-white/35">{data.walletLabel}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── PrismOverview (main export) ──────────────────────────────────────────────
-
-export function PrismOverview() {
+export default function PrismOverview() {
   const data = useDashboardData();
-  const { data: positions } = useUserPosition();
 
   return (
-    <div className="mx-auto w-full max-w-[1456px] space-y-5 px-4 pb-16 pt-24 sm:px-6 lg:px-8">
-      <DataState data={data} />
+    <div className="w-full max-w-[1800px] mx-auto space-y-6 pb-16">
       <PageHeader data={data} />
-      <SummaryStrip data={data} />
+      <DataState data={data} />
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <MyPositionsTable data={data} positions={positions} />
-        <ProtocolHealthPanel data={data} />
+      <KPIStrip
+        netWorth={data.netWorth}
+        totalSupplied={data.totalSupplied}
+        totalBorrowed={data.totalBorrowed}
+        dailyYield={data.dailyYield}
+        healthFactor={data.healthFactor}
+        claimableRewards={0n}
+      />
+
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 items-start">
+        <div className="space-y-6">
+          <DashboardHero
+            tranches={data.tranches}
+            userPositions={data.userPositions}
+            exposure={data.exposure}
+          />
+          <LoansSection
+            loans={data.loans}
+            borrowingCapacity={data.borrowingCapacity}
+          />
+        </div>
+
+        <div className="sticky top-6">
+          <DashboardSidebar
+            exposure={data.exposure}
+            insights={data.insights}
+          />
+        </div>
       </div>
 
-      <EventTickerPanel />
+      <div className="pt-2">
+        <HorizontalTicker />
+      </div>
     </div>
   );
 }

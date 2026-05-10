@@ -102,6 +102,10 @@ pub mod prism_core {
         instructions::unpause_handler(ctx)
     }
 
+    pub fn reactivate_vault(ctx: Context<ReactivateVault>) -> Result<()> {
+        instructions::reactivate_vault_handler(ctx)
+    }
+
     // ── IKA collateral instructions ────────────────────────────────────────
 
     pub fn attach_ika_collateral(
@@ -139,5 +143,36 @@ pub mod prism_core {
 
     pub fn liquidate_ika_collateral(ctx: Context<LiquidateIkaCollateral>) -> Result<()> {
         instructions::liquidate_ika_collateral_handler(ctx)
+    }
+
+    // ── Encrypt FHE instructions ───────────────────────────────────────────
+
+    /// Borrower registers a sha256 commitment of their Encrypt-sealed credit
+    /// score on-chain. The actual score data stays encrypted off-chain.
+    pub fn attach_encrypt_score(
+        ctx: Context<AttachEncryptScore>,
+        commitment: [u8; 32],
+        encrypt_oracle: Pubkey,
+    ) -> Result<()> {
+        instructions::attach_encrypt_score_handler(ctx, commitment, encrypt_oracle)
+    }
+
+    
+    pub fn verify_encrypt_default(
+        ctx: Context<VerifyEncryptDefault>,
+        loss_amount: u64,
+        severity_bps: u16,
+    ) -> Result<()> {
+        instructions::verify_encrypt_default_handler(ctx, loss_amount, severity_bps)
+    }
+
+    // ── Cloak batch payout instructions ───────────────────────────────────
+
+   
+    pub fn record_cloak_payout(
+        ctx: Context<RecordCloakPayout>,
+        total_shielded_amount: u64,
+    ) -> Result<()> {
+        instructions::record_cloak_payout_handler(ctx, total_shielded_amount)
     }
 }

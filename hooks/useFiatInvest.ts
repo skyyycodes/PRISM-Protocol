@@ -11,6 +11,7 @@ interface InvestCheckoutInput {
   trancheKind: number;
   amountUsd: number;
   investorPubkey: string;
+  returnPath?: string;
 }
 
 interface InvestCheckoutResponse {
