@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  ArrowLeft, 
   ChevronRight, 
   Layers, 
   Loader2, 

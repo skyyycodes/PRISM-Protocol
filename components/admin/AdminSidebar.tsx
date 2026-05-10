@@ -11,7 +11,6 @@ import {
   Zap,
   Eye,
   Settings2,
-  ArrowLeft,
 } from 'lucide-react';
 
 const DOMAINS = [
@@ -73,16 +72,6 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      {/* Back to app */}
-      <div className="border-t border-white/[0.04] px-3 py-4">
-        <Link
-          href="/dashboard"
-          className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm text-white/20 transition-all duration-200 hover:text-white/50"
-        >
-          <ArrowLeft className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-          <span>Back to App</span>
-        </Link>
-      </div>
     </aside>
   );
 }

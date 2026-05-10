@@ -2,7 +2,7 @@
 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useVaultState } from '@/hooks/useVaultState';
-import { TRANCHE_CONFIG, TrancheKind } from '@/app/lib/constants';
+import { TRANCHE_CONFIG, TrancheKind, VAULT_ID } from '@/app/lib/constants';
 import { shortKey, stateName, toBigInt } from '@/app/lib/format';
 
 const TRANCHE_ORDER = [TrancheKind.Prime, TrancheKind.Core, TrancheKind.Alpha] as const;

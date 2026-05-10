@@ -4,7 +4,7 @@
     "name": "prism_core",
     "version": "0.1.0",
     "spec": "0.1.0",
-    "description": "PRISM Protocol \u2014 programmable credit engine"
+    "description": "PRISM Protocol — programmable credit engine"
   },
   "instructions": [
     {
@@ -145,6 +145,9 @@
       "accounts": [
         {
           "name": "borrower",
+          "docs": [
+            "Borrower signs — only the named borrower can register their credit-score commitment."
+          ],
           "writable": true,
           "signer": true
         },
@@ -160,7 +163,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -237,10 +241,29 @@
         {
           "name": "borrower",
           "docs": [
-            "The borrower must sign \u2014 only the named borrower can attach collateral to their loan."
+            "The borrower must sign — only the named borrower can attach collateral to their loan."
           ],
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103,
+                  50
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "loan"
@@ -266,7 +289,10 @@
                   101,
                   114,
                   97,
-                  108
+                  108,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -1258,7 +1284,10 @@
                   101,
                   114,
                   97,
-                  108
+                  108,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -1315,6 +1344,113 @@
       "args": []
     },
     {
+      "name": "record_cloak_payout",
+      "discriminator": [
+        236,
+        17,
+        7,
+        229,
+        194,
+        141,
+        86,
+        40
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": [
+            "Admin or any allowlisted oracle relayer pays for account creation."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.id",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "cloak_payout",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  111,
+                  97,
+                  107,
+                  95,
+                  112,
+                  97,
+                  121,
+                  111,
+                  117,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "total_shielded_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "release_ika_collateral",
       "discriminator": [
         218,
@@ -1358,7 +1494,10 @@
                   101,
                   114,
                   97,
-                  108
+                  108,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -1703,13 +1842,154 @@
       "args": []
     },
     {
-      "name": "verify_encrypt_default",
+      "name": "verify_and_disburse",
       "docs": [
-        "Must be called as instruction index 1 in a tx where index 0 is an",
-        "ed25519 native-program instruction containing the Encrypt FHE oracle's",
-        "signature over the 73-byte attestation. Atomically proves default via",
-        "FHE attestation AND triggers the credit event cascade."
+        "Atomic: verify oracle attestation AND disburse loan in one tx.",
+        "Callable by the borrower — no admin required after loan origination.",
+        "The tx must include an Ed25519 precompile instruction before this one."
       ],
+      "discriminator": [
+        240,
+        62,
+        157,
+        54,
+        110,
+        177,
+        175,
+        200
+      ],
+      "accounts": [
+        {
+          "name": "borrower",
+          "docs": [
+            "Borrower initiates — no admin needed after loan origination."
+          ],
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.id",
+                "account": "Vault"
+              }
+            ]
+          },
+          "relations": [
+            "loan"
+          ]
+        },
+        {
+          "name": "loan",
+          "writable": true
+        },
+        {
+          "name": "ika_collateral",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  107,
+                  97,
+                  95,
+                  99,
+                  111,
+                  108,
+                  108,
+                  97,
+                  116,
+                  101,
+                  114,
+                  97,
+                  108,
+                  95,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loan"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_usdc_reserve",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  101,
+                  114,
+                  118,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "borrower_usdc_ata",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "verify_encrypt_default",
       "discriminator": [
         209,
         6,
@@ -1723,6 +2003,10 @@
       "accounts": [
         {
           "name": "signer",
+          "docs": [
+            "Anyone may relay the oracle-signed attestation. The oracle key itself",
+            "is verified against the global allowlist below."
+          ],
           "writable": true,
           "signer": true
         },
@@ -1738,7 +2022,8 @@
                   110,
                   102,
                   105,
-                  103
+                  103,
+                  50
                 ]
               }
             ]
@@ -1780,7 +2065,26 @@
         },
         {
           "name": "vault",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.id",
+                "account": "Vault"
+              }
+            ]
+          }
         },
         {
           "name": "tranche_prime",
@@ -1796,15 +2100,89 @@
         },
         {
           "name": "vault_usdc_reserve",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  101,
+                  114,
+                  118,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
         },
         {
           "name": "loss_bucket",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  115,
+                  115,
+                  95,
+                  98,
+                  117,
+                  99,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
         },
         {
           "name": "credit_event",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  114,
+                  101,
+                  100,
+                  105,
+                  116,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.credit_event_seq",
+                "account": "Vault"
+              }
+            ]
+          }
         },
         {
           "name": "token_program",
@@ -1900,7 +2278,10 @@
                   101,
                   114,
                   97,
-                  108
+                  108,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -2032,118 +2413,22 @@
           "type": "u64"
         }
       ]
-    },
-    {
-      "name": "record_cloak_payout",
-      "docs": [
-        "Must be called as instruction index 1 in a tx where index 0 is an",
-        "Ed25519 native-program instruction containing the Cloak oracle's",
-        "signature over the 73-byte attestation. Records that yield was",
-        "shielded via Cloak's ZK batch disbursement system \u2014 LP payout amounts",
-        "become confidential while remaining auditable via viewing keys."
-      ],
-      "discriminator": [
-        236,
-        17,
-        7,
-        229,
-        194,
-        141,
-        86,
-        40
-      ],
-      "accounts": [
-        {
-          "name": "signer",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "config",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "vault",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "vault.id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "cloak_payout",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  108,
-                  111,
-                  97,
-                  107,
-                  95,
-                  112,
-                  97,
-                  121,
-                  111,
-                  117,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "vault"
-              }
-            ]
-          }
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        },
-        {
-          "name": "instructions_sysvar",
-          "address": "Sysvar1nstructions1111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "total_shielded_amount",
-          "type": "u64"
-        }
-      ]
     }
   ],
   "accounts": [
+    {
+      "name": "CloakPayoutRecord",
+      "discriminator": [
+        92,
+        236,
+        148,
+        124,
+        28,
+        173,
+        233,
+        221
+      ]
+    },
     {
       "name": "CreditEvent",
       "discriminator": [
@@ -2233,19 +2518,6 @@
         152,
         117,
         119
-      ]
-    },
-    {
-      "name": "CloakPayoutRecord",
-      "discriminator": [
-        92,
-        236,
-        148,
-        124,
-        28,
-        173,
-        233,
-        221
       ]
     }
   ],
@@ -2345,12 +2617,12 @@
     {
       "code": 6005,
       "name": "SlippageExceeded",
-      "msg": "Slippage exceeded \u2014 swap output below min_amount_out"
+      "msg": "Slippage exceeded — swap output below min_amount_out"
     },
     {
       "code": 6006,
       "name": "Unauthorized",
-      "msg": "Unauthorized \u2014 caller is neither admin nor allowlisted oracle"
+      "msg": "Unauthorized — caller is neither admin nor allowlisted oracle"
     },
     {
       "code": 6007,
@@ -2464,6 +2736,69 @@
     }
   ],
   "types": [
+    {
+      "name": "CloakPayoutRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "cloak_oracle",
+            "type": "pubkey"
+          },
+          {
+            "name": "batch_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "total_shielded_amount",
+            "type": "u64"
+          },
+          {
+            "name": "yield_epoch_ts",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "CloakPayoutStatus"
+              }
+            }
+          },
+          {
+            "name": "confirmed_ts",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CloakPayoutStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Shielded"
+          }
+        ]
+      }
+    },
     {
       "name": "CollateralStatus",
       "type": {
@@ -2724,16 +3059,10 @@
         "fields": [
           {
             "name": "loan",
-            "docs": [
-              "The Loan PDA this collateral secures."
-            ],
             "type": "pubkey"
           },
           {
             "name": "dwallet_id",
-            "docs": [
-              "IKA dWallet identifier (32-byte key on the IKA / dWallet Network)."
-            ],
             "type": {
               "array": [
                 "u8",
@@ -2743,16 +3072,10 @@
           },
           {
             "name": "chain_id",
-            "docs": [
-              "Chain where the real asset lives: 0 = BTC, 1 = ETH."
-            ],
             "type": "u8"
           },
           {
             "name": "collateral_amount_usd",
-            "docs": [
-              "USD value of locked collateral in micro-USD (1 USD = 1_000_000)."
-            ],
             "type": "u64"
           },
           {
@@ -2765,16 +3088,10 @@
           },
           {
             "name": "oracle_pubkey",
-            "docs": [
-              "Ed25519 public key of the IKA oracle that must sign the attestation."
-            ],
             "type": "pubkey"
           },
           {
             "name": "locked_ts",
-            "docs": [
-              "Unix timestamp when the oracle confirmed the lock (0 until Locked)."
-            ],
             "type": "i64"
           },
           {
@@ -3117,69 +3434,6 @@
           {
             "name": "timestamp",
             "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "CloakPayoutRecord",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "vault",
-            "type": "pubkey"
-          },
-          {
-            "name": "cloak_oracle",
-            "type": "pubkey"
-          },
-          {
-            "name": "batch_id",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "total_shielded_amount",
-            "type": "u64"
-          },
-          {
-            "name": "yield_epoch_ts",
-            "type": "i64"
-          },
-          {
-            "name": "status",
-            "type": {
-              "defined": {
-                "name": "CloakPayoutStatus"
-              }
-            }
-          },
-          {
-            "name": "confirmed_ts",
-            "type": "i64"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "CloakPayoutStatus",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "Pending"
-          },
-          {
-            "name": "Shielded"
           }
         ]
       }

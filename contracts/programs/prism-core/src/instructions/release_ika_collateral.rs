@@ -14,7 +14,7 @@ pub struct ReleaseIkaCollateral<'info> {
 
     #[account(
         mut,
-        seeds = [b"ika_collateral", loan.key().as_ref()],
+        seeds = [b"ika_collateral_v2", loan.key().as_ref()],
         bump = ika_collateral.bump,
         constraint = ika_collateral.status == CollateralStatus::Locked
             @ PrismError::CollateralNotLocked,

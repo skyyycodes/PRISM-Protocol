@@ -35,10 +35,7 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
           <ContentHeader />
 
           {/* Page Content Scroller */}
-          <main 
-            className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden min-h-0 p-8"
-            data-app-scroll
-          >
+          <main className="relative z-10 flex-1 min-h-0 flex flex-col overflow-hidden">
             {children}
           </main>
         </div>

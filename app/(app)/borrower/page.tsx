@@ -1,139 +1,167 @@
 'use client';
 
 import { useWallet } from '@solana/wallet-adapter-react';
-import { ArrowRight, Banknote, CheckCircle2, LockKeyhole, ShieldCheck } from 'lucide-react';
-import { LoanApplicationForm } from '@/components/borrower/LoanApplicationForm';
-import { CollateralOnboarding } from '@/components/borrower/CollateralOnboarding';
-import { LoanRepayment } from '@/components/borrower/LoanRepayment';
 import { useLoanApplications } from '@/hooks/useLoanApplications';
-import { VAULT_ID } from '@/app/lib/constants';
+import { BorrowerProvider, useBorrowerState } from '@/hooks/useBorrowerState';
+import { BorrowingWorkflow } from '@/components/borrower/BorrowingWorkflow';
+import { LoanIntelligencePanel } from '@/components/borrower/LoanIntelligencePanel';
+import { useVaultState } from '@/hooks/useVaultState';
+import { useAllVaults } from '@/hooks/useAllVaults';
+import { formatUsdc } from '@/app/lib/format';
+import { cn } from '@/lib/utils';
+import { Activity, AlertTriangle, Wallet, TrendingUp, Layers, Zap } from 'lucide-react';
 
-export default function BorrowerPage() {
-  const { publicKey } = useWallet();
-  const { getByBorrower, clearApplications } = useLoanApplications();
+// ─── Status Bar ───────────────────────────────────────────────────────────────
+function StatusBar() {
+  const { publicKey, connected } = useWallet();
+  const { getByBorrower } = useLoanApplications();
+  const allVaults = useAllVaults();
 
-  const application = publicKey ? getByBorrower(publicKey.toBase58()) : undefined;
-  const showCollateral = application?.status === 'approved' && application.loanId !== undefined;
-  // Repayment is shown once the loan is potentially active
-  const showRepayment = application?.status === 'approved' && application.loanId !== undefined;
+  const existingApp = publicKey ? getByBorrower(publicKey.toBase58()) : undefined;
+  const totalMarkets = (allVaults.data ?? []).length;
+  const isHealthy = true; // Simplified for UI
+
+  const walletShort = publicKey
+    ? `${publicKey.toBase58().slice(0, 6)}…${publicKey.toBase58().slice(-6)}`
+    : 'Not connected';
+
+  const bars = [
+    {
+      label: 'Identity',
+      value: connected ? walletShort : 'Disconnected',
+      icon: Wallet,
+      accent: connected ? 'text-white/60' : 'text-rose-400/70',
+      dot: connected ? 'bg-emerald-500' : 'bg-rose-500',
+    },
+    {
+      label: 'Credit Capacity',
+      value: connected ? '$500,000 USDC' : '—',
+      icon: TrendingUp,
+      accent: 'text-white/60',
+    },
+    {
+      label: 'Active Markets',
+      value: `${totalMarkets} Live Pools`,
+      icon: Layers,
+      accent: 'text-white/60',
+    },
+    {
+      label: 'Protocol Status',
+      value: isHealthy ? 'Operational' : 'Maintenance',
+      icon: Activity,
+      accent: isHealthy ? 'text-emerald-400' : 'text-amber-400',
+      dot: isHealthy ? 'bg-emerald-500' : 'bg-amber-500',
+    },
+    ...(existingApp
+      ? [{
+          label: 'Current Application',
+          value: existingApp.status === 'pending' ? 'Under Review' : existingApp.status === 'approved' ? 'Approved' : 'Rejected',
+          icon: AlertTriangle,
+          accent: existingApp.status === 'approved' ? 'text-emerald-400' : existingApp.status === 'pending' ? 'text-amber-400' : 'text-rose-400',
+          dot: existingApp.status === 'approved' ? 'bg-emerald-500' : existingApp.status === 'pending' ? 'bg-amber-500 animate-pulse' : 'bg-rose-500',
+        }]
+      : []),
+  ];
 
   return (
-    <div data-app-scroll className="relative flex-1 overflow-y-auto px-4 py-12 [overscroll-behavior:contain] sm:px-6 lg:px-8">
-      <div className="mx-auto grid w-full max-w-[1260px] gap-6 pb-12 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <main className="space-y-5">
-          <section className="rounded-md border border-white/10 bg-black/35 p-6 shadow-[0_8px_24px_rgba(60,46,22,0.05)]">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
-                  Borrower desk
-                </span>
-                <span className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-purple-400">
-                  IKA collateral
-                </span>
-              </div>
-              <button
-                onClick={() => {
-                  if (confirm('Clear all local application history?')) {
-                    clearApplications();
-                    window.location.reload();
-                  }
-                }}
-                className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-[10px] uppercase tracking-wider font-medium text-white/40 hover:bg-white/10 hover:text-white/60 transition-colors"
-              >
-                Reset Session
-              </button>
-            </div>
-            <h1 className="font-display text-5xl leading-none tracking-tight text-white">Apply for structured credit</h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-white/70">
-              Request a USDC loan, register locked BTC or ETH collateral through IKA, and keep disbursement state visible from one workflow.
-            </p>
-          </section>
-
-          <section className="space-y-3">
-            <div className="flex items-center gap-3">
-              <span className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-black/35 font-mono text-xs text-white/40">1</span>
-              <div>
-                <h2 className="text-sm font-semibold text-white">Loan application</h2>
-                <p className="text-xs text-white/50">Amount, maturity, and use of funds.</p>
-              </div>
-            </div>
-            <LoanApplicationForm />
-          </section>
-
-          {showCollateral && (
-            <section className="space-y-3">
-              <div className="flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-md border border-purple-500/30 bg-purple-500/10 font-mono text-xs text-purple-400">2</span>
-                <div>
-                  <h2 className="text-sm font-semibold text-white">Lock collateral via IKA dWallet</h2>
-                  <p className="text-xs text-white/50">Register and verify the collateral route before funding.</p>
-                </div>
-              </div>
-              <CollateralOnboarding vaultId={VAULT_ID} loanId={application!.loanId!} />
-            </section>
+    <div className="mb-5 flex items-stretch overflow-x-auto rounded-sm border border-white/[0.06] bg-black/30">
+      {bars.map(({ label, value, icon: Icon, accent, dot }, i) => (
+        <div
+          key={label}
+          className={cn(
+            'flex shrink-0 flex-col gap-1 border-r border-white/[0.04] px-5 py-3.5 last:border-r-0',
           )}
+        >
+          <div className="flex items-center gap-1.5">
+            {dot && <div className={cn('h-1.5 w-1.5 rounded-full', dot)} />}
+            <span className="font-mono text-[8px] uppercase tracking-[0.2em] text-white/20">{label}</span>
+          </div>
+          <span className={cn('font-mono text-[11px] font-medium whitespace-nowrap', accent)}>
+            {value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
-          {showCollateral && (
-            <section className="space-y-3">
-              <div className="flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-black/35 font-mono text-xs text-white/35">3</span>
-                <div>
-                  <h2 className="text-sm font-semibold text-[#514b40]">Disbursement</h2>
-                  <p className="text-xs text-white/50">Admin releases USDC after collateral is locked.</p>
-                </div>
-              </div>
-              <div className="rounded-md border border-dashed border-white/10 bg-black/35 p-4 text-sm leading-6 text-white/50">
-                Once IKA collateral is verified as locked, the admin can disburse USDC directly to your wallet.
-              </div>
-            </section>
-          )}
+// ─── Page Header ──────────────────────────────────────────────────────────────
+function PageHeader() {
+  const { clearApplications } = useLoanApplications();
+  return (
+    <div className="mb-6 flex items-end justify-between gap-4">
+      <div>
+        <div className="mb-2 flex items-center gap-2">
+          <span className="rounded-sm border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 font-mono text-[8px] uppercase tracking-[0.22em] text-white/30">
+            Structured Credit Terminal
+          </span>
+          <span className="rounded-sm border border-white/[0.05] bg-white/[0.01] px-2.5 py-1 font-mono text-[8px] uppercase tracking-[0.22em] text-white/20">
+            IKA Collateral
+          </span>
+        </div>
+        <h1 className="font-display text-4xl leading-none tracking-tight text-white">
+          Credit Facility Application
+        </h1>
+        <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/25">
+          Institutional underwriting · Threshold custody · On-chain execution
+        </p>
+      </div>
 
-          {showRepayment && (
-            <section className="space-y-3">
-              <div className="flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-black/35 font-mono text-xs text-white/35">4</span>
-                <div>
-                  <h2 className="text-sm font-semibold text-white">Repayment</h2>
-                  <p className="text-xs text-white/50">Settle your debt to release IKA collateral.</p>
-                </div>
-              </div>
-              <LoanRepayment loanId={application!.loanId!} />
-            </section>
-          )}
-        </main>
+      <button
+        onClick={() => {
+          if (confirm('Clear application history and reset session?')) {
+            clearApplications();
+            window.location.reload();
+          }
+        }}
+        className="shrink-0 rounded-sm border border-white/[0.06] bg-white/[0.01] px-3 py-2 font-mono text-[8px] uppercase tracking-widest text-white/20 hover:border-white/10 hover:text-white/35 transition-colors"
+      >
+        Reset Session
+      </button>
+    </div>
+  );
+}
 
-        <aside className="space-y-5">
-          <section className="rounded-md border border-white/10 bg-black/35 p-5 shadow-[0_8px_24px_rgba(60,46,22,0.05)]">
-            <div className="mb-5 flex items-center gap-3">
-              <ShieldCheck className="h-5 w-5 text-[#2f7d4f]" />
-              <h2 className="text-lg font-semibold text-white">Borrow flow</h2>
+// ─── Inner Layout (needs BorrowerProvider context) ────────────────────────────
+function BorrowerPageInner() {
+  return (
+    <div data-app-scroll className="relative flex-1 overflow-y-auto px-5 py-8 [overscroll-behavior:contain]">
+      <div className="mx-auto w-full max-w-[1440px]">
+        <PageHeader />
+        <StatusBar />
+
+        {/* Main 70/30 Layout */}
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+          {/* Left — Workflow */}
+          <div className="min-w-0">
+            <BorrowingWorkflow />
+          </div>
+
+          {/* Right — Intelligence Panel */}
+          <aside className="space-y-0">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="font-mono text-[8px] uppercase tracking-[0.22em] text-white/20">
+                Live Intelligence
+              </span>
+              <div className="h-px flex-1 bg-white/[0.04]" />
+              <div className="flex items-center gap-1.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500/60 animate-pulse" />
+                <span className="font-mono text-[8px] uppercase tracking-wider text-white/20">Live</span>
+              </div>
             </div>
-            <div className="space-y-2">
-              {[
-                { icon: Banknote, title: 'Request USDC', copy: 'Submit amount, duration, and purpose.' },
-                { icon: LockKeyhole, title: 'Attach collateral', copy: 'Lock BTC, ETH, or Sui collateral through IKA.' },
-                { icon: ArrowRight, title: 'Receive funding', copy: 'Admin disburses after verification.' },
-                { icon: CheckCircle2, title: 'Repay & Release', copy: 'Settle loan to unlock your collateral.' },
-              ].map((step) => {
-                const Icon = step.icon;
-                return (
-                  <div key={step.title} className="rounded-md border border-white/10 bg-white/[0.04] p-3">
-                    <div className="flex items-center gap-3">
-                      <Icon className="h-4 w-4 text-white/40" />
-                      <div className="text-sm font-semibold text-white">{step.title}</div>
-                    </div>
-                    <p className="mt-2 text-xs leading-5 text-white/50">{step.copy}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className="rounded-md border border-white/10 bg-white/[0.02] p-4 text-sm leading-6 text-white/40">
-            Collateral verification is intentionally separate from investor deposits, keeping borrower risk and tranche market decisions cleanly separated.
-          </section>
-        </aside>
+            <LoanIntelligencePanel />
+          </aside>
+        </div>
       </div>
     </div>
+  );
+}
+
+// ─── Page Export ──────────────────────────────────────────────────────────────
+export default function BorrowerPage() {
+  return (
+    <BorrowerProvider>
+      <BorrowerPageInner />
+    </BorrowerProvider>
   );
 }

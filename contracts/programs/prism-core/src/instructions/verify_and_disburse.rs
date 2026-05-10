@@ -23,7 +23,7 @@ pub struct VerifyAndDisburse<'info> {
     /// Borrower initiates — no admin needed after loan origination.
     pub borrower: Signer<'info>,
 
-    #[account(seeds = [b"config"], bump)]
+    #[account(seeds = [b"config2"], bump)]
     pub config: Account<'info, GlobalConfig>,
 
     #[account(
@@ -43,7 +43,7 @@ pub struct VerifyAndDisburse<'info> {
 
     #[account(
         mut,
-        seeds = [b"ika_collateral", loan.key().as_ref()],
+        seeds = [b"ika_collateral_v2", loan.key().as_ref()],
         bump = ika_collateral.bump,
         constraint = ika_collateral.status == CollateralStatus::Pending
             @ PrismError::CollateralAlreadyLocked,

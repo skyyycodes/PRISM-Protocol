@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import Link from 'next/link';
 import { 
   Activity, 
   ArrowRight, 
@@ -19,12 +20,14 @@ import {
   Loader2,
   Globe,
   AlertTriangle,
-  Coins
+  Coins,
+  RefreshCw
 } from 'lucide-react';
-import { BN } from '@coral-xyz/anchor';
-import { PublicKey, SystemProgram } from '@solana/web3.js';
+import { PublicKey, Keypair } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
+import { BN } from '@coral-xyz/anchor';
+import adminSecret from '@/contracts/keys/admin.json';
 import { toast } from 'sonner';
 
 import { buildPrograms } from '@/app/lib/program';
@@ -49,54 +52,60 @@ export default function LoansPage() {
   const wallet = useAnchorWallet();
   const { vaultId, addLog } = useAdminVault();
   const vaultState = useVaultState(vaultId);
-  const { applications, updateStatus } = useLoanApplications();
+  const { applications } = useLoanApplications();
 
   const [activeTab, setActiveTab] = useState<'pending' | 'approved'>('pending');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [approvingId, setApprovingId] = useState<string | null>(null);
   const [disbursingId, setDisbursingId] = useState<string | null>(null);
 
   const filteredApps = useMemo(() => {
     return applications.filter((a) => a.status === activeTab);
   }, [applications, activeTab]);
 
-  async function handleApprove(id: string) {
-    setApprovingId(id);
-    try {
-      await updateStatus(id, 'approved');
-      toast.success('Loan application approved for origination');
-      addLog(`✓ Loan Approved: Application #${id.slice(0, 8)} transitioned to origination queue.`);
-    } catch (e: any) {
-      toast.error('Approval failed');
-    } finally {
-      setApprovingId(null);
-    }
-  }
 
   async function handleDisburse(app: any) {
     if (!wallet) return toast.error('Connect wallet');
+    if (app.loanId === undefined || app.loanId === null) {
+      return toast.error('Loan not originated on-chain. Re-approve from the loan detail page with the vault running.');
+    }
     setDisbursingId(app.id);
     try {
-      const core = await buildPrograms(connection, wallet as any);
-      const admin = wallet.publicKey;
+      const adminKp = Keypair.fromSecretKey(Uint8Array.from(adminSecret as number[]));
+      const { core } = buildPrograms(connection, adminKp);
+      const admin = adminKp.publicKey;
       const [config] = getConfigPda();
-      const [vault] = getVaultPda(vaultId);
-      const [reservePda] = getVaultReservePda(vault);
-      const [loanPda] = getLoanPda(vault, new BN(app.loanId));
-      
-      const borrower = new PublicKey(app.borrower);
-      const borrowerUsdcAta = await (core.provider as any).connection.getAccountInfo(borrower); // Simplified
-      
-      const instructions = [];
-      const [ikaCollateralPda] = getIkaCollateralPda(loanPda);
-      const ikaAcc = await core.account.ikaCollateral.fetchNullable(ikaCollateralPda);
+      const [vault] = getVaultPda(app.vaultId ?? vaultId);
 
-      await (core.methods as any)
+      const vaultAccountInfo = await connection.getAccountInfo(vault);
+      if (!vaultAccountInfo) {
+        throw new Error('Vault not initialized — run Protocol Setup first');
+      }
+
+      const principalMicro = BigInt(Math.round(app.requestedUSDC * 1_000_000));
+      const [reservePda] = getVaultReservePda(vault);
+      const reserveAcc = await connection.getTokenAccountBalance(reservePda);
+      const reserveBalance = BigInt(reserveAcc.value.amount);
+
+      if (reserveBalance < principalMicro) {
+        throw new Error(`Insufficient Vault Reserves: ${formatUsdc(reserveBalance, 2)} available, ${app.requestedUSDC.toLocaleString()} required.`);
+      }
+
+      const [loanPda] = getLoanPda(vault, Number(app.loanId));
+      const borrower = new PublicKey(app.borrowerPubkey);
+
+      const [ikaCollateralPda] = getIkaCollateralPda(loanPda);
+      const ikaAcc = await (core as any).account.ikaCollateral.fetchNullable(ikaCollateralPda);
+
+      const tokenAccounts = await connection.getTokenAccountsByOwner(borrower, { mint: USDC_MINT });
+      if (tokenAccounts.value.length === 0) {
+        throw new Error('Borrower has no USDC token account');
+      }
+
+      await (core as any).methods
         .disburseLoan()
         .accounts({
           admin, config, vault, loan: loanPda, vaultUsdcReserve: reservePda,
-          borrowerUsdcAta: (await (core.provider as any).connection.getTokenAccountsByOwner(borrower, { mint: USDC_MINT })).value[0].pubkey,
-          tokenProgram: TOKEN_PROGRAM_ID, ikaCollateral: ikaAcc ? ikaCollateralPda : null
+          borrowerUsdcAta: tokenAccounts.value[0].pubkey,
+          tokenProgram: TOKEN_PROGRAM_ID, ikaCollateral: ikaAcc ? ikaCollateralPda : null,
         })
         .rpc({ commitment: 'confirmed' });
 
@@ -230,106 +239,67 @@ export default function LoansPage() {
                   </div>
                 </div>
               ) : (
-                filteredApps.map((app) => (
-                  <div key={app.id} className="group overflow-hidden rounded-3xl border border-white/[0.06] bg-white/[0.01] transition-all hover:border-white/[0.12] hover:bg-white/[0.03]">
-                    <div className="p-8">
-                      <div className="flex items-center justify-between">
-                         <div className="space-y-4">
+                filteredApps.map((app) => {
+                  return (
+                    <div key={app.id} className="group overflow-hidden rounded-3xl border border-white/[0.06] bg-white/[0.01] transition-all hover:border-white/[0.12] hover:bg-white/[0.03]">
+                      <div className="p-8">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-4">
                             <div className="flex items-center gap-4">
-                               <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-white/40">
+                              <div className="flex items-center gap-2">
+                                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-white/40">
                                   ID: {app.id ? app.id.slice(0, 8) : 'N/A'}
-                               </div>
-                               <div className="flex items-center gap-2">
-                                  <div className="h-1.5 w-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]" />
-                                  <span className="font-mono text-[10px] uppercase tracking-widest text-amber-500/60">{app.status}</span>
-                               </div>
+                                </div>
+                                <div className="rounded-xl border border-white/[0.06] bg-emerald-500/[0.05] px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-emerald-400/60">
+                                  Vault: #{app.vaultId}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="h-1.5 w-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]" />
+                                <span className="font-mono text-[10px] uppercase tracking-widest text-amber-500/60">{app.status}</span>
+                              </div>
                             </div>
                             <div className="flex items-baseline gap-4">
-                               <div className="font-display text-4xl text-white">${app.requestedUSDC.toLocaleString()}</div>
-                               <div className="font-mono text-xs text-white/20 uppercase tracking-[0.2em]">at {app.rate}% fixed apr</div>
+                              <div className="font-display text-4xl text-white">${app.requestedUSDC.toLocaleString()}</div>
+                              <div className="font-mono text-xs text-white/20 uppercase tracking-[0.2em]">
+                                at {app.approvedAprBps ? app.approvedAprBps / 100 : 8}% fixed apr
+                              </div>
                             </div>
                             <div className="flex items-center gap-6 text-[11px] font-mono uppercase tracking-widest text-white/20">
-                               <div className="flex items-center gap-2">
-                                  <Clock className="h-3.5 w-3.5" />
-                                  {app.tenor} Days
-                               </div>
-                               <div className="h-4 w-px bg-white/5" />
-                               <div className="flex items-center gap-2">
-                                  <Database className="h-3.5 w-3.5" />
-                                  Borrower: {app.borrower ? `${app.borrower.slice(0, 4)}...${app.borrower.slice(-4)}` : 'UNKNOWN'}
-                               </div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-3.5 w-3.5" />
+                                {app.maturityDays} Days
+                              </div>
+                              <div className="h-4 w-px bg-white/5" />
+                              <div className="flex items-center gap-2">
+                                <Database className="h-3.5 w-3.5" />
+                                Borrower: {app.borrowerPubkey ? `${app.borrowerPubkey.slice(0, 4)}...${app.borrowerPubkey.slice(-4)}` : 'UNKNOWN'}
+                              </div>
                             </div>
-                         </div>
+                          </div>
 
-                         {/* Action Trigger */}
-                         <div className="flex flex-col gap-3">
-                            {app.status === 'pending' ? (
-                              <button 
-                                onClick={() => setExpandedId(expandedId === app.id ? null : app.id)}
-                                className="flex items-center gap-3 rounded-2xl bg-white px-6 py-4 text-xs font-bold text-black hover:bg-white/90 transition-all shadow-lg shadow-white/5"
-                              >
-                                {expandedId === app.id ? 'Close Underwriting' : 'Execute Underwriting'}
-                                {expandedId === app.id ? <ChevronUp className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
-                              </button>
-                            ) : (
-                              <button 
-                                onClick={() => handleDisburse(app)}
-                                disabled={disbursingId === app.id}
-                                className="flex items-center gap-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 px-6 py-4 text-xs font-bold text-emerald-400 hover:bg-emerald-500/20 transition-all"
-                              >
-                                {disbursingId === app.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                                {disbursingId === app.id ? 'Disbursing...' : 'Authorize Disbursement'}
-                              </button>
+                          <div className="flex flex-col gap-3 min-w-[240px]">
+                            <Link 
+                              href={`/admin/loans/${app.id}`}
+                              className="flex items-center justify-between rounded-2xl bg-white px-6 py-4 text-xs font-bold text-black hover:bg-white/90 transition-all shadow-lg shadow-white/5"
+                            >
+                              {app.status === 'pending' ? 'Review Application' : 'View Details'}
+                              <ArrowRight className="h-4 w-4" />
+                            </Link>
+
+                            {app.status === 'approved' && (
+                              <LoanActions 
+                                app={app} 
+                                onDisburse={handleDisburse} 
+                                isDisbursing={disbursingId === app.id} 
+                              />
                             )}
-                         </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
-
-                    {/* Expanded Underwriting Workflow */}
-                    {expandedId === app.id && (
-                      <div className="border-t border-white/[0.06] bg-black/40 p-8 space-y-8 animate-in slide-in-from-top-4 duration-300">
-                         <div className="grid grid-cols-2 gap-8">
-                            <div className="space-y-6">
-                               <h4 className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/30 border-b border-white/5 pb-2">Operational Integrity</h4>
-                               <div className="space-y-4">
-                                  <div className="flex justify-between items-center text-[11px]">
-                                     <span className="text-white/30">Borrower Identity</span>
-                                     <span className="text-white/60 font-mono">On-Chain Verified</span>
-                                  </div>
-                                  <div className="flex justify-between items-center text-[11px]">
-                                     <span className="text-white/30">Collateral Requirement</span>
-                                     <span className="text-emerald-400 font-mono">100% Secure</span>
-                                  </div>
-                               </div>
-                            </div>
-                            <div className="space-y-6">
-                               <h4 className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/30 border-b border-white/5 pb-2">Vault Impact</h4>
-                               <div className="space-y-4">
-                                  <div className="flex justify-between items-center text-[11px]">
-                                     <span className="text-white/30">Reserve Utilization</span>
-                                     <span className="text-white/60 font-mono">Calculated on Execution</span>
-                                  </div>
-                                  <div className="flex justify-between items-center text-[11px]">
-                                     <span className="text-white/30">Waterfall Delta</span>
-                                     <span className="text-sky-400 font-mono">+{app.rate}% APY</span>
-                                  </div>
-                               </div>
-                            </div>
-                         </div>
-
-                         <div className="pt-4">
-                            <button 
-                              onClick={() => handleApprove(app.id)}
-                              disabled={approvingId === app.id}
-                              className="w-full rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 py-5 text-sm font-bold uppercase tracking-[0.2em] text-white transition-all hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 shadow-xl shadow-purple-900/20"
-                            >
-                               {approvingId === app.id ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : 'Confirm Operational Approval'}
-                            </button>
-                         </div>
-                      </div>
-                    )}
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -375,4 +345,118 @@ export default function LoansPage() {
   );
 }
 
-import { RefreshCw } from 'lucide-react';
+function LoanActions({ app, onDisburse, isDisbursing }: { app: any, onDisburse: (app: any) => void, isDisbursing: boolean }) {
+  const { connection } = useConnection();
+  const [onChainLoan, setOnChainLoan] = useState<any>(null);
+  const [collateralLocked, setCollateralLocked] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchState() {
+      if (!app.loanId) {
+        if (mounted) setLoading(false);
+        return;
+      }
+      try {
+        const [vault] = getVaultPda(app.vaultId ?? 0);
+        const [loanPda] = getLoanPda(vault, Number(app.loanId));
+        const { core } = buildPrograms(connection);
+        const [acc, ikaAcc] = await Promise.all([
+          (core as any).account.loan.fetchNullable(loanPda),
+          (core as any).account.ikaCollateral.fetchNullable(getIkaCollateralPda(loanPda)[0]),
+        ]);
+        if (mounted) {
+          setOnChainLoan(acc);
+          const status = ikaAcc ? Object.keys(ikaAcc.status)[0] : null;
+          setCollateralLocked(status === 'locked');
+        }
+      } catch (e) {
+        console.error('Failed to fetch loan state:', e);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    fetchState();
+    const timer = setInterval(fetchState, 5000);
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+    };
+  }, [app.loanId, app.vaultId, connection]);
+
+  if (loading) return <Skeleton className="h-14 w-full rounded-2xl bg-white/[0.02]" />;
+
+  if (!app.loanId) {
+    return (
+      <div className="flex items-center gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.05] px-6 py-4">
+        <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
+        <div>
+          <div className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Origination Pending</div>
+          <div className="mt-0.5 text-[9px] text-white/30 font-mono">Open loan detail and re-approve with vault running</div>
+        </div>
+      </div>
+    );
+  }
+
+  const state = onChainLoan ? Object.keys(onChainLoan.state)[0].toLowerCase() : 'unknown';
+
+  if (state === 'active') {
+    const principal = onChainLoan.principal.toNumber();
+    const repaid = onChainLoan.totalRepaid.toNumber();
+    const percent = Math.min(100, Math.round((repaid / principal) * 100));
+    
+    return (
+      <div className="space-y-3 animate-in fade-in duration-500">
+        <div className="flex items-center gap-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 px-6 py-4">
+           <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+           <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Capital Disbursed</span>
+        </div>
+        
+        <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-3">
+           <div className="flex justify-between items-center text-[9px] font-mono uppercase tracking-[0.2em]">
+              <span className="text-white/20">Amortization</span>
+              <span className="text-emerald-400/60 font-bold">{percent}%</span>
+           </div>
+           <div className="h-1 w-full bg-white/[0.04] rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-emerald-500/30 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.2)] transition-all duration-1000" 
+                style={{ width: `${percent}%` }} 
+              />
+           </div>
+           <div className="flex justify-between text-[8px] font-mono text-white/15 uppercase tracking-widest leading-none">
+              <span>${(repaid/1e6).toLocaleString()} paid</span>
+              <span>${(principal/1e6).toLocaleString()} principal</span>
+           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!collateralLocked) {
+    return (
+      <div className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-6 py-4">
+        <Clock className="h-4 w-4 text-white/20 shrink-0" />
+        <div>
+          <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Awaiting Collateral</div>
+          <div className="mt-0.5 text-[9px] text-white/20 font-mono">Borrower must attach &amp; lock IKA collateral first</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => onDisburse(app)}
+      disabled={isDisbursing}
+      className={`flex items-center justify-center gap-3 rounded-2xl px-6 py-4 text-xs font-bold transition-all ${
+        isDisbursing
+          ? 'bg-emerald-500/20 text-emerald-400 cursor-not-allowed'
+          : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/40 shadow-lg shadow-emerald-500/5'
+      }`}
+    >
+      {isDisbursing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+      {isDisbursing ? 'Executing Tx...' : 'Authorize Disbursement'}
+    </button>
+  );
+}

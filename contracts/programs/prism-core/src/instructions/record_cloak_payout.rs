@@ -28,7 +28,7 @@ pub struct RecordCloakPayout<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
-    #[account(seeds = [b"config"], bump)]
+    #[account(seeds = [b"config2"], bump)]
     pub config: Box<Account<'info, GlobalConfig>>,
 
     #[account(seeds = [b"vault", &vault.id.to_le_bytes()], bump = vault.bump)]

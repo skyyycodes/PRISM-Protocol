@@ -417,9 +417,9 @@ export function AdminPanel() {
   }
 
   async function setupLoan() {
-    const { core } = getPrograms();
+    const { core, adminKeypair } = getPrograms();
     const p = getPdas();
-    const admin = wallet!.publicKey;
+    const admin = adminKeypair.publicKey;
     setStep(3, 'running');
     try {
       const existing = await core.account.loan.fetchNullable(p.loan);
@@ -679,6 +679,16 @@ export function AdminPanel() {
     try {
       const { core, adminKeypair } = getPrograms();
       const p = getPdas();
+
+      // Pre-flight: vault must exist before we can originate a loan
+      const vaultAccount = await core.account.vault.fetchNullable(p.vault);
+      if (!vaultAccount) {
+        const msg = 'Vault not initialized — run Protocol Setup first (Global Config → Vault → Tranches → Loan → AMM Pools)';
+        addLog(`✗ Originate: ${msg}`);
+        toast.error(msg, { duration: 6000 });
+        return;
+      }
+
       const borrower = new PublicKey(borrowerPubkeyStr);
       const principal = new BN(requestedUSDC * 1_000_000);
       const apr = parseInt(params.loanApr) * 100;

@@ -49,7 +49,7 @@ function buildPrismCoreProgram(
   connection: Connection,
   wallet: NonNullable<ReturnType<typeof useAnchorWallet>>,
 ): PrismCoreProgram {
-  const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
+  const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed', preflightCommitment: 'processed' });
   return new Program<PrismCore>(prismCoreIdl as PrismCore, provider) as PrismCoreProgram;
 }
 
@@ -131,7 +131,7 @@ export function useAttachIkaCollateral() {
           ikaCollateral: ikaCollateralPda,
           systemProgram: SystemProgram.programId,
         })
-        .rpc({ commitment: 'confirmed' });
+        .rpc({ commitment: 'confirmed', skipPreflight: true });
 
       return loanPda;
     },
@@ -165,27 +165,30 @@ export function useVerifyIkaCollateral() {
 
       // Poll IKA oracle until attestation is ready.
       setIsPolling(true);
-      toast('Waiting for IKA oracle attestation…', { duration: 8000 });
-      const attestation = await pollOracleAttestation(
-        params.dwalletId,
-        params.chainId,
-        loanPda,
-      );
-      setIsPolling(false);
+      try {
+        toast('Waiting for IKA oracle attestation…', { duration: 8000 });
+        const attestation = await pollOracleAttestation(
+          params.dwalletId,
+          params.chainId,
+          loanPda,
+        );
 
-      // Build the ed25519 + verify_ika_collateral transaction.
-      const tx = await buildVerifyCollateralTx(program, attestation, configPda);
+        // Build the ed25519 + verify_ika_collateral transaction.
+        const tx = await buildVerifyCollateralTx(program, attestation, configPda);
 
-      const { blockhash } = await connection.getLatestBlockhash('confirmed');
-      tx.recentBlockhash = blockhash;
-      tx.feePayer = wallet.publicKey;
+        const { blockhash } = await connection.getLatestBlockhash('confirmed');
+        tx.recentBlockhash = blockhash;
+        tx.feePayer = wallet.publicKey;
 
-      const signed = await wallet.signTransaction(tx);
-      const sig = await connection.sendRawTransaction(signed.serialize());
-      await connection.confirmTransaction(sig, 'confirmed');
+        const signed = await wallet.signTransaction(tx);
+        const sig = await connection.sendRawTransaction(signed.serialize());
+        await connection.confirmTransaction(sig, 'confirmed');
 
-      qc.invalidateQueries({ queryKey: ['ika-collateral', loanPda.toBase58()] });
-      return sig;
+        qc.invalidateQueries({ queryKey: ['ika-collateral', loanPda.toBase58()] });
+        return sig;
+      } finally {
+        setIsPolling(false);
+      }
     },
     [connection, wallet, qc],
   );
@@ -239,7 +242,7 @@ export function useReleaseIkaCollateral() {
           loan: loanPda,
           ikaCollateral: ikaCollateralPda,
         })
-        .rpc({ commitment: 'confirmed' });
+        .rpc({ commitment: 'confirmed', skipPreflight: true });
 
       return loanPda;
     },

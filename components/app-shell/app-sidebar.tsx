@@ -3,14 +3,15 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  Home, 
-  Wallet, 
-  User, 
-  BarChart3, 
-  Key, 
-  HelpCircle, 
-  LogOut 
+import {
+  Home,
+  Wallet,
+  User,
+  BarChart3,
+  Key,
+  HelpCircle,
+  LogOut,
+  Shield,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -22,8 +23,9 @@ const NAV_ITEMS = [
 ];
 
 const BOTTOM_ITEMS = [
-  { icon: HelpCircle, label: 'Help', href: '/docs' },
-  { icon: LogOut, label: 'Logout', href: '/' },
+  { icon: Shield,     label: 'Admin',  href: '/admin' },
+  { icon: HelpCircle, label: 'Help',   href: '/docs'  },
+  { icon: LogOut,     label: 'Logout', href: '/'      },
 ];
 
 export function AppSidebar() {

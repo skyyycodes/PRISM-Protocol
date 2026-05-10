@@ -33,11 +33,11 @@ class KeypairWallet {
 export function buildProvider(connection: Connection, signer: Keypair) {
   return new AnchorProvider(connection, new KeypairWallet(signer), {
     commitment: 'confirmed',
-    preflightCommitment: 'confirmed',
+    preflightCommitment: 'processed',
   });
 }
 
-export function buildPrograms(connection: Connection, signer: Keypair) {
+export function buildPrograms(connection: Connection, signer: Keypair = Keypair.generate()) {
   const provider = buildProvider(connection, signer);
   return {
     provider,

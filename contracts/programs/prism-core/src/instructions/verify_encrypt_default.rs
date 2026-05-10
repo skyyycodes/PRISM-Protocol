@@ -25,7 +25,7 @@ pub struct VerifyEncryptDefault<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
-    #[account(seeds = [b"config"], bump)]
+    #[account(seeds = [b"config2"], bump)]
     pub config: Box<Account<'info, GlobalConfig>>,
 
     pub loan: Account<'info, Loan>,

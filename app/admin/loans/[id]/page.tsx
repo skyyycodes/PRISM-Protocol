@@ -3,7 +3,6 @@
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  ArrowLeft, 
   CheckCircle2, 
   Clock, 
   FileText, 
@@ -25,9 +24,8 @@ import { BN } from '@coral-xyz/anchor';
 
 import { useLoanApplications } from '@/hooks/useLoanApplications';
 import { useVaultState } from '@/hooks/useVaultState';
-import { formatUsdc } from '@/app/lib/format';
 import { buildPrograms } from '@/app/lib/program';
-import { PRISM_CORE_PROGRAM_ID } from '@/app/lib/constants';
+import { PRISM_CORE_PROGRAM_ID, VAULT_ID } from '@/app/lib/constants';
 import {
   getConfigPda,
   getVaultPda,
@@ -35,6 +33,8 @@ import {
   getIkaCollateralPda,
 } from '@/app/lib/pda';
 import adminSecret from '@/contracts/keys/admin.json';
+
+const DEFAULT_APR_BPS = 800;
 
 function getAdminKeypair() {
   return Keypair.fromSecretKey(Uint8Array.from(adminSecret as number[]));
@@ -45,11 +45,10 @@ export default function LoanDetailPage({ params }: { params: Promise<{ id: strin
   const { id } = use(params);
   const wallet = useAnchorWallet();
   const { connection } = useConnection();
-  const { applications } = useLoanApplications();
-  
-  // Find application by ID
+  const { applications, approve, reject, updateStatus } = useLoanApplications();
+
   const app = applications.find(a => a.id === id);
-  const vaultId = 0; // Default vault or derived from app
+  const vaultId = VAULT_ID;
   const vaultState = useVaultState(vaultId);
 
   const [busy, setBusy] = useState(false);
@@ -65,8 +64,8 @@ export default function LoanDetailPage({ params }: { params: Promise<{ id: strin
             <p className="font-display text-2xl text-white">Application Ledger Not Found</p>
             <p className="mt-2 text-sm text-white/30">The requested record does not exist in the protocol state.</p>
           </div>
-          <button 
-            onClick={() => router.back()} 
+          <button
+            onClick={() => router.back()}
             className="rounded-xl border border-white/[0.08] px-6 py-2.5 font-mono text-[10px] uppercase tracking-widest text-purple-400/80 transition-all hover:bg-white/[0.04]"
           >
             Return to Ledger
@@ -74,6 +73,54 @@ export default function LoanDetailPage({ params }: { params: Promise<{ id: strin
         </div>
       </div>
     );
+  }
+
+  async function handleApprove() {
+    setBusy(true);
+    try {
+      const adminKp = getAdminKeypair();
+      const { core } = buildPrograms(connection, adminKp);
+      const admin = adminKp.publicKey;
+      const [config] = getConfigPda(PRISM_CORE_PROGRAM_ID);
+      const [vault] = getVaultPda(vaultId, PRISM_CORE_PROGRAM_ID);
+
+      const loanId = Math.floor(Date.now() / 1000) >>> 0;
+      const [loanPda] = getLoanPda(vault, loanId, PRISM_CORE_PROGRAM_ID);
+
+      const vaultAccountInfo = await connection.getAccountInfo(vault);
+      if (vaultAccountInfo) {
+        const principal = new BN(app!.requestedUSDC * 1_000_000);
+        const maturity = new BN(Math.floor(Date.now() / 1000) + app!.maturityDays * 24 * 60 * 60);
+        await core.methods
+          .initializeLoan(loanId, principal, DEFAULT_APR_BPS, maturity, new PublicKey(app!.borrowerPubkey))
+          .accounts({ admin, config, vault, loan: loanPda, systemProgram: SystemProgram.programId })
+          .rpc({ commitment: 'confirmed' });
+        toast.success('Loan originated on-chain');
+        approve(id, loanId, DEFAULT_APR_BPS);
+      } else {
+        toast.warning('Vault not initialized — approval recorded. Run Protocol Setup to originate on-chain.', { duration: 6000 });
+        updateStatus(id, 'approved');
+      }
+
+      router.push('/admin/loans');
+    } catch (e: any) {
+      toast.error(`Approval failed: ${e.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleReject() {
+    setBusy(true);
+    try {
+      reject(id);
+      toast.success('Loan application rejected');
+      router.push('/admin/loans');
+    } catch (e: any) {
+      toast.error('Rejection failed');
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function liquidate() {
@@ -106,19 +153,15 @@ export default function LoanDetailPage({ params }: { params: Promise<{ id: strin
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <button 
-            onClick={() => router.back()}
-            className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.02] text-white/40 transition-all hover:border-white/20 hover:bg-white/[0.05] hover:text-white shadow-sm"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
           <div>
             <div className="flex items-center gap-4">
               <h1 className="font-display text-4xl tracking-tight text-white">Protocol Instrument Analysis</h1>
               <span className={`flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-widest ${
                 app.status === 'approved' 
                   ? 'border-emerald-500/20 bg-emerald-500/[0.05] text-emerald-400'
-                  : 'border-amber-500/20 bg-amber-500/[0.05] text-amber-400'
+                  : app.status === 'rejected'
+                    ? 'border-rose-500/20 bg-rose-500/[0.05] text-rose-400'
+                    : 'border-amber-500/20 bg-amber-500/[0.05] text-amber-400'
               }`}>
                 {app.status}
               </span>
@@ -130,14 +173,47 @@ export default function LoanDetailPage({ params }: { params: Promise<{ id: strin
         </div>
 
         <div className="flex gap-3">
-           <button 
-             onClick={liquidate}
-             disabled={busy || app.status !== 'approved'}
-             className="flex items-center gap-2.5 rounded-2xl border border-rose-500/20 bg-rose-500/[0.08] px-6 py-3 font-mono text-[11px] uppercase tracking-widest text-rose-200 transition-all hover:bg-rose-500/[0.14] disabled:opacity-40 shadow-lg shadow-rose-500/5"
-           >
-             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlertTriangle className="h-4 w-4" />}
-             Force Protocol Liquidation
-           </button>
+           {app.status === 'pending' ? (
+             <>
+               <button 
+                 onClick={handleReject}
+                 disabled={busy}
+                 className="flex items-center gap-2.5 rounded-2xl border border-rose-500/20 bg-rose-500/[0.08] px-6 py-3 font-mono text-[11px] uppercase tracking-widest text-rose-200 transition-all hover:bg-rose-500/[0.14] disabled:opacity-40"
+               >
+                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />}
+                 Reject Application
+               </button>
+               <button 
+                 onClick={handleApprove}
+                 disabled={busy}
+                 className="flex items-center gap-2.5 rounded-2xl bg-emerald-500 px-6 py-3 font-mono text-[11px] uppercase tracking-widest text-black font-bold transition-all hover:bg-emerald-400 disabled:opacity-40 shadow-lg shadow-emerald-500/20"
+               >
+                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                 Approve for Origination
+               </button>
+             </>
+           ) : app.status === 'approved' ? (
+             <>
+               {app.loanId === undefined && (
+                 <button
+                   onClick={handleApprove}
+                   disabled={busy}
+                   className="flex items-center gap-2.5 rounded-2xl bg-emerald-500 px-6 py-3 font-mono text-[11px] uppercase tracking-widest text-black font-bold transition-all hover:bg-emerald-400 disabled:opacity-40 shadow-lg shadow-emerald-500/20"
+                 >
+                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                   Originate On-Chain
+                 </button>
+               )}
+               <button
+                 onClick={liquidate}
+                 disabled={busy || app.loanId === undefined}
+                 className="flex items-center gap-2.5 rounded-2xl border border-rose-500/20 bg-rose-500/[0.08] px-6 py-3 font-mono text-[11px] uppercase tracking-widest text-rose-200 transition-all hover:bg-rose-500/[0.14] disabled:opacity-40 shadow-lg shadow-rose-500/5"
+               >
+                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlertTriangle className="h-4 w-4" />}
+                 Force Protocol Liquidation
+               </button>
+             </>
+           ) : null}
         </div>
       </div>
 
@@ -262,7 +338,5 @@ export default function LoanDetailPage({ params }: { params: Promise<{ id: strin
         </div>
       </div>
     </div>
-  );
-}
   );
 }

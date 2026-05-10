@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
-import { Copy, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { Copy, ExternalLink, CheckCircle2, Shield, Zap, BadgeCheck, Clock, Activity, Wallet, ArrowRight, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
   useCurrentAccount, 
@@ -17,6 +17,7 @@ import {
 import { fromBase64 } from '@mysten/sui/utils';
 // @ts-ignore
 import { Transaction } from '@mysten/sui/transactions';
+import { cn } from '@/lib/utils';
 import { QRCodeCanvas } from 'qrcode.react';
 
 import { 
@@ -34,6 +35,8 @@ import {
   useReleaseIkaCollateral,
   useLoanAccount,
 } from '@/hooks/useIkaCollateral';
+import { useRepayLoan } from '@/hooks/useRepayLoan';
+import { useFiatRepaymentStatus } from '@/hooks/useFiatRepaymentStatus';
 import { PRISM_CORE_PROGRAM_ID } from '@/app/lib/constants';
 import { getVaultPda, getLoanPda } from '@/app/lib/pda';
 
@@ -66,9 +69,10 @@ const STATUS_COLORS: Record<string, string> = {
 interface Props {
   vaultId: number;
   loanId: number;
+  defaultCollateralUsd?: number;
 }
 
-export function CollateralOnboarding({ vaultId, loanId }: Props) {
+export function CollateralOnboarding({ vaultId, loanId, defaultCollateralUsd }: Props) {
   const { connected } = useWallet();
 
   const [vaultPda] = getVaultPda(Number(vaultId));
@@ -76,22 +80,52 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
 
   const { data: collateral, isLoading } = useIkaCollateralAccount(loanPda);
   const { data: loan } = useLoanAccount(loanPda);
-  const loanIsRepaid = loan?.state != null && 'repaid' in (loan.state as object);
-
   const attachMutation = useAttachIkaCollateral();
   const { verify, isPolling } = useVerifyIkaCollateral();
   const releaseMutation = useReleaseIkaCollateral();
+
+  // ── Derived State ─────────────────────────────────────────────────────────
+  const loanState = loan?.state ? Object.keys(loan.state)[0].toLowerCase() : 'none';
+  const isCollateralSecured = collateral?.status === 'Locked' || collateral?.status === 'Released';
+  const isDisbursed = ['active', 'repaying', 'repaid', 'resolved', 'defaulted'].includes(loanState);
+  const isFundsDelivered = ['active', 'repaying', 'repaid', 'resolved', 'defaulted'].includes(loanState);
+  const loanIsRepaid = ['repaid', 'resolved'].includes(loanState);
 
   // ── Form state ────────────────────────────────────────────────────────────
   const [dwalletIdHex, setDwalletIdHex] = useState('');
   const [chainId, setChainId] = useState<IkaChain>(IKA_CHAIN.BTC);
   const [collateralUsd, setCollateralUsd] = useState('');
   const [oracleKey, setOracleKey] = useState(TEST_ORACLE_PUBKEY);
+
+  useEffect(() => {
+    if (defaultCollateralUsd && defaultCollateralUsd > 0) {
+      setCollateralUsd(String(defaultCollateralUsd));
+    }
+  }, [defaultCollateralUsd]);
   const [isCreatingDwallet, setIsCreatingDwallet] = useState(false);
   const [currentDkgStep, setCurrentDkgStep] = useState<IkaDkgStep | null>(null);
   const [depositAddress, setDepositAddress] = useState<string>('');
+
+  const [repayAmount, setRepayAmount] = useState('');
+  const repayMutation = useRepayLoan();
+  const { data: fiatStatus } = useFiatRepaymentStatus(Number(loanId));
   const [depositAddressError, setDepositAddressError] = useState<string>('');
   const [isFetchingAddress, setIsFetchingAddress] = useState(false);
+
+  const accruedInterest = useMemo(() => {
+    if (!loan || !isDisbursed) return 0n;
+    const now = Math.floor(Date.now() / 1000);
+    const startTime = Number(loan.originationTs.toString());
+    const durationSec = Math.max(0, now - startTime);
+    const aprBps = loan.aprBps;
+    const principal = BigInt(loan.principal.toString());
+    
+    // SEC_PER_YEAR = 365 * 24 * 3600 = 31536000 (Matches on-chain math)
+    const SEC_PER_YEAR = 31536000;
+    return (principal * BigInt(aprBps) * BigInt(durationSec)) / BigInt(SEC_PER_YEAR * 10000);
+  }, [loan, isDisbursed]);
+
+  const totalDebt = (loan ? BigInt(loan.principal.toString()) : 0n) + accruedInterest;
 
   // ── Sui Wallet state ──────────────────────────────────────────────────────
   const currentAccount = useCurrentAccount();
@@ -325,9 +359,16 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 rounded-lg border border-white/5 bg-black/20 p-3">
-                        <span className="flex-1 font-mono text-[11px] text-white/80 break-all">
-                          {isFetchingAddress ? 'Fetching address…' : depositAddress || '—'}
-                        </span>
+                        <div className="flex flex-col gap-1 flex-1">
+                          <span className="font-mono text-[11px] text-white/80 break-all">
+                            {isFetchingAddress ? 'Resolving vault (approx. 60-90s)…' : depositAddress || '—'}
+                          </span>
+                          {isFetchingAddress && (
+                            <span className="text-[9px] text-yellow-500/50 animate-pulse font-medium uppercase tracking-tight">
+                              Waiting for IKA Network DKG Finalization
+                            </span>
+                          )}
+                        </div>
                         <button
                           onClick={() => {
                             if (depositAddress) {
@@ -385,7 +426,7 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
             </div>
 
             <button
-              disabled={isPolling}
+              disabled={isPolling || !depositAddress || isFetchingAddress}
               onClick={async () => {
                 try {
                   const sig = await verify({
@@ -415,28 +456,229 @@ export function CollateralOnboarding({ vaultId, loanId }: Props) {
       )}
 
         {collateral.status === 'Locked' && (
-          <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-4 flex gap-3">
-            <div className="h-2 w-2 rounded-full bg-green-400 mt-1" />
-            <p className="text-xs text-green-400/80 leading-5">
-              Collateral is locked. Your loan can now be disbursed by the admin.
-            </p>
-          </div>
-        )}
-
-        {collateral.status === 'Locked' && (
-          loanIsRepaid ? (
-            <button
-              disabled={releaseMutation.isPending}
-              onClick={() => releaseMutation.mutate({ vaultId, loanId })}
-              className="w-full rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm font-semibold text-blue-400 hover:bg-blue-500/20 transition-all disabled:opacity-50"
-            >
-              {releaseMutation.isPending ? 'Releasing…' : 'Release Collateral'}
-            </button>
-          ) : (
-            <div className="rounded-lg bg-white/[0.04] border border-white/5 p-4 text-xs text-white/40 leading-5">
-              Repay your loan in full before releasing collateral.
+          <div className="space-y-5 animate-in fade-in slide-in-from-bottom-3 duration-700">
+            {/* ── Milestone Header ────────────────────────────────────────── */}
+            <div className="rounded-sm border border-emerald-500/20 bg-emerald-500/[0.04] p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm bg-emerald-500/10">
+                  <BadgeCheck className="h-6 w-6 text-emerald-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-white tracking-tight">Collateral successfully registered and secured.</h3>
+                  <p className="mt-1 text-[11px] text-white/40 leading-relaxed max-w-xl">
+                    Your {CHAIN_LABELS[collateral.chainId as IkaChain]} collateral has been locked and verified through the IKA custody flow. 
+                    Your credit facility is now fully secured and awaiting final USDC disbursement from the vault.
+                  </p>
+                  <div className="mt-4 flex items-center gap-6">
+                    <div className="flex flex-col">
+                      <span className="font-mono text-[8px] uppercase tracking-widest text-white/20">Custody Confirmation</span>
+                      <span className="font-mono text-[10px] text-emerald-400/80 mt-0.5">Verified by IKA Oracle</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-mono text-[8px] uppercase tracking-widest text-white/20">Secured At</span>
+                      <span className="font-mono text-[10px] text-white/50 mt-0.5">
+                        {new Date(Number(collateral.lockedTs) * 1000).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          )
+
+            {/* ── Funding Dashboard ────────────────────────────────────────── */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              
+              {/* Facility Readiness Panel */}
+              <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-5 space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-white/[0.05]">
+                  <div className="font-mono text-[8px] uppercase tracking-widest text-white/30">Facility Readiness</div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="font-mono text-[8px] uppercase tracking-widest text-emerald-400/70">Ready</span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Facility Amount', value: `$${(Number(loan?.amount ?? 0) / 1e6).toLocaleString()} USDC`, icon: Wallet },
+                    { label: 'Collateral Verified', value: 'Confirmed', icon: Shield, ok: true },
+                    { label: 'Custody State', value: 'Active / Threshold', icon: Lock, ok: true },
+                    { label: 'Capital Reserved', value: 'Vault Committed', icon: Zap, ok: true },
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <item.icon className="h-3 w-3 text-white/20" />
+                        <span className="font-mono text-[9px] uppercase tracking-widest text-white/30">{item.label}</span>
+                      </div>
+                      <span className={cn("font-mono text-[10px]", item.ok ? "text-emerald-400/60" : "text-white/60")}>{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Funding Pipeline Tracker */}
+              <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-5 space-y-4">
+                <div className="font-mono text-[8px] uppercase tracking-widest text-white/30 pb-2 border-b border-white/[0.05]">Funding Pipeline</div>
+                <div className="space-y-3 relative">
+                  {[
+                    { label: 'Credit Approval', status: 'done' as const },
+                    { label: 'Collateral Secured', status: (isCollateralSecured ? 'done' : 'active') as const },
+                    { label: 'Vault Disbursement', status: (isDisbursed ? 'done' : (isCollateralSecured ? 'active' : 'pending')) as const },
+                    { label: 'Funds Delivered', status: (isFundsDelivered ? 'done' : 'pending') as const },
+                  ].map((step, idx, arr) => (
+                    <div key={idx} className="flex items-center gap-3 relative z-10">
+                      <div className={cn(
+                        "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all",
+                        step.status === 'done' ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
+                        : step.status === 'active' ? "border-white/40 bg-white/5 text-white animate-pulse"
+                        : "border-white/10 bg-transparent text-white/10"
+                      )}>
+                        {step.status === 'done' ? <CheckCircle2 className="h-2.5 w-2.5" /> : <div className={cn("h-1 w-1 rounded-full", step.status === 'active' ? "bg-white" : "bg-white/10")} />}
+                      </div>
+                      <span className={cn(
+                        "font-mono text-[9px] uppercase tracking-wider",
+                        step.status === 'done' ? "text-emerald-400/50" : step.status === 'active' ? "text-white/70" : "text-white/10"
+                      )}>
+                        {step.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* ── USDC Status & Next Steps ──────────────────────────────────── */}
+            {!isDisbursed ? (
+              <div className="rounded-sm border border-amber-500/15 bg-amber-500/[0.03] p-5">
+                <div className="flex items-start gap-4">
+                  <Clock className="h-5 w-5 text-amber-400/40 shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-amber-200/80 uppercase tracking-wider">Disbursement Execution Pending</span>
+                      <span className="font-mono text-[9px] text-amber-500/50">Next: Admin Action</span>
+                    </div>
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-white/40 max-w-xl">
+                      <span className="text-amber-200/60 font-bold uppercase tracking-tight">Important:</span> USDC has not yet been transferred to your wallet. Funding occurs after the final vault disbursement execution by the Protocol Admin.
+                    </p>
+                    <div className="mt-4 flex items-center gap-2 text-[10px] text-white/20">
+                      <Activity className="h-3 w-3" />
+                      <span>Your collateral is now protecting the credit facility. Repayment controls will activate once the loan enters <span className="text-white/40 font-bold italic">Active</span> status.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-sm border border-emerald-500/15 bg-emerald-500/[0.03] p-5">
+                <div className="flex items-start gap-4">
+                  <BadgeCheck className="h-5 w-5 text-emerald-400/40 shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-emerald-200/80 uppercase tracking-wider">Facility Fully Funded</span>
+                      <span className="font-mono text-[9px] text-emerald-500/50">Status: Active</span>
+                    </div>
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-white/40 max-w-xl">
+                      USDC principal has been disbursed to your wallet. Your credit facility is now active and accruing interest according to the protocol schedule.
+                    </p>
+                    <div className="mt-4 flex items-center gap-4">
+                      <div className="flex items-center gap-2 text-[10px] text-white/20">
+                        <Activity className="h-3 w-3" />
+                        <span>Interest Accruing</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] text-white/20">
+                        <Wallet className="h-3 w-3" />
+                        <span>USDC Delivered</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Repayment Zone — Active when disbursed */}
+            {isDisbursed && !loanIsRepaid && (
+              <div className="mt-5 space-y-4">
+                <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-mono text-[10px] text-white/40 uppercase tracking-widest">Active Repayment</span>
+                    {fiatStatus?.status === 'pending' && (
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        <span className="font-mono text-[9px] text-amber-500/80 uppercase">Fiat Intent Pending</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        value={repayAmount}
+                        onChange={(e) => setRepayAmount(e.target.value)}
+                        placeholder="Enter amount..."
+                        className="w-full rounded-sm border border-white/[0.1] bg-black/40 px-3 py-2.5 font-mono text-xs text-white placeholder:text-white/10 focus:border-emerald-500/30 focus:outline-none transition-colors"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[9px] text-white/20 uppercase">USDC</span>
+                    </div>
+                    <button
+                      disabled={repayMutation.isPending || !repayAmount}
+                      onClick={() => {
+                        repayMutation.mutate({
+                          vaultId: Number(vaultId),
+                          loanId: Number(loanId),
+                          amountUsdc: Number(repayAmount),
+                        });
+                        setRepayAmount('');
+                      }}
+                      className="rounded-sm bg-emerald-500/80 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-emerald-950 hover:bg-emerald-400 disabled:opacity-50 transition-all"
+                    >
+                      {repayMutation.isPending ? 'Processing…' : 'Repay'}
+                    </button>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between border-t border-white/[0.05] pt-4">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-mono text-[8px] text-white/20 uppercase">Total Repaid</span>
+                      <span className="font-mono text-[11px] text-emerald-400/60">
+                        ${loan ? (Number(loan.totalRepaid.toString()) / 1_000_000).toLocaleString() : '0.00'} USDC
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="font-mono text-[8px] text-white/20 uppercase">Accrued Interest</span>
+                      <span className="font-mono text-[11px] text-amber-400/60">
+                        ${(Number(accruedInterest) / 1_000_000).toLocaleString(undefined, { minimumFractionDigits: 4 })} USDC
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end gap-0.5">
+                      <span className="font-mono text-[8px] text-white/20 uppercase">Total Debt</span>
+                      <span className="font-mono text-[11px] text-white/60">
+                        ${(Number(totalDebt) / 1_000_000).toLocaleString()} USDC
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Contextual Action Logic */}
+            {loanIsRepaid ? (
+              <button
+                disabled={releaseMutation.isPending}
+                onClick={() => releaseMutation.mutate({ vaultId, loanId })}
+                className="w-full rounded-sm border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-blue-400 hover:bg-blue-500/20 transition-all disabled:opacity-50"
+              >
+                {releaseMutation.isPending ? 'Releasing…' : 'Release Collateral'}
+              </button>
+            ) : (
+              <div className="rounded-sm border border-white/[0.04] bg-white/[0.02] p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Shield className="h-4 w-4 text-white/10" />
+                  <span className="font-mono text-[10px] text-white/20 uppercase tracking-widest">Facility Protection Active</span>
+                </div>
+                <div className="font-mono text-[9px] text-white/20 italic">
+                  Settlement required for collateral release
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {collateral.status === 'Released' && (

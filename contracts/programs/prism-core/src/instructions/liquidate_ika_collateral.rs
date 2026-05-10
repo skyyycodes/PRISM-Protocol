@@ -6,7 +6,7 @@ use anchor_lang::prelude::*;
 pub struct LiquidateIkaCollateral<'info> {
     pub admin: Signer<'info>,
 
-    #[account(seeds = [b"config"], bump, has_one = admin)]
+    #[account(seeds = [b"config2"], bump, has_one = admin)]
     pub config: Account<'info, GlobalConfig>,
 
     /// Vault must be Defaulted before admin can liquidate collateral.
@@ -24,7 +24,7 @@ pub struct LiquidateIkaCollateral<'info> {
 
     #[account(
         mut,
-        seeds = [b"ika_collateral", loan.key().as_ref()],
+        seeds = [b"ika_collateral_v2", loan.key().as_ref()],
         bump = ika_collateral.bump,
         constraint = ika_collateral.status == CollateralStatus::Locked
             @ PrismError::CollateralNotLocked,

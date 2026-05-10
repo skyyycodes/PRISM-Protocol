@@ -2,16 +2,16 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useMemo } from 'react';
-import { 
-  Activity, 
-  ArrowLeft, 
-  ShieldCheck, 
-  AlertTriangle, 
-  Layers, 
-  TrendingUp, 
-  ArrowDownToLine, 
-  Zap, 
-  ArrowUpRight, 
+import {
+  Activity,
+  BarChart3,
+  ShieldCheck,
+  AlertTriangle,
+  Layers,
+  TrendingUp,
+  ArrowDownToLine,
+  Zap,
+  ArrowUpRight,
   Database,
   Search,
   Lock,
@@ -95,7 +95,7 @@ export default function VaultDetailPage() {
     if (!wallet) return toast.error('Connect wallet');
     setBusy(true);
     try {
-      const core = await buildPrograms(connection, wallet as any);
+      const { core } = buildPrograms(connection, wallet as any);
       const [config] = getConfigPda();
       const [vault] = getVaultPda(vaultId);
       const [reserve] = getVaultReservePda(vault);
@@ -136,12 +136,12 @@ export default function VaultDetailPage() {
     if (!wallet) return toast.error('Connect wallet');
     setBusy(true);
     try {
-      const core = await buildPrograms(connection, wallet as any);
+      const { core } = buildPrograms(connection, wallet as any);
       const user = wallet.publicKey;
       const [config] = getConfigPda();
       const [vault] = getVaultPda(vaultId);
       const [tranche] = getTranchePda(vault, selectedTrancheKind);
-      const [trancheMint] = getTrancheMintPda(tranche);
+      const [trancheMint] = getTrancheMintPda(vault, selectedTrancheKind);
       const [vaultReserve] = getVaultReservePda(vault);
       
       const userUsdcAta = await getAssociatedTokenAddress(USDC_MINT, user);
