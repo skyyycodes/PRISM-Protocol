@@ -6,6 +6,7 @@ import {
   ArrowDown,
   ArrowLeft,
   BarChart,
+  ChevronDown,
   Layers3,
   RefreshCw,
   RefreshCwIcon,
@@ -13,7 +14,7 @@ import {
   TrendingUp,
   TriangleAlert,
 } from 'lucide-react';
-import { useEffect, useState, useMemo, type ComponentType, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useMemo, type ComponentType, type ReactNode } from 'react';
 import Link from 'next/link';
 
 import { TrancheKind, TRANCHE_CONFIG, Q64_ONE } from '@/app/lib/constants';
@@ -238,6 +239,66 @@ function sideKey(s: SwapSide): string {
   return s === 'usdc' ? 'usdc' : String(s);
 }
 
+// ─── TokenSelect (custom dropdown) ────────────────────────────────────────────
+
+interface TokenOption { key: string; symbol: string; color: string }
+
+function TokenSelect({
+  value, options, onChange,
+}: {
+  value: string;
+  options: TokenOption[];
+  onChange: (key: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const current = options.find((o) => o.key === value) ?? options[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-12 items-center gap-2.5 rounded-lg border border-white/10 bg-black/40 px-3.5 font-mono text-sm font-semibold text-white transition-colors hover:border-white/25 hover:bg-black/60 min-w-[120px]"
+      >
+        <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: current.color, boxShadow: `0 0 8px ${current.color}80` }} />
+        <span className="flex-1 text-left">{current.symbol}</span>
+        <ChevronDown className={`h-3.5 w-3.5 text-white/40 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-30 mt-1.5 w-full min-w-[140px] overflow-hidden rounded-lg border border-white/10 bg-black/95 shadow-2xl backdrop-blur">
+          {options.map((opt) => {
+            const active = opt.key === value;
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => { onChange(opt.key); setOpen(false); }}
+                className={`flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left font-mono text-sm transition-colors ${
+                  active ? 'bg-white/[0.08] text-white' : 'text-white/70 hover:bg-white/[0.05] hover:text-white'
+                }`}
+              >
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: opt.color, boxShadow: `0 0 8px ${opt.color}80` }} />
+                <span className="font-semibold">{opt.symbol}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function cpAmountOut(amountIn: bigint, reserveIn: bigint, reserveOut: bigint, feeBps: number): bigint {
   if (amountIn === 0n || reserveIn === 0n || reserveOut === 0n) return 0n;
   const feeNum = BigInt(10000 - feeBps);
@@ -358,17 +419,16 @@ function SwapPanel({ data }: { data: TradeData }) {
               </button>
             </div>
             <div className="flex items-center gap-4">
-              <select
+              <TokenSelect
                 value={sideKey(sellToken)}
-                onChange={(e) => handleSellChange(e.target.value)}
-                className="h-12 px-4 rounded-lg border border-white/10 bg-black/40 font-mono text-sm text-white outline-none focus:border-white/20"
-                style={{ color: sellInfo.color }}
-              >
-                <option value="usdc">USDC</option>
-                <option value={String(TrancheKind.Prime)}>pPRIME</option>
-                <option value={String(TrancheKind.Core)}>pCORE</option>
-                <option value={String(TrancheKind.Alpha)}>pALPHA</option>
-              </select>
+                onChange={handleSellChange}
+                options={[
+                  { key: 'usdc',                          symbol: 'USDC',   color: '#4ade80' },
+                  { key: String(TrancheKind.Prime),       symbol: 'pPRIME', color: '#7aa3bd' },
+                  { key: String(TrancheKind.Core),        symbol: 'pCORE',  color: '#d4a449' },
+                  { key: String(TrancheKind.Alpha),       symbol: 'pALPHA', color: '#d97a5d' },
+                ]}
+              />
               <input
                 type="number"
                 value={amtStr}
@@ -399,19 +459,19 @@ function SwapPanel({ data }: { data: TradeData }) {
             </div>
             <div className="flex items-center gap-4">
               {isFromUsdc ? (
-                <select
+                <TokenSelect
                   value={String(buyTrancheKind)}
-                  onChange={(e) => { setBuyTrancheKind(Number(e.target.value) as TrancheKind); setAmtStr(''); }}
-                  className="h-12 px-4 rounded-lg border border-white/10 bg-black/40 font-mono text-sm text-white outline-none focus:border-white/20"
-                  style={{ color: buyInfo.color }}
-                >
-                  <option value={String(TrancheKind.Prime)}>pPRIME</option>
-                  <option value={String(TrancheKind.Core)}>pCORE</option>
-                  <option value={String(TrancheKind.Alpha)}>pALPHA</option>
-                </select>
+                  onChange={(v) => { setBuyTrancheKind(Number(v) as TrancheKind); setAmtStr(''); }}
+                  options={[
+                    { key: String(TrancheKind.Prime), symbol: 'pPRIME', color: '#7aa3bd' },
+                    { key: String(TrancheKind.Core),  symbol: 'pCORE',  color: '#d4a449' },
+                    { key: String(TrancheKind.Alpha), symbol: 'pALPHA', color: '#d97a5d' },
+                  ]}
+                />
               ) : (
-                <div className="h-12 flex items-center px-4 rounded-lg border border-white/10 bg-black/40 font-mono text-sm" style={{ color: buyInfo.color }}>
-                  {buyInfo.symbol}
+                <div className="flex h-12 items-center gap-2.5 rounded-lg border border-white/10 bg-black/40 px-3.5 font-mono text-sm font-semibold text-white min-w-[120px]">
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: '#4ade80', boxShadow: '0 0 8px #4ade8080' }} />
+                  <span>USDC</span>
                 </div>
               )}
               <div className="flex-1 font-mono text-3xl text-white/50 tabular-nums">

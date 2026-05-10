@@ -62,11 +62,34 @@ export function MarketOverview() {
         </div>
 
         {/* Featured Markets Section */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.2em] text-white/30">Institutional Grade</span>
-            <div className="h-px flex-1 bg-white/[0.06]" />
-            <Star className="h-3.5 w-3.5 text-amber-500/50" />
+        <div className="space-y-5">
+          <div className="flex items-end justify-between gap-4 pt-2">
+            <div className="flex items-center gap-4">
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/[0.06] shadow-[0_0_24px_rgba(245,158,11,0.08)]">
+                <Star className="h-5 w-5 text-amber-400/80" fill="currentColor" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-amber-400/70">Featured</span>
+                  <span className="h-1 w-1 rounded-full bg-white/20" />
+                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/30">Tier 1</span>
+                </div>
+                <h2 className="font-display text-2xl text-white tracking-tight leading-none">Institutional Grade</h2>
+                <p className="mt-1.5 font-mono text-xs text-white/40">Verified institutional credit pools · Audited risk parameters</p>
+              </div>
+            </div>
+            {!isLoadingVaults && allVaults && allVaults.length > 0 && (
+              <div className="hidden sm:flex items-center gap-3">
+                <div className="text-right">
+                  <div className="font-mono text-[10px] uppercase tracking-widest text-white/30">Pool Count</div>
+                  <div className="font-mono text-lg font-medium text-white/80 tabular-nums">{allVaults.length}</div>
+                </div>
+                <div className="h-10 w-px bg-white/[0.06]" />
+                <button className="flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.02] px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-white/50 hover:text-white hover:bg-white/[0.05] transition-colors">
+                  View All
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -88,11 +111,28 @@ export function MarketOverview() {
 
         {/* Trending / Deep Markets */}
         {!isLoadingVaults && allVaults && allVaults.length > 0 && (
-          <div className="pt-4 space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.2em] text-white/30">Yield Discovery</span>
-              <div className="h-px flex-1 bg-white/[0.06]" />
-              <TrendingUp className="h-3.5 w-3.5 text-blue-400/50" />
+          <div className="pt-6 space-y-5">
+            <div className="flex items-end justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/[0.06] shadow-[0_0_24px_rgba(59,130,246,0.08)]">
+                  <TrendingUp className="h-5 w-5 text-blue-400/80" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-blue-400/70">High Yield</span>
+                    <span className="h-1 w-1 rounded-full bg-white/20" />
+                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/30">Alpha Tier</span>
+                  </div>
+                  <h2 className="font-display text-2xl text-white tracking-tight leading-none">Yield Discovery</h2>
+                  <p className="mt-1.5 font-mono text-xs text-white/40">Top-performing alpha tranches · Sorted by APY</p>
+                </div>
+              </div>
+              <div className="hidden sm:flex items-center gap-3">
+                <div className="text-right">
+                  <div className="font-mono text-[10px] uppercase tracking-widest text-white/30">Avg APY</div>
+                  <div className="font-mono text-lg font-medium text-amber-400 tabular-nums">15.0%</div>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">

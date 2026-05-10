@@ -4,105 +4,205 @@ import { useRouter } from 'next/navigation';
 import { TrancheVisual } from './TrancheVisual';
 import { formatUsdc, stateName } from '@/app/lib/format';
 import {
+  Building2,
   Database,
-  ArrowRight,
-  Activity,
+  Layers,
+  Zap,
+  ArrowUpRight,
   ShieldCheck,
   Globe,
+  Activity,
+  type LucideIcon,
 } from 'lucide-react';
 
 interface VaultMarketCardProps {
   vault: any;
 }
 
+interface CategoryMeta {
+  label: string;
+  icon: LucideIcon;
+  iconBg: string;
+  iconBorder: string;
+  iconColor: string;
+  glow: string;
+  accent: string;
+}
+
+const CATEGORIES: CategoryMeta[] = [
+  {
+    label: 'Structured Credit',
+    icon: Database,
+    iconBg: 'bg-violet-500/[0.08]',
+    iconBorder: 'border-violet-500/25',
+    iconColor: 'text-violet-300',
+    glow: 'shadow-[0_0_24px_rgba(139,92,246,0.10)]',
+    accent: 'rgba(139,92,246,0.18)',
+  },
+  {
+    label: 'Institutional SOL',
+    icon: Building2,
+    iconBg: 'bg-sky-500/[0.08]',
+    iconBorder: 'border-sky-500/25',
+    iconColor: 'text-sky-300',
+    glow: 'shadow-[0_0_24px_rgba(14,165,233,0.10)]',
+    accent: 'rgba(14,165,233,0.18)',
+  },
+  {
+    label: 'RWA Financed',
+    icon: Layers,
+    iconBg: 'bg-emerald-500/[0.08]',
+    iconBorder: 'border-emerald-500/25',
+    iconColor: 'text-emerald-300',
+    glow: 'shadow-[0_0_24px_rgba(16,185,129,0.10)]',
+    accent: 'rgba(16,185,129,0.18)',
+  },
+  {
+    label: 'Liquidity Alpha',
+    icon: Zap,
+    iconBg: 'bg-amber-500/[0.08]',
+    iconBorder: 'border-amber-500/25',
+    iconColor: 'text-amber-300',
+    glow: 'shadow-[0_0_24px_rgba(245,158,11,0.10)]',
+    accent: 'rgba(245,158,11,0.18)',
+  },
+];
+
+function formatTvlShort(value: any): string {
+  // Strip trailing dot from formatUsdc(value, 0)
+  return formatUsdc(value, 0).replace(/\.$/, '');
+}
+
 export function VaultMarketCard({ vault }: VaultMarketCardProps) {
   const router = useRouter();
+  const meta = CATEGORIES[vault.id % CATEGORIES.length];
+  const Icon = meta.icon;
 
-  const getCategory = (id: number) => {
-    const categories = ['Structured Credit', 'Institutional SOL', 'RWA Financed', 'Liquidity Alpha'];
-    return categories[id % categories.length];
-  };
+  const isHighDemand = vault.id === 1;
+  const utilization = Number(vault.utilization) || 0;
 
-  const getHealth = (id: number) => {
-     if (id === 1) return { label: 'High Demand', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' };
-     return { label: 'Healthy', color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20' };
-  };
-
-  const health = getHealth(vault.id);
-  const category = getCategory(vault.id);
+  const utilColor =
+    utilization > 85 ? 'bg-rose-500/60' :
+    utilization > 60 ? 'bg-amber-500/60' :
+    'bg-emerald-500/50';
 
   return (
     <div
       onClick={() => router.push(`/earn/${vault.id}`)}
-      className="group relative backdrop-blur-md bg-white/[0.04] border border-white/[0.10] hover:border-white/20 transition-all cursor-pointer overflow-hidden rounded-xl flex flex-col h-full"
+      className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-md transition-all duration-300 hover:border-white/[0.18] hover:bg-white/[0.05] cursor-pointer"
+      style={{
+        backgroundImage: `radial-gradient(ellipse 60% 80% at 100% 0%, ${meta.accent} 0%, transparent 55%)`,
+      }}
     >
-      {/* Top Section */}
-      <div className="p-6 space-y-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-             <div className="h-10 w-10 rounded-lg border border-white/[0.08] bg-white/[0.02] flex items-center justify-center group-hover:border-white/20 transition-colors shadow-inner">
-                <Database className="h-4 w-4 text-white/30 group-hover:text-white/60 transition-colors" />
-             </div>
-             <div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-white/30">{category}</div>
-                <h3 className="font-display text-xl text-white tracking-tight">Credit Vault #{vault.id}</h3>
-             </div>
+      {/* ── Header ─────────────────────────────────────────────────── */}
+      <div className="px-6 pt-6 pb-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border ${meta.iconBg} ${meta.iconBorder} ${meta.glow}`}>
+              <Icon className={`h-5 w-5 ${meta.iconColor}`} strokeWidth={1.75} />
+            </div>
+            <div className="min-w-0">
+              <div className={`font-mono text-[10px] uppercase tracking-[0.22em] ${meta.iconColor} opacity-80`}>
+                {meta.label}
+              </div>
+              <h3 className="mt-1 font-display text-xl text-white tracking-tight leading-none truncate">
+                Credit Vault #{vault.id}
+              </h3>
+            </div>
           </div>
-          <div className={`px-3 py-1 rounded-full border text-[10px] uppercase tracking-[0.15em] font-bold ${health.bg} ${health.color} ${health.border} backdrop-blur-sm`}>
-            {health.label}
+
+          {/* Status pill */}
+          <div className={`shrink-0 flex items-center gap-1.5 rounded-full border px-2.5 py-1 backdrop-blur-sm ${
+            isHighDemand
+              ? 'border-amber-400/25 bg-amber-400/[0.08]'
+              : 'border-emerald-400/25 bg-emerald-400/[0.08]'
+          }`}>
+            <span className={`h-1.5 w-1.5 rounded-full animate-pulse ${
+              isHighDemand ? 'bg-amber-400' : 'bg-emerald-400'
+            }`} />
+            <span className={`font-mono text-[10px] font-bold uppercase tracking-[0.15em] ${
+              isHighDemand ? 'text-amber-300' : 'text-emerald-300'
+            }`}>
+              {isHighDemand ? 'High Demand' : 'Healthy'}
+            </span>
           </div>
         </div>
 
-        {/* Tranche Breakdown */}
-        <div>
-           <div className="flex items-center gap-2 mb-3">
-              <div className="h-px w-4 bg-white/[0.10]" />
-              <span className="font-mono text-[10px] uppercase tracking-widest text-white/30">Capital Structure</span>
-           </div>
-           <TrancheVisual tranches={vault.tranches} totalDeposits={vault.totalDeposits} />
+        {/* Hero TVL */}
+        <div className="mt-5 flex items-end justify-between gap-4">
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/30 mb-1.5">
+              Total Value Locked
+            </div>
+            <div className="font-mono text-3xl font-medium text-white tabular-nums leading-none">
+              ${formatTvlShort(vault.totalDeposits)}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/30 mb-1.5">
+              Utilization
+            </div>
+            <div className="font-mono text-3xl font-medium text-white/85 tabular-nums leading-none">
+              {utilization.toFixed(1)}%
+            </div>
+          </div>
+        </div>
+
+        {/* Utilization bar */}
+        <div className="mt-3 h-1 w-full rounded-full bg-white/[0.05] overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-700 ${utilColor}`}
+            style={{ width: `${Math.min(utilization, 100)}%` }}
+          />
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="flex-1 px-6 py-4 grid grid-cols-2 gap-y-4 gap-x-6 border-y border-white/[0.06] bg-white/[0.01]">
-         <div>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-white/30 mb-1">Total TVL</div>
-            <div className="font-mono text-base font-medium text-white/90 tabular-nums">${formatUsdc(vault.totalDeposits, 0)}</div>
-         </div>
-         <div className="text-right">
-            <div className="font-mono text-[10px] uppercase tracking-widest text-white/30 mb-1">Utilization</div>
-            <div className="font-mono text-base font-medium text-white/90 tabular-nums">{vault.utilization}%</div>
-         </div>
-         <div>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-white/30 mb-1">Market Status</div>
-            <div className="font-mono text-sm text-emerald-500 uppercase tracking-widest font-bold">{stateName(vault.state)}</div>
-         </div>
-         <div className="text-right">
-            <div className="font-mono text-[10px] uppercase tracking-widest text-white/30 mb-1">Risk Buffer</div>
-            <div className="font-mono text-sm text-blue-400 uppercase tracking-widest font-bold">95% Protected</div>
-         </div>
+      {/* ── Capital Structure ──────────────────────────────────────── */}
+      <div className="px-6 py-5 border-t border-white/[0.05] bg-black/[0.15]">
+        <div className="flex items-center gap-2 mb-3">
+          <Layers className="h-3.5 w-3.5 text-white/30" />
+          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/40">
+            Capital Structure
+          </span>
+          <div className="h-px flex-1 bg-white/[0.04]" />
+          <span className="font-mono text-[10px] uppercase tracking-widest text-white/25">
+            APY
+          </span>
+        </div>
+        <TrancheVisual tranches={vault.tranches} totalDeposits={vault.totalDeposits} />
       </div>
 
-      {/* Footer */}
-      <div className="p-5 flex items-center justify-between bg-white/[0.01]">
-         <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-               <ShieldCheck className="h-3.5 w-3.5 text-emerald-500/50" />
-               <span className="font-mono text-[10px] uppercase tracking-widest text-white/40">Insured</span>
-            </div>
-            <div className="flex items-center gap-2">
-               <Globe className="h-3.5 w-3.5 text-blue-500/50" />
-               <span className="font-mono text-xs uppercase tracking-widest text-white/40">Global</span>
-            </div>
-         </div>
+      {/* ── Footer Meta ─────────────────────────────────────────────── */}
+      <div className="mt-auto flex items-center justify-between gap-3 px-6 py-4 border-t border-white/[0.05]">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5 rounded-md border border-emerald-500/15 bg-emerald-500/[0.04] px-2 py-1">
+            <ShieldCheck className="h-3 w-3 text-emerald-400/70" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-emerald-300/70">
+              Insured
+            </span>
+          </span>
+          <span className="flex items-center gap-1.5 rounded-md border border-white/[0.06] bg-white/[0.02] px-2 py-1">
+            <Globe className="h-3 w-3 text-white/40" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/45">
+              Global
+            </span>
+          </span>
+          <span className="hidden md:flex items-center gap-1.5 rounded-md border border-white/[0.06] bg-white/[0.02] px-2 py-1">
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/45">
+              {stateName(vault.state)}
+            </span>
+          </span>
+        </div>
 
-         <div className="h-9 w-9 rounded-full border border-white/[0.08] flex items-center justify-center transition-all group-hover:border-white group-hover:bg-white group-hover:text-black shadow-lg">
-            <ArrowRight className="h-4 w-4" />
-         </div>
+        <button className="flex items-center gap-1.5 rounded-full border border-white/[0.10] bg-white/[0.02] px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-white/70 transition-all group-hover:border-white group-hover:bg-white group-hover:text-black">
+          Open
+          <ArrowUpRight className="h-3 w-3" />
+        </button>
       </div>
 
-      <div className="absolute top-4 right-4 pointer-events-none">
-         <Activity className="h-3.5 w-3.5 text-emerald-500/0 group-hover:text-emerald-500/30 transition-colors animate-pulse" />
+      {/* Hover indicator */}
+      <div className="pointer-events-none absolute top-4 right-4">
+        <Activity className="h-3 w-3 text-emerald-400/0 group-hover:text-emerald-400/40 transition-colors animate-pulse" />
       </div>
     </div>
   );

@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { AppSidebar } from "@/components/app-shell/app-sidebar";
-import { ConnectWalletButton } from "@/components/app-shell/connect-wallet-button";
 import { AppProviders } from "@/components/providers/app-providers";
 
 export default function AppShellLayout({ children }: { children: ReactNode }) {
@@ -35,11 +34,6 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
           <main className="relative z-10 flex-1 min-h-0 flex flex-col overflow-hidden">
             {children}
           </main>
-        </div>
-
-        {/* Floating Wallet Button */}
-        <div className="fixed top-4 right-4 z-50">
-          <ConnectWalletButton />
         </div>
       </div>
     </AppProviders>
