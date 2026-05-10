@@ -85,7 +85,14 @@
       "Bash(git ls-remote *)",
       "Bash(gh auth *)",
       "PowerShell(gh auth *)",
-      "PowerShell(cmdkey *)"
+      "PowerShell(cmdkey *)",
+      "Bash(find \"app/\\(app\\)/earn\" -name \"*.tsx\" -o -name \"*.ts\")",
+      "Bash(ls app/\\\\\\(app\\\\\\)/earn/)",
+      "Bash(dir \"app/\\(app\\)/earn\")",
+      "Bash(anchor build *)",
+      "PowerShell(Test-Path *)",
+      "Bash(read h *)",
+      "Bash(printf '%d ' 0x__TRACKED_VAR__)"
     ]
   }
 }

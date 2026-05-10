@@ -102,6 +102,10 @@ pub mod prism_core {
         instructions::unpause_handler(ctx)
     }
 
+    pub fn reactivate_vault(ctx: Context<ReactivateVault>) -> Result<()> {
+        instructions::reactivate_vault_handler(ctx)
+    }
+
     // ── IKA collateral instructions ────────────────────────────────────────
 
     pub fn attach_ika_collateral(

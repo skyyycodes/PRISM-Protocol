@@ -5,7 +5,7 @@ import {
   Activity,
   ArrowDown,
   ArrowLeft,
-  BarChart3,
+  BarChart,
   Layers3,
   RefreshCw,
   RefreshCwIcon,
@@ -569,7 +569,7 @@ function TradeSidebar({ data }: { data: TradeData }) {
     <aside className="space-y-6">
       <Card className="p-6">
         <div className="flex items-center gap-2.5 mb-6">
-          <BarChart3 className="h-4 w-4 text-white/35" />
+          <BarChart className="h-4 w-4 text-white/35" />
           <h2 className="font-mono text-xs uppercase tracking-[0.25em] text-white/40">Market Snapshot</h2>
         </div>
 

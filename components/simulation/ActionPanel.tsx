@@ -66,6 +66,7 @@ import { useCloakPayout, useRecordCloakPayout } from '@/hooks/useCloakPayout';
 import { useIdentity } from '@/hooks/useIdentity';
 import { useSimulationActions } from '@/hooks/useSimulationActions';
 import { useSimulationLog } from '@/hooks/useSimulationLog';
+import { useReactivateVault } from '@/hooks/useReactivateVault';
 import { useVaultState } from '@/hooks/useVaultState';
 
 function bn(value: bigint) {
@@ -731,6 +732,8 @@ export function ActionPanel() {
     onError: (error) => toast.error(formatError(error)),
   });
 
+  const reactivate = useReactivateVault(VAULT_ID);
+
   const mutateYield = accrueYield.mutate;
   const mutateDefault = triggerDefault.mutate;
   const mutateMarket = marketReaction.mutate;
@@ -760,7 +763,8 @@ export function ActionPanel() {
     verifyEncryptDefault.isPending ||
     attachEncryptScore.isPending ||
     shieldYieldViaCloak.isPending ||
-    recordCloakPayout.isPending;
+    recordCloakPayout.isPending ||
+    reactivate.isPending;
 
   return (
     <section className="rounded-lg border border-white/10 bg-black/30 p-5" aria-label="Action panel">
@@ -924,7 +928,7 @@ export function ActionPanel() {
                   : 'No Cloak payout record yet.'}
               </p>
             </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
               <Button disabled={busy} variant="outline" onClick={() => marketReaction.mutate()} className="w-full gap-2">
                 <Flame className="h-4 w-4" />
                 Run Market Reaction
@@ -932,6 +936,15 @@ export function ActionPanel() {
               <Button disabled={busy} variant="secondary" onClick={() => initialize.mutate()} className="w-full gap-2">
                 <RotateCcw className="h-4 w-4" />
                 Initialize
+              </Button>
+              <Button
+                disabled={busy}
+                variant="outline"
+                onClick={() => reactivate.mutate()}
+                className="w-full gap-2 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10"
+              >
+                <Zap className="h-4 w-4" />
+                Reactivate Vault
               </Button>
             </div>
           </div>

@@ -7,7 +7,7 @@ import {
   Building2,
   CreditCard,
   Lock,
-  BarChart3,
+  BarChart,
   FileCheck,
   Activity,
   ArrowRight,
@@ -30,8 +30,9 @@ import { CollateralOnboarding } from './CollateralOnboarding';
 import { formatUsdc } from '@/app/lib/format';
 import { useAllVaults } from '@/hooks/useAllVaults';
 import { useVaultState } from '@/hooks/useVaultState';
-import { useIkaCollateralAccount } from '@/hooks/useIkaCollateral';
+import { useIkaCollateralAccount, useLoanAccount } from '@/hooks/useIkaCollateral';
 import { getVaultPda, getLoanPda } from '@/app/lib/pda';
+import { LoanRepayment } from './LoanRepayment';
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
@@ -40,7 +41,7 @@ const STEPS: { id: Step; label: string; icon: React.ElementType; sublabel: strin
   { id: 2, label: 'Pool',        icon: Building2,    sublabel: 'Market' },
   { id: 3, label: 'Structure',   icon: CreditCard,   sublabel: 'Instrument' },
   { id: 4, label: 'Collateral',  icon: Lock,         sublabel: 'Security' },
-  { id: 5, label: 'Risk',        icon: BarChart3,    sublabel: 'Review' },
+  { id: 5, label: 'Risk',        icon: BarChart,    sublabel: 'Review' },
   { id: 6, label: 'Execute',     icon: FileCheck,    sublabel: 'Sign' },
   { id: 7, label: 'Track',       icon: Activity,     sublabel: 'Status' },
 ];
@@ -1146,7 +1147,10 @@ export function BorrowingWorkflow() {
   const [vaultPda] = getVaultPda(existingApp?.vaultId ?? 0);
   const [loanPda] = getLoanPda(vaultPda, existingApp?.loanId ?? 0);
   const { data: collateral } = useIkaCollateralAccount(existingApp?.loanId != null ? loanPda : null);
+  const { data: loanAccount } = useLoanAccount(existingApp?.loanId != null ? loanPda : null);
   const isLocked = collateral?.status === 'Locked';
+  const loanIsActive = loanAccount?.state != null && 'active' in (loanAccount.state as object);
+  const loanIsRepaid = loanAccount?.state != null && 'repaid' in (loanAccount.state as object);
 
   const next = () => setCurrentStep(Math.min(currentStep + 1, 7));
   const back = () => setCurrentStep(Math.max(currentStep - 1, 1));
@@ -1195,12 +1199,12 @@ export function BorrowingWorkflow() {
 
     // Compact 6-step horizontal strip
     const hStages = [
-      { label: 'Submitted',  done: true,          active: false },
-      { label: 'Review',     done: isApproved,    active: isPending },
-      { label: 'Approved',   done: isApproved,    active: isAwaitingOrigin },
-      { label: 'Secured',    done: isLocked,      active: isCollateralStage && !isLocked },
-      { label: 'Funding',    done: false,         active: isCollateralStage && isLocked },
-      { label: 'Active',     done: false,         active: false },
+      { label: 'Submitted',  done: true,              active: false },
+      { label: 'Review',     done: isApproved,        active: isPending },
+      { label: 'Approved',   done: isApproved,        active: isAwaitingOrigin },
+      { label: 'Secured',    done: isLocked,          active: isCollateralStage && !isLocked },
+      { label: 'Active',     done: loanIsRepaid,      active: loanIsActive },
+      { label: 'Repaid',     done: loanIsRepaid,      active: false },
     ];
 
     return (
@@ -1209,7 +1213,9 @@ export function BorrowingWorkflow() {
         {/* ── Persistent Action Header ─────────────────────────────────────── */}
         <div className={cn(
           'rounded-sm border px-5 py-4 flex items-center justify-between gap-4',
-          isLocked ? 'border-emerald-500/25 bg-emerald-500/[0.06]'
+          loanIsRepaid ? 'border-blue-500/20 bg-blue-500/[0.04]'
+          : loanIsActive ? 'border-amber-500/25 bg-amber-500/[0.05]'
+          : isLocked ? 'border-emerald-500/25 bg-emerald-500/[0.06]'
           : isCollateralStage ? 'border-purple-500/25 bg-purple-500/[0.06]'
           : isAwaitingOrigin ? 'border-amber-500/20 bg-amber-500/[0.04]'
           : 'border-white/[0.08] bg-white/[0.02]',
@@ -1217,34 +1223,46 @@ export function BorrowingWorkflow() {
           <div className="flex items-center gap-4 min-w-0">
             <div className={cn(
               'flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border',
-              isLocked ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+              loanIsRepaid ? 'border-blue-500/30 bg-blue-500/10 text-blue-400'
+              : loanIsActive ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+              : isLocked ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
               : isCollateralStage ? 'border-purple-500/30 bg-purple-500/10 text-purple-400'
               : isAwaitingOrigin ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
               : isApproved ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
               : 'border-white/10 bg-white/[0.03] text-white/30',
             )}>
-              {isLocked ? <BadgeCheck className="h-4 w-4" />
+              {loanIsRepaid ? <CheckCircle2 className="h-4 w-4" />
+               : loanIsActive ? <CreditCard className="h-4 w-4" />
+               : isLocked ? <BadgeCheck className="h-4 w-4" />
                : isCollateralStage ? <Lock className="h-4 w-4" />
-               : isApproved      ? <CheckCircle2 className="h-4 w-4" />
-               :                   <Clock className="h-4 w-4" />}
+               : isApproved ? <CheckCircle2 className="h-4 w-4" />
+               : <Clock className="h-4 w-4" />}
             </div>
             <div className="min-w-0">
               <div className="font-mono text-[7px] uppercase tracking-[0.25em] text-white/25">Current Required Action</div>
               <div className={cn(
                 'text-sm font-bold leading-tight',
-                isLocked ? 'text-emerald-400'
+                loanIsRepaid ? 'text-blue-400'
+                : loanIsActive ? 'text-amber-200'
+                : isLocked ? 'text-emerald-400'
                 : isCollateralStage ? 'text-white'
                 : isAwaitingOrigin ? 'text-amber-200/80'
                 : isApproved ? 'text-emerald-300'
                 : 'text-white/70',
               )}>
-                {isLocked ? 'Collateral Secured'
+                {loanIsRepaid ? 'Loan Fully Repaid'
+                 : loanIsActive ? 'Repayment Due'
+                 : isLocked ? 'Collateral Secured'
                  : isCollateralStage ? 'Register IKA Collateral'
                  : isAwaitingOrigin ? 'Awaiting On-Chain Origination'
                  : 'Application Under Review'}
               </div>
               <div className="font-mono text-[8px] text-white/25 mt-0.5 truncate">
-                {isLocked
+                {loanIsRepaid
+                  ? 'Facility closed · release IKA collateral when ready'
+                  : loanIsActive
+                  ? 'USDC disbursed to your wallet · repay via USDC or Dodo (UPI/Cards)'
+                  : isLocked
                   ? 'Facility fully secured · awaiting protocol-side USDC disbursement'
                   : isCollateralStage
                   ? `Lock BTC or ETH · min $${minCollateral.toLocaleString()} · activates disbursement`
@@ -1261,15 +1279,17 @@ export function BorrowingWorkflow() {
             </div>
             <div className={cn(
               'flex items-center gap-1.5 rounded-sm border px-2.5 py-1 font-mono text-[7px] uppercase tracking-[0.15em]',
-              isCollateralStage ? 'border-purple-500/20 text-purple-400/70'
+              loanIsRepaid ? 'border-blue-500/20 text-blue-400/70'
+              : loanIsActive ? 'border-amber-500/20 text-amber-400/70'
+              : isCollateralStage ? 'border-purple-500/20 text-purple-400/70'
               : isApproved ? 'border-emerald-500/20 text-emerald-400/70'
               : 'border-amber-500/20 text-amber-400/70',
             )}>
               <div className={cn(
                 'h-1 w-1 rounded-full animate-pulse',
-                isCollateralStage ? 'bg-purple-400' : isApproved ? 'bg-emerald-400' : 'bg-amber-400',
+                loanIsRepaid ? 'bg-blue-400' : loanIsActive ? 'bg-amber-400' : isCollateralStage ? 'bg-purple-400' : isApproved ? 'bg-emerald-400' : 'bg-amber-400',
               )} />
-              {isCollateralStage ? 'Action Required' : isApproved ? 'Approved' : 'In Review'}
+              {loanIsRepaid ? 'Closed' : loanIsActive ? 'Repayment Due' : isCollateralStage ? 'Action Required' : isApproved ? 'Approved' : 'In Review'}
             </div>
           </div>
         </div>
@@ -1376,6 +1396,40 @@ export function BorrowingWorkflow() {
                 </div>
               </div>
 
+            </div>
+          </div>
+        )}
+
+        {/* ACTIVE LOAN: disbursed — show repayment with USDC + Dodo */}
+        {loanIsActive && existingApp.loanId !== undefined && (
+          <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
+            <LoanRepayment loanId={existingApp.loanId} vaultId={existingApp.vaultId} />
+
+            <div className="space-y-3">
+              <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-5 space-y-3">
+                <div className="font-mono text-[7px] uppercase tracking-[0.25em] text-white/20 pb-2 border-b border-white/[0.05]">Outstanding Balance</div>
+                {[
+                  { label: 'Principal',   value: `$${existingApp.requestedUSDC.toLocaleString()}` },
+                  { label: 'APR',         value: `${((existingApp.approvedAprBps ?? 850) / 100).toFixed(2)}%` },
+                  { label: 'Maturity',    value: `${existingApp.maturityDays} days` },
+                  { label: 'Loan ID',     value: `#${existingApp.loanId}` },
+                  { label: 'Pool',        value: `#${existingApp.vaultId}` },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex justify-between items-center">
+                    <span className="font-mono text-[8px] uppercase tracking-widest text-white/20">{label}</span>
+                    <span className="font-mono text-[9px] text-white/60">{value}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-sm border border-amber-500/10 bg-amber-500/[0.03] p-4">
+                <div className="flex items-start gap-2">
+                  <CreditCard className="h-3.5 w-3.5 text-amber-400/50 shrink-0 mt-0.5" />
+                  <div className="font-mono text-[8px] text-white/30 leading-relaxed">
+                    Pay via USDC wallet or Dodo Payments (UPI · Cards · 220+ countries). Fiat is bridged to USDC server-side before on-chain settlement.
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}

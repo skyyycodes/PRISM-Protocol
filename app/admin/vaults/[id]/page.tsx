@@ -50,6 +50,7 @@ import {
   getLossBucketPda,
 } from '@/app/lib/pda';
 import { useVaultState } from '@/hooks/useVaultState';
+import { useReactivateVault } from '@/hooks/useReactivateVault';
 import { useAdminVault } from '@/components/admin/AdminVaultContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -70,7 +71,9 @@ export default function VaultDetailPage() {
   const vaultState = useVaultState(vaultId);
   const vd = vaultState.data;
 
+  const reactivate = useReactivateVault(vaultId);
   const [busy, setBusy] = useState(false);
+  const vaultStateLabel = vd?.vault ? (Object.keys(vd.vault.state ?? {})[0] ?? 'active') : 'active';
   const [lossAmount, setLossAmount] = useState('5000');
   const [severity, setSeverity] = useState('100');
   const [seedAmount, setSeedAmount] = useState('10000');
@@ -223,8 +226,12 @@ export default function VaultDetailPage() {
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="font-display text-3xl tracking-tight text-white">Vault #{vaultId}</h1>
-                <div className="rounded-full border border-emerald-500/20 bg-emerald-500/[0.05] px-3 py-1 font-mono text-[9px] uppercase tracking-[0.2em] text-emerald-400/80">
-                   Operational
+                <div className={`rounded-full border px-3 py-1 font-mono text-[9px] uppercase tracking-[0.2em] ${
+                  vaultStateLabel === 'active'
+                    ? 'border-emerald-500/20 bg-emerald-500/[0.05] text-emerald-400/80'
+                    : 'border-rose-500/20 bg-rose-500/[0.05] text-rose-400/80'
+                }`}>
+                  {vaultStateLabel}
                 </div>
               </div>
               <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.3em] text-white/20">
@@ -396,11 +403,21 @@ export default function VaultDetailPage() {
 
                    <button
                      onClick={triggerCreditEvent}
-                     disabled={busy || !isHealthy}
+                     disabled={busy || !isHealthy || vaultStateLabel !== 'active'}
                      className="group relative w-full overflow-hidden rounded-2xl bg-rose-500/10 border border-rose-500/20 px-6 py-5 text-sm font-bold text-rose-400 transition-all hover:bg-rose-500/20 disabled:opacity-20"
                    >
                      {busy ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : 'TRIGGER DEFAULT CASCADE'}
                    </button>
+
+                   {vaultStateLabel !== 'active' && (
+                     <button
+                       onClick={() => reactivate.mutate()}
+                       disabled={reactivate.isPending}
+                       className="w-full overflow-hidden rounded-2xl bg-emerald-500/10 border border-emerald-500/20 px-6 py-5 text-sm font-bold text-emerald-400 transition-all hover:bg-emerald-500/20 disabled:opacity-20"
+                     >
+                       {reactivate.isPending ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : 'REACTIVATE VAULT'}
+                     </button>
+                   )}
                 </div>
              </div>
 

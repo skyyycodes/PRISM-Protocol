@@ -9,7 +9,7 @@ import {
   ArrowRight,
   ArrowUp,
   ArrowUpRight,
-  BarChart3,
+  BarChart,
   CircleDollarSign,
   Database,
   Layers3,
@@ -21,6 +21,7 @@ import {
 
 import { Q64_ONE, TRANCHE_CONFIG, TrancheKind } from '@/app/lib/constants';
 import { formatNavQ, formatUsdc, parseUsdc, shortKey, stateName, toBigInt } from '@/app/lib/format';
+import { AllocationTerminal } from '@/components/vault-detail/AllocationTerminal';
 import { EventTickerPanel } from '@/components/simulation/EventTickerPanel';
 import { useDeposit } from '@/hooks/useDeposit';
 import { useIdentityBalances } from '@/hooks/useIdentityBalances';
@@ -69,6 +70,12 @@ const TRANCHE_META = {
     risk: 'Takes the first dollar of loss. Levered exposure to vault performance.',
   },
 } as const;
+
+const TRANCHE_PROTECTION: Record<TrancheKind, string> = {
+  [TrancheKind.Prime]: 'Maximum',
+  [TrancheKind.Core]: 'High',
+  [TrancheKind.Alpha]: 'None',
+};
 
 const FEATURED_STACK = [
   { kind: TrancheKind.Prime, width: 70 },
@@ -895,6 +902,7 @@ export function PrismEarn() {
 
 export function PrismVaultDetail({ vaultId }: { vaultId: string }) {
   const data = usePrismData();
+  const [, setActiveTranche] = useState<TrancheKind>(TrancheKind.Prime);
 
   if (vaultId !== '0') {
     return (
@@ -984,6 +992,24 @@ export function PrismVaultDetail({ vaultId }: { vaultId: string }) {
           <TrancheRows data={data} />
         </div>
       </Card>
+
+      <section className="mt-8 space-y-4" id="allocation-terminal">
+        <Eyebrow>Tranche Allocation Terminal · USDC &amp; Fiat</Eyebrow>
+        <AllocationTerminal
+          vaultStatus={data.vaultStatus}
+          tranches={TRANCHE_ORDER.map((k) => ({
+            kind: k,
+            label: TRANCHE_META[k].label,
+            apy: TRANCHE_META[k].apy,
+            color: TRANCHE_META[k].color,
+            risk: TRANCHE_META[k].risk,
+            protection: TRANCHE_PROTECTION[k],
+            nav: data.tranches.find((t) => t.kind === k)?.navPerShareQ ?? Q64_ONE,
+          }))}
+          onTrancheChange={setActiveTranche}
+        />
+      </section>
+
       <EarnGuideBanner />
     </PageFrame>
   );
@@ -1472,7 +1498,7 @@ function SwapPanel({ data }: { data: PrismData }) {
             <Eyebrow>Market snapshot</Eyebrow>
             <div className="mt-5 grid gap-3">
               <TradeMetric icon={Layers3} label="Active pools" value={String(data.tranches.filter((t) => t.ammTrancheBalance > 0n).length)} />
-              <TradeMetric icon={BarChart3} label="Total liquidity" value={`$${formatUsdc(data.poolLiquidity, 2)}`} />
+              <TradeMetric icon={BarChart} label="Total liquidity" value={`$${formatUsdc(data.poolLiquidity, 2)}`} />
               <TradeMetric icon={ShieldCheck} label="Pool fee" value={`${feeBps / 100}%`} />
             </div>
           </Card>

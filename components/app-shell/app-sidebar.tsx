@@ -7,7 +7,7 @@ import {
   Home,
   Wallet,
   User,
-  BarChart3,
+  BarChart,
   Key,
   HelpCircle,
   LogOut,

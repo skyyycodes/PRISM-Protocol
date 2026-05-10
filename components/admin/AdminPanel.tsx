@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import {
   Activity,
-  BarChart3,
+  BarChart,
   ChevronRight,
   Database,
   Filter,
@@ -826,7 +826,7 @@ export function AdminPanel() {
       {/* ── QUICK STATS ────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {([
-          { label: 'Total Value Locked', value: `$${formatUsdc(tvl, 2)}`,          Icon: BarChart3,  color: '#38596a' },
+          { label: 'Total Value Locked', value: `$${formatUsdc(tvl, 2)}`,          Icon: BarChart,  color: '#38596a' },
           { label: 'Vault Reserve',      value: `$${formatUsdc(reserveBal, 2)}`,   Icon: Database,   color: '#ad7b21' },
           { label: 'Active Exposure',    value: `$${formatUsdc(totalExposure, 2)}`, Icon: TrendingUp, color: '#6d5ca8' },
           { label: 'Loss Bucket',        value: `$${formatUsdc(lossBucketBal, 2)}`, Icon: Shield,     color: lossBucketBal > 0n ? '#9f442b' : '#2f7d4f' },

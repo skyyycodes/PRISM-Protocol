@@ -9,7 +9,7 @@ export default function VaultPage() {
 
   return (
     <div data-app-scroll className="relative flex-1 overflow-y-auto [overscroll-behavior:contain]">
-      <div className="mx-auto max-w-[1440px] px-8 pt-12">
+      <div className="mx-auto max-w-[1600px] px-4 pt-7 pb-4">
         <VaultDetail vaultId={vaultId} />
       </div>
     </div>

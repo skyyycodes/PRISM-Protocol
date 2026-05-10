@@ -7,7 +7,7 @@ import { formatUsdc } from '@/app/lib/format';
 import { 
   ShieldAlert, 
   Activity, 
-  BarChart3, 
+  BarChart, 
   Zap, 
   Scale, 
   Info,

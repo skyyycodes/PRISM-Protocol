@@ -1,244 +1,48 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  ArrowRight,
-  CheckCircle2,
-  CreditCard,
-  ShieldCheck,
-  Zap,
-  TrendingUp,
-  Info,
-  Layers,
-  ArrowLeft,
-  Loader2,
-  TriangleAlert,
-} from 'lucide-react';
+import { ArrowLeft, Shield, Zap, TrendingUp, Info, Activity, Layers, HeartPulse, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useConnection } from '@solana/wallet-adapter-react';
 import { TrancheKind, Q64_ONE } from '@/app/lib/constants';
 import { formatUsdc, getNetworkName } from '@/app/lib/format';
 import { usePrismData } from '@/hooks/usePrismData';
-import { useDeposit } from '@/hooks/useDeposit';
 import { useUserPosition } from '@/hooks/useUserPosition';
 import { useAllVaults } from '@/hooks/useAllVaults';
-import { useCancelInvestIntent, useFiatInvestCheckout, useFiatInvestStatus } from '@/hooks/useFiatInvest';
+
+// Sub-components
+import { WaterfallVisualizer } from '../vault-detail/WaterfallVisualizer';
+import { MarketOverviewStrip } from '../vault-detail/MarketOverviewStrip';
+import { AllocationTerminal } from '../vault-detail/AllocationTerminal';
+import { RiskProtectionPanel, LoanBookExposure, VaultActivityFeed } from '../vault-detail/InstitutionalModules';
+import { UserPositionSection } from '../vault-detail/UserPositionSection';
+import { PerformanceAnalytics } from '../vault-detail/PerformanceAnalytics';
 
 const TRANCHE_ORDER = [TrancheKind.Prime, TrancheKind.Core, TrancheKind.Alpha] as const;
 
 const TRANCHE_META = {
   [TrancheKind.Prime]: {
-    label: 'PRIME',
+    label: 'Prime Tranche',
     color: '#38596a',
-    glow: 'rgba(56,89,106,0.3)',
     apy: '5.2%',
-    risk: 'SENIOR · LOW RISK',
+    risk: 'Senior · Low Risk',
     protection: 'Maximum',
-    desc: 'Highest safety. Protected by all subordinated tranches. Ideal for treasury management.',
   },
   [TrancheKind.Core]: {
-    label: 'CORE',
+    label: 'Core Tranche',
     color: '#ad7b21',
-    glow: 'rgba(173,123,33,0.3)',
     apy: '8.5%',
-    risk: 'MEZZANINE · BALANCED',
+    risk: 'Mezzanine · Balanced',
     protection: 'High',
-    desc: 'Balanced risk and yield. First loss absorbed by Alpha capital. Target return 8.5% APY.',
   },
   [TrancheKind.Alpha]: {
-    label: 'ALPHA',
+    label: 'Alpha Tranche',
     color: '#9f442b',
-    glow: 'rgba(159,68,43,0.3)',
     apy: '15.4%',
-    risk: 'JUNIOR · HIGH YIELD',
+    risk: 'Junior · High Yield',
     protection: 'None',
-    desc: 'First-loss capital. Levered exposure to portfolio yield. Highest risk/reward profile.',
   },
 } as const;
-
-// ─── TrancheActionArea ────────────────────────────────────────────────────────
-
-function TrancheActionArea({ kind }: { kind: TrancheKind }) {
-  const deposit = useDeposit();
-  const fiatCheckout = useFiatInvestCheckout();
-  const { publicKey } = useWallet();
-  const cancelIntent = useCancelInvestIntent(publicKey?.toBase58() ?? null, kind);
-  const [amount, setAmount] = useState('');
-  const [fiatAmount, setFiatAmount] = useState('');
-  const [tab, setTab] = useState<'usdc' | 'inr'>('usdc');
-
-  const fiatStatus = useFiatInvestStatus(publicKey?.toBase58() ?? null, kind);
-  const status = fiatStatus.data?.status ?? 'none';
-  const creditedAmountMicro = fiatStatus.data?.amountUsdMicro;
-
-  function handleDeposit() {
-    const val = parseFloat(amount);
-    if (isNaN(val) || val <= 0) return;
-    deposit.mutate(
-      { trancheKind: kind, usdcAmount: BigInt(Math.round(val * 1_000_000)) },
-      { onSuccess: () => setAmount('') },
-    );
-  }
-
-  function handleFiatCheckout() {
-    const usd = parseFloat(fiatAmount);
-    if (isNaN(usd) || usd <= 0 || !publicKey) return;
-    fiatCheckout.mutate({ trancheKind: kind, amountUsd: usd, investorPubkey: publicKey.toBase58() });
-  }
-
-  function handleCompleteDeposit() {
-    if (!creditedAmountMicro) return;
-    deposit.mutate({ trancheKind: kind, usdcAmount: BigInt(creditedAmountMicro) });
-  }
-
-  return (
-    <div className="space-y-3">
-      {/* Tab switcher */}
-      <div className="flex gap-px overflow-hidden rounded-sm border border-white/[0.06] w-fit">
-        <button
-          type="button"
-          onClick={() => setTab('usdc')}
-          className={`px-4 py-1.5 font-mono text-[9px] uppercase tracking-widest transition-colors ${
-            tab === 'usdc' ? 'bg-white/[0.06] text-white' : 'text-white/25 hover:text-white/50'
-          }`}
-        >
-          USDC
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('inr')}
-          className={`flex items-center gap-1.5 px-4 py-1.5 font-mono text-[9px] uppercase tracking-widest transition-colors ${
-            tab === 'inr' ? 'bg-white/[0.06] text-white' : 'text-white/25 hover:text-white/50'
-          }`}
-        >
-          <CreditCard className="h-2.5 w-2.5" />
-          INR · Dodo
-        </button>
-      </div>
-
-      {/* USDC tab */}
-      {tab === 'usdc' && (
-        <>
-          <div className="flex items-center gap-2 rounded-sm border border-white/[0.06] bg-black px-3 py-2">
-            <span className="font-mono text-[10px] text-white/20">$</span>
-            <input
-              type="text"
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleDeposit()}
-              className="flex-1 bg-transparent font-mono text-[12px] text-white outline-none placeholder:text-white/10"
-            />
-            <span className="font-mono text-[9px] uppercase tracking-widest text-white/20">USDC</span>
-          </div>
-          <button
-            onClick={handleDeposit}
-            disabled={deposit.isPending || !amount}
-            className="w-full flex items-center justify-between px-4 py-3 bg-white text-black font-mono text-[10px] font-bold uppercase tracking-[0.2em] transition-all hover:bg-white/90 disabled:opacity-50"
-          >
-            Confirm Allocation
-            <ArrowRight className="h-3 w-3" />
-          </button>
-        </>
-      )}
-
-      {/* INR via Dodo tab */}
-      {tab === 'inr' && (
-        <div className="space-y-2.5">
-          {/* Status banner */}
-          {status !== 'none' && (
-            <div className={`flex items-start gap-2.5 rounded-sm border px-3 py-2.5 font-mono text-[10px] ${
-              status === 'pending' || status === 'paid'
-                ? 'border-yellow-500/20 bg-yellow-500/[0.05] text-yellow-200'
-                : status === 'credited'
-                ? 'border-emerald-500/25 bg-emerald-500/[0.05] text-emerald-200'
-                : 'border-red-500/20 bg-red-500/[0.05] text-red-300'
-            }`}>
-              {(status === 'pending' || status === 'paid')
-                ? <Loader2 className="h-3.5 w-3.5 shrink-0 mt-0.5 animate-spin" />
-                : status === 'credited'
-                ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                : <TriangleAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />}
-              <div className="flex-1">
-                <div className="font-semibold uppercase tracking-wider">
-                  {status === 'pending' && 'Awaiting confirmation…'}
-                  {status === 'paid' && 'Bridging USDC to your wallet…'}
-                  {status === 'credited' && 'USDC received · complete deposit'}
-                  {status === 'failed' && 'Payment failed · try again'}
-                </div>
-                {status === 'credited' && creditedAmountMicro && (
-                  <div className="mt-0.5 opacity-70">
-                    ${(Number(BigInt(creditedAmountMicro)) / 1_000_000).toFixed(2)} USDC ready
-                  </div>
-                )}
-              </div>
-              {(status === 'pending' || status === 'paid') && (
-                <button
-                  type="button"
-                  onClick={() => cancelIntent.mutate()}
-                  disabled={cancelIntent.isPending}
-                  className="shrink-0 rounded-sm border border-yellow-500/20 px-2 py-0.5 font-mono text-[9px] text-yellow-200/50 hover:text-yellow-200 disabled:opacity-40 transition-colors"
-                >
-                  {cancelIntent.isPending ? '…' : 'Cancel'}
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Amount input */}
-          {status !== 'credited' && status !== 'paid' && (
-            <div className="flex items-center gap-2 rounded-sm border border-white/[0.06] bg-black px-3 py-2">
-              <span className="font-mono text-[10px] text-white/20">$</span>
-              <input
-                type="number"
-                min="0"
-                placeholder="0.00"
-                value={fiatAmount}
-                onChange={(e) => setFiatAmount(e.target.value)}
-                disabled={status === 'pending' || fiatCheckout.isPending}
-                className="flex-1 bg-transparent font-mono text-[12px] text-white outline-none placeholder:text-white/10 disabled:opacity-40"
-              />
-              <span className="font-mono text-[9px] uppercase tracking-widest text-white/20">USD</span>
-            </div>
-          )}
-
-          {/* Pay / Complete buttons */}
-          {status !== 'credited' ? (
-            <button
-              onClick={handleFiatCheckout}
-              disabled={!fiatAmount || fiatCheckout.isPending || status === 'pending'}
-              className="w-full flex items-center justify-between px-4 py-3 border border-purple-500/25 bg-purple-500/[0.08] font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-purple-200 transition-all hover:bg-purple-500/15 disabled:opacity-40"
-            >
-              {fiatCheckout.isPending ? 'Redirecting…' : 'Pay with Dodo · UPI / Cards'}
-              {fiatCheckout.isPending
-                ? <Loader2 className="h-3 w-3 animate-spin" />
-                : <CreditCard className="h-3 w-3" />}
-            </button>
-          ) : (
-            <button
-              onClick={handleCompleteDeposit}
-              disabled={deposit.isPending}
-              className="w-full flex items-center justify-between px-4 py-3 border border-emerald-500/30 bg-emerald-500/[0.08] font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-200 transition-all hover:bg-emerald-500/15 disabled:opacity-40"
-            >
-              Complete Allocation
-              {deposit.isPending
-                ? <Loader2 className="h-3 w-3 animate-spin" />
-                : <CheckCircle2 className="h-3 w-3" />}
-            </button>
-          )}
-
-          {status === 'none' && (
-            <p className="font-mono text-[9px] uppercase tracking-widest text-white/18 leading-relaxed">
-              Pay via UPI, cards, or netbanking · USDC bridged server-side · you sign the final deposit
-            </p>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── VaultDetail ──────────────────────────────────────────────────────────────
 
 interface VaultDetailProps {
   vaultId: number;
@@ -251,180 +55,192 @@ export function VaultDetail({ vaultId }: VaultDetailProps) {
   const { data: userPositions } = useUserPosition();
   const network = getNetworkName(connection.rpcEndpoint);
 
-  const vaultName = allVaults?.find((v) => v.id === vaultId) ? `Credit Vault #${vaultId}` : 'Loading...';
+  const [activeTranche, setActiveTranche] = useState<TrancheKind>(TrancheKind.Prime);
+
+  const vault = allVaults?.find((v) => v.id === vaultId);
+  const vaultName = vault ? `Credit Vault #${vaultId}` : 'Loading...';
+
+  // Prepare position data for the UserPositionSection
+  const preparedPositions = TRANCHE_ORDER.map((kind) => {
+    const tranche = data.tranches?.find((t) => t.kind === kind);
+    const userPos = userPositions?.find((p) => p.kind === kind);
+    const valueUsdc = userPos ? (userPos.balance * (tranche?.navPerShareQ ?? 0n)) / Q64_ONE : 0n;
+    const yieldAccrued = userPos ? (userPos.balance * (tranche?.cumulativeYield ?? 0n)) / Q64_ONE : 0n;
+    
+    return {
+      kind,
+      label: TRANCHE_META[kind].label,
+      balance: userPos?.balance ?? 0n,
+      valueUsdc,
+      yieldAccrued,
+      color: TRANCHE_META[kind].color
+    };
+  });
 
   return (
-    <div className="w-full space-y-12 pb-20">
-      {/* Back to Marketplace */}
-      <div>
+    <div className="mx-auto w-full max-w-[1600px] space-y-16 pb-32">
+      {/* Navigation & Breadcrumb */}
+      <div className="flex items-center justify-between">
         <Link 
           href="/earn"
-          className="group inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-white/30 hover:text-white/60 transition-colors"
+          className="group inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-white/30 hover:text-white/60 transition-colors"
         >
           <ArrowLeft className="h-3 w-3 transition-transform group-hover:-translate-x-1" />
-          Back to Registry
+          Market Registry
         </Link>
+        <div className="flex items-center gap-4">
+           <span className="font-mono text-[9px] uppercase tracking-widest text-white/10 italic">Updated 5s ago</span>
+           <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+        </div>
       </div>
 
-      {/* Header */}
-      <section className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="max-w-2xl">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/20">{network} Pool</span>
-              <div className="h-px w-12 bg-white/10" />
+      {/* 1. VAULT HEADER */}
+      <section className="relative overflow-hidden rounded-2xl border border-white/[0.10] bg-white/[0.04] backdrop-blur-md px-10 py-10 flex flex-col lg:flex-row justify-between gap-12 group">
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent" />
+        
+        <div className="relative max-w-3xl">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="px-3 py-1 rounded-full border border-white/[0.08] bg-white/[0.02]">
+              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">{network} Network</span>
             </div>
-            <h1 className="font-display text-5xl text-white tracking-tight">{vaultName}</h1>
-            <p className="mt-4 text-sm leading-relaxed text-white/40">
-              This pool aggregates diversified Solana-based credit assets. By selecting a tranche, you are choosing your position in the structural repayment waterfall.
-            </p>
+            <div className="h-px w-8 bg-white/10" />
+            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-emerald-400/60 font-bold">● Institutional Grade</span>
           </div>
-          <div className="flex items-center gap-4">
-             <div className="px-6 py-3 rounded-sm border border-white/[0.06] bg-white/[0.02]">
-                <div className="font-mono text-[9px] uppercase tracking-widest text-white/20 mb-1">Vault Health</div>
-                <div className={`font-mono text-[13px] font-medium ${data.vaultHealth > 90 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                  {data.vaultHealth.toFixed(2)}% NOMINAL
-                </div>
+          <h1 className="font-display text-6xl text-white tracking-tighter mb-4">{vaultName}</h1>
+          <p className="text-base leading-relaxed text-white/40 max-w-xl">
+            Institutional-grade liquidity pool focusing on diversified RWA and on-chain credit assets. Managed by validated protocol risk engines with a priority repayment waterfall.
+          </p>
+          <div className="mt-8 flex gap-6">
+             <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-white/20" />
+                <span className="font-mono text-[10px] uppercase tracking-widest text-white/30">Audited Engine v2.1</span>
+             </div>
+             <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-white/20" />
+                <span className="font-mono text-[10px] uppercase tracking-widest text-white/30">Diversified Portfolio</span>
              </div>
           </div>
         </div>
 
-        {/* Tranche Market Cards */}
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          {TRANCHE_ORDER.map((kind) => {
-            const meta = TRANCHE_META[kind];
-            const tranche = data.tranches?.find(t => t.kind === kind);
-            const userPos = userPositions?.find(p => p.kind === kind);
-            const posValue = userPos ? (userPos.balance * (tranche?.navPerShareQ ?? 0n)) / Q64_ONE : 0n;
+        <div className="relative flex flex-col justify-between items-end min-w-[320px]">
+           {/* Terminal Aesthetic Graphic */}
+           <div className="absolute -top-12 -right-12 w-64 h-64 opacity-20 pointer-events-none blur-3xl bg-emerald-500/20 rounded-full" />
+           <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none overflow-hidden rounded-xl">
+             <img 
+               src="/institutional_credit_terminal_graphic_1778431019848.png" 
+               alt="" 
+               className="object-cover w-full h-full scale-150 rotate-12 opacity-50"
+             />
+           </div>
 
-            return (
-              <div key={kind} className="group relative flex flex-col rounded-sm border border-white/[0.08] bg-[#080808] transition-all hover:border-white/[0.15]">
-                {/* Header */}
-                <div className="border-b border-white/[0.04] p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div 
-                        className="h-10 w-1 rounded-full" 
-                        style={{ backgroundColor: meta.color, boxShadow: `0 0 15px ${meta.glow}` }}
-                      />
-                      <div>
-                        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/30">{meta.risk}</div>
-                        <div className="mt-1 font-mono text-xl font-bold text-white tracking-wider">{meta.label}</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-mono text-[10px] uppercase tracking-widest text-emerald-400/60 flex items-center gap-1.5 justify-end">
-                         <TrendingUp className="h-2.5 w-2.5" /> Target APY
-                      </div>
-                      <div className="mt-1 font-mono text-3xl font-medium text-white tracking-tighter" style={{ color: meta.color }}>
-                        {meta.apy}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stats Grid */}
-                <div className="grid grid-cols-2 gap-px bg-white/[0.04]">
-                  <div className="bg-[#070707] p-5">
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-white/20 mb-1">Total Assets</div>
-                    <div className="font-mono text-[13px] text-white/80">${formatUsdc(tranche?.totalAssets ?? 0n, 0)}</div>
-                  </div>
-                  <div className="bg-[#070707] p-5">
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-white/20 mb-1">Protection</div>
-                    <div className="font-mono text-[13px] text-emerald-400/80 uppercase">{meta.protection}</div>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div className="flex-1 p-6">
-                  <p className="text-[11px] leading-relaxed text-white/40">
-                    {meta.desc}
-                  </p>
-                  <div className="mt-6 flex items-center gap-4 pt-4 border-t border-white/[0.04]">
-                     <div className="flex-1">
-                        <div className="font-mono text-[9px] uppercase tracking-widest text-white/20 mb-2">My Position</div>
-                        <div className="font-mono text-[13px] text-white/80">
-                          {posValue > 0n ? `$${formatUsdc(posValue, 2)}` : '—'}
-                        </div>
-                     </div>
-                     <div className="flex-1 text-right">
-                        <div className="font-mono text-[9px] uppercase tracking-widest text-white/20 mb-2">Utilization</div>
-                        <div className="font-mono text-[13px] text-white/40">{(tranche?.utilization ?? 0).toFixed(2)}%</div>
-                     </div>
-                  </div>
-                </div>
-
-                {/* Action Area */}
-                <div className="p-6 pt-0 mt-auto">
-                  {!data.connected ? (
-                    <button className="w-full py-4 border border-white/10 bg-white/5 font-mono text-[10px] uppercase tracking-[0.2em] text-white/40 hover:bg-white/10 transition-colors">
-                      Connect Wallet to Invest
-                    </button>
-                  ) : (
-                    <TrancheActionArea kind={kind} />
-                  )}
-                </div>
+           <div className="relative text-right space-y-2 z-10">
+              <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-white/20">Vault Status</div>
+              <div className="flex items-center gap-3 justify-end">
+                 <div className={`font-mono text-xl font-bold uppercase tracking-widest ${data.vaultHealth > 90 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                   {data.vaultStatus}
+                 </div>
+                 <Activity className={`h-4 w-4 ${data.vaultHealth > 90 ? 'text-emerald-500' : 'text-amber-500'} animate-pulse`} />
               </div>
-            );
-          })}
-        </div>
+           </div>
+           
+           <div className="relative p-6 rounded-xl border border-white/[0.05] bg-white/[0.02] text-right z-10 backdrop-blur-sm">
+              <div className="font-mono text-[10px] uppercase tracking-widest text-white/20 mb-1">Health Score</div>
+              <div className="font-mono text-3xl font-medium text-white tabular-nums leading-none">
+                {data.vaultHealth.toFixed(2)}%
+              </div>
+              <div className="mt-2 font-mono text-[8px] uppercase tracking-widest text-white/10 italic">Structural Integrity Nominal</div>
+           </div>
 
-        {/* Institutional Details */}
-        <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
-          <section className="rounded-sm border border-white/[0.08] bg-[#080808] p-8">
-             <div className="flex items-center gap-2.5 mb-6">
-               <Layers className="h-4 w-4 text-white/40" />
-               <h2 className="font-mono text-[11px] uppercase tracking-[0.25em] text-white/40">The Waterfall Structure</h2>
-             </div>
-             <div className="space-y-4">
-                <p className="text-[11px] leading-relaxed text-white/50">
-                  PRISM uses a structural credit hierarchy to re-allocate risk. Yield flows from the underlying credit portfolio down the waterfall, while potential losses are absorbed from the bottom up.
-                </p>
-                <div className="pt-4 space-y-1">
-                   {TRANCHE_ORDER.map(kind => (
-                     <div key={kind} className="flex items-center justify-between px-4 py-3 rounded-sm border border-white/[0.03] bg-white/[0.01]">
-                        <div className="flex items-center gap-3">
-                           <div className="h-2 w-2 rounded-full" style={{ backgroundColor: TRANCHE_META[kind].color }} />
-                           <span className="font-mono text-[10px] uppercase text-white/60">{TRANCHE_META[kind].label}</span>
-                        </div>
-                        <span className="font-mono text-[9px] text-white/20 uppercase tracking-widest">
-                          {kind === TrancheKind.Alpha ? 'Absorbs first dollar of loss' : `Protected by ${kind === TrancheKind.Core ? 'Alpha' : 'Core & Alpha'}`}
-                        </span>
-                     </div>
-                   ))}
-                </div>
-             </div>
-          </section>
-
-          <section className="rounded-sm border border-white/[0.08] bg-[#080808] p-8 flex flex-col justify-between">
-             <div>
-               <div className="flex items-center gap-2.5 mb-6">
-                 <ShieldCheck className="h-4 w-4 text-white/40" />
-                 <h2 className="font-mono text-[11px] uppercase tracking-[0.25em] text-white/40">Risk Intelligence</h2>
-               </div>
-               <div className="space-y-6">
-                  <div className="flex gap-4">
-                     <div className="mt-1 shrink-0"><Zap className="h-3.5 w-3.5 text-emerald-400/50" /></div>
-                     <div>
-                        <div className="font-mono text-[10px] uppercase text-white/80 mb-1">Live NAV Tracking</div>
-                        <p className="text-[10px] leading-relaxed text-white/30">Net Asset Value is recalculated every 5 seconds based on real-time credit portfolio health.</p>
-                     </div>
-                  </div>
-                  <div className="flex gap-4">
-                     <div className="mt-1 shrink-0"><Info className="h-3.5 w-3.5 text-blue-400/50" /></div>
-                     <div>
-                        <div className="font-mono text-[10px] uppercase text-white/80 mb-1">Instant Liquidity</div>
-                        <p className="text-[10px] leading-relaxed text-white/30">PRISM AMM pools provide secondary market liquidity for all tranche positions.</p>
-                     </div>
-                  </div>
-               </div>
-             </div>
-             <button className="mt-8 w-full py-4 border border-white/10 font-mono text-[10px] uppercase tracking-[0.2em] text-white/40 hover:bg-white/5 transition-colors">
-                Download Investor Prospectus (PDF)
-             </button>
-          </section>
+           <button 
+             onClick={() => document.getElementById('allocation-terminal')?.scrollIntoView({ behavior: 'smooth' })}
+             className="w-full mt-4 py-3 rounded-xl bg-white text-black font-mono text-[9px] font-bold uppercase tracking-[0.2em] transition-all hover:bg-white/90 flex items-center justify-center gap-2"
+           >
+              Fast-Track Allocation
+              <Zap className="h-3 w-3 fill-current" />
+           </button>
         </div>
       </section>
+
+      {/* 2. MARKET OVERVIEW */}
+      <MarketOverviewStrip 
+        totalCapital={data.vaultCapital}
+        activeCredit={data.vaultCapital - data.poolLiquidity} // Simplified for UI
+        yieldDistributed={data.yieldDistributed}
+        utilization={(Number(data.vaultCapital - data.poolLiquidity) / Number(data.vaultCapital)) * 100}
+        health={data.vaultHealth}
+      />
+
+      {/* 3. TRANCHE ALLOCATION INTERFACE */}
+      <section id="allocation-terminal" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="flex items-center gap-3">
+          <Zap className="h-4 w-4 text-white/40" />
+          <h2 className="font-mono text-[11px] uppercase tracking-[0.25em] text-white/40">Tranche Allocation Terminal</h2>
+        </div>
+        <AllocationTerminal 
+          vaultStatus={data.vaultStatus}
+          tranches={TRANCHE_ORDER.map(k => ({
+            kind: k,
+            ...TRANCHE_META[k],
+            nav: data.tranches?.find(t => t.kind === k)?.navPerShareQ ?? Q64_ONE
+          }))}
+          onTrancheChange={setActiveTranche}
+        />
+      </section>
+
+      {/* 4. WATERFALL STRUCTURE VISUALIZATION */}
+      <section className="space-y-8">
+        <div className="flex items-center gap-3">
+          <Layers className="h-4 w-4 text-white/40" />
+          <h2 className="font-mono text-[11px] uppercase tracking-[0.25em] text-white/40">Waterfall Risk Engine</h2>
+        </div>
+        <div className="p-10 rounded-2xl border border-white/[0.08] bg-white/[0.02]">
+          <WaterfallVisualizer activeTranche={activeTranche} />
+        </div>
+      </section>
+
+      {/* 5. RISK & PROTECTION LAYER */}
+      <RiskProtectionPanel />
+
+      {/* 6. LOAN BOOK EXPOSURE */}
+      <LoanBookExposure />
+
+      {/* 7. LIVE MARKET ACTIVITY & 8. PERFORMANCE */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-16">
+        <PerformanceAnalytics />
+        <VaultActivityFeed />
+      </div>
+
+      {/* 9. USER POSITION SECTION */}
+      <UserPositionSection positions={preparedPositions} />
+
+      {/* 10. CAPITAL ACTIONS (Bottom Bar or Secondary Actions) */}
+      <section className="flex flex-col md:flex-row items-center justify-between p-10 rounded-2xl border border-white/[0.10] bg-white/[0.04] backdrop-blur-md gap-8">
+        <div className="flex items-center gap-6">
+           <div className="h-12 w-12 rounded-full border border-white/[0.10] flex items-center justify-center bg-white/[0.02]">
+              <HeartPulse className="h-6 w-6 text-emerald-400/40" />
+           </div>
+           <div>
+              <h3 className="font-display text-xl text-white">Institutional Rebalancing</h3>
+              <p className="text-xs text-white/30 max-w-sm">Re-allocate your capital across tranches with zero-fee internal rebalancing.</p>
+           </div>
+        </div>
+        <div className="flex gap-4">
+           <button className="px-8 py-4 rounded-xl border border-white/[0.10] bg-white/[0.02] font-mono text-[10px] font-bold uppercase tracking-widest text-white hover:bg-white/[0.06] transition-all">
+              Claim Accrued Yield
+           </button>
+           <button className="px-8 py-4 rounded-xl border border-white/[0.10] bg-white/[0.02] font-mono text-[10px] font-bold uppercase tracking-widest text-white/40 cursor-not-allowed">
+              Withdraw Liquidity
+           </button>
+        </div>
+      </section>
+
+      {/* Footer Info */}
+      <div className="flex flex-col items-center gap-4 py-10 opacity-20 hover:opacity-40 transition-opacity">
+         <Link href="#" className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-widest text-white group">
+            Review Smart Contract Architecture <ExternalLink className="h-3 w-3 group-hover:translate-x-0.5" />
+         </Link>
+         <span className="font-mono text-[8px] uppercase tracking-[0.3em] text-white/50">PRISM PROTOCOL v2.1.0 · SECURE CAPITAL MANAGEMENT</span>
+      </div>
     </div>
   );
 }

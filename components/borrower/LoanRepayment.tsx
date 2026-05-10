@@ -33,9 +33,10 @@ import {
 
 interface LoanRepaymentProps {
   loanId: number;
+  vaultId?: number;
 }
 
-export function LoanRepayment({ loanId }: LoanRepaymentProps) {
+export function LoanRepayment({ loanId, vaultId = VAULT_ID }: LoanRepaymentProps) {
   const wallet = useAnchorWallet();
   const { connection } = useConnection();
   const [repayAmount, setRepayAmount] = useState('');
@@ -79,7 +80,7 @@ export function LoanRepayment({ loanId }: LoanRepaymentProps) {
       const core = new Program(prismCoreIdl as Idl, provider) as any;
 
       const [config] = getConfigPda(PRISM_CORE_PROGRAM_ID);
-      const [vault] = getVaultPda(VAULT_ID, PRISM_CORE_PROGRAM_ID);
+      const [vault] = getVaultPda(vaultId, PRISM_CORE_PROGRAM_ID);
       const [reserve] = getVaultReservePda(vault, PRISM_CORE_PROGRAM_ID);
       const [loan] = getLoanPda(vault, loanId, PRISM_CORE_PROGRAM_ID);
 
@@ -142,7 +143,7 @@ export function LoanRepayment({ loanId }: LoanRepaymentProps) {
       const core = new Program(prismCoreIdl as Idl, provider) as any;
 
       const [config] = getConfigPda(PRISM_CORE_PROGRAM_ID);
-      const [vault] = getVaultPda(VAULT_ID, PRISM_CORE_PROGRAM_ID);
+      const [vault] = getVaultPda(vaultId, PRISM_CORE_PROGRAM_ID);
       const [reserve] = getVaultReservePda(vault, PRISM_CORE_PROGRAM_ID);
       const [loan] = getLoanPda(vault, loanId, PRISM_CORE_PROGRAM_ID);
 

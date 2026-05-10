@@ -5,7 +5,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { 
   ShieldCheck, 
   ShieldAlert,
-  BarChart3, 
+  BarChart, 
   FileCheck, 
   Activity,
   ArrowRight,
@@ -28,7 +28,7 @@ const STEPS: { id: Step; label: string; icon: any }[] = [
   { id: 1, label: 'Exposure Audit', icon: Fingerprint },
   { id: 2, label: 'Instrument', icon: ShieldCheck },
   { id: 3, label: 'Structuring', icon: Cpu },
-  { id: 4, label: 'Underwriting', icon: BarChart3 },
+  { id: 4, label: 'Underwriting', icon: BarChart },
   { id: 5, label: 'Execution', icon: FileCheck },
 ];
 

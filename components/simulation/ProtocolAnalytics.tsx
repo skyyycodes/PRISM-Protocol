@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import {
   Activity,
-  BarChart3,
+  BarChart,
   Cpu,
   Database,
   ExternalLink,

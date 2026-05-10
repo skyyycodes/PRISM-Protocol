@@ -5,7 +5,7 @@ import { useBorrowerState } from '@/hooks/useBorrowerState';
 import { useVaultState } from '@/hooks/useVaultState';
 import { formatUsdc } from '@/app/lib/format';
 import {
-  BarChart3,
+  BarChart,
   Activity,
   ShieldCheck,
   AlertTriangle,
