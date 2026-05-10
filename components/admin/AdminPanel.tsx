@@ -1,9 +1,21 @@
 'use client';
 
 import { useState } from 'react';
+import {
+  Activity,
+  BarChart3,
+  ChevronRight,
+  Database,
+  Filter,
+  Layers,
+  Shield,
+  TrendingUp,
+} from 'lucide-react';
 import { useLoanApplications } from '@/hooks/useLoanApplications';
 import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { useVaultState } from '@/hooks/useVaultState';
+import { formatNavQ, formatUsdc } from '@/app/lib/format';
 import { AnchorProvider, Program, BN, type Idl } from '@coral-xyz/anchor';
 import { SystemProgram, SYSVAR_RENT_PUBKEY, PublicKey, Transaction, Keypair } from '@solana/web3.js';
 import adminSecret from '@/contracts/keys/admin.json';
@@ -79,6 +91,22 @@ export function AdminPanel() {
   });
 
   const [activeMode, setActiveMode] = useState<'auto' | 'manual'>('auto');
+  const [logFilter, setLogFilter] = useState('');
+  const [showPdaInspector, setShowPdaInspector] = useState(false);
+
+  // Live on-chain data
+  const vaultState = useVaultState();
+  const vd = vaultState.data;
+  const tvl = (vd?.tranches ?? []).reduce((sum, t) => sum + t.totalAssets, 0n);
+  const reserveBal = vd?.reserveBalance ?? 0n;
+  const lossBucketBal = vd?.lossBucketBalance ?? 0n;
+  const totalExposure = applications
+    .filter(a => a.status === 'approved')
+    .reduce((sum, a) => sum + BigInt(Math.round(a.requestedUSDC * 1_000_000)), 0n);
+  const isHealthy = lossBucketBal === 0n;
+  const filteredLog = logFilter
+    ? log.filter(l => l.toLowerCase().includes(logFilter.toLowerCase()))
+    : log;
 
   // Track collateral for the most recent approved loan
   const lastApprovedLoan = applications
@@ -625,17 +653,146 @@ export function AdminPanel() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      {/* Header */}
+    <div className="mx-auto max-w-5xl space-y-5 pb-12">
+
+      {/* ── HEADER ─────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-white">Admin Panel</h1>
-          <p className="text-sm text-white/40">
+          <h1 className="text-xl font-semibold text-white">Protocol Control Center</h1>
+          <p className="font-mono text-[11px] text-white/30">
             Vault {VAULT_ID} · {PRISM_CORE_PROGRAM_ID.toBase58().slice(0, 8)}…
           </p>
         </div>
-        <WalletMultiButton style={{}} />
+        <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-2 rounded-full border px-3 py-1.5 font-mono text-[10px] ${
+            isHealthy
+              ? 'border-emerald-500/25 bg-emerald-500/[0.08] text-emerald-300'
+              : 'border-rose-500/25 bg-rose-500/[0.08] text-rose-300'
+          }`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${isHealthy ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
+            {isHealthy ? 'Protocol Healthy' : 'Loss Event Active'}
+          </div>
+          <WalletMultiButton style={{}} />
+        </div>
       </div>
+
+      {/* ── QUICK STATS ────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {([
+          { label: 'Total Value Locked', value: `$${formatUsdc(tvl, 2)}`,          Icon: BarChart3,  color: '#38596a' },
+          { label: 'Vault Reserve',      value: `$${formatUsdc(reserveBal, 2)}`,   Icon: Database,   color: '#ad7b21' },
+          { label: 'Active Exposure',    value: `$${formatUsdc(totalExposure, 2)}`, Icon: TrendingUp, color: '#6d5ca8' },
+          { label: 'Loss Bucket',        value: `$${formatUsdc(lossBucketBal, 2)}`, Icon: Shield,     color: lossBucketBal > 0n ? '#9f442b' : '#2f7d4f' },
+        ] as const).map(({ label, value, Icon, color }) => (
+          <div key={label} className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-[#070707] px-4 py-3.5">
+            <div className="absolute inset-y-0 left-0 w-[2px] rounded-l-xl" style={{ backgroundColor: color }} />
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/22">{label}</span>
+              <Icon className="h-3.5 w-3.5" strokeWidth={1.5} style={{ color, opacity: 0.5 }} />
+            </div>
+            <div className="font-mono text-xl leading-none text-white">
+              {vaultState.isLoading ? <span className="text-white/20 animate-pulse text-sm">loading…</span> : value}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── TRANCHE MONITOR ────────────────────────────────────────────── */}
+      <section className="overflow-hidden rounded-xl border border-white/[0.06] bg-[#070707]">
+        <div className="flex items-center justify-between border-b border-white/[0.05] px-5 py-3">
+          <div className="flex items-center gap-2">
+            <Activity className="h-3.5 w-3.5 text-white/25" strokeWidth={1.5} />
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/28">Tranche Monitor</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {vaultState.isFetching && <span className="font-mono text-[9px] text-white/18 animate-pulse">refreshing…</span>}
+            <span className="font-mono text-[9px] text-white/14">auto-refresh 5s</span>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/[0.04]">
+                {['Tranche', 'Total Assets', 'NAV / Share', 'AMM Liquidity', 'Yield Accrued', 'Cumul. Loss', 'Target APY'].map(h => (
+                  <th key={h} className="px-5 py-2.5 text-left font-mono text-[9px] uppercase tracking-[0.16em] text-white/20">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/[0.03]">
+              {([
+                { kind: TrancheKind.Prime, label: 'PRIME', color: '#38596a', apy: '5.0%' },
+                { kind: TrancheKind.Core,  label: 'CORE',  color: '#ad7b21', apy: '8.0%' },
+                { kind: TrancheKind.Alpha, label: 'ALPHA', color: '#9f442b', apy: '15.0%' },
+              ] as const).map(({ kind, label, color, apy }) => {
+                const t = vd?.tranches.find(tr => tr.kind === kind);
+                const hasLoss = (t?.cumulativeLoss ?? 0n) > 0n;
+                return (
+                  <tr key={kind} className="transition-colors hover:bg-white/[0.015]">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="h-4 w-[2px] rounded-full" style={{ backgroundColor: color }} />
+                        <span className="font-mono text-[11px] font-semibold" style={{ color }}>{label}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 font-mono text-[12px] text-white/65">${formatUsdc(t?.totalAssets ?? 0n, 2)}</td>
+                    <td className={`px-5 py-3 font-mono text-[12px] ${hasLoss ? 'text-[#e8a090]' : 'text-white/55'}`}>
+                      {formatNavQ(t?.navPerShareQ ?? 0n)}
+                    </td>
+                    <td className="px-5 py-3 font-mono text-[12px] text-white/55">${formatUsdc(t?.ammQuoteBalance ?? 0n, 2)}</td>
+                    <td className="px-5 py-3 font-mono text-[12px] text-emerald-400/65">${formatUsdc(t?.cumulativeYield ?? 0n, 2)}</td>
+                    <td className={`px-5 py-3 font-mono text-[12px] ${hasLoss ? 'text-[#e8a090]' : 'text-white/18'}`}>
+                      {hasLoss ? `$${formatUsdc(t?.cumulativeLoss ?? 0n, 2)}` : '—'}
+                    </td>
+                    <td className="px-5 py-3 font-mono text-[12px] font-medium" style={{ color }}>{apy}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* ── WATERFALL FLOW ─────────────────────────────────────────────── */}
+      <section className="rounded-xl border border-white/[0.06] bg-[#070707] px-5 py-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Layers className="h-3.5 w-3.5 text-white/25" strokeWidth={1.5} />
+          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/28">Yield Waterfall · Loss Cascade</span>
+        </div>
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <div className="shrink-0 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2.5 text-center min-w-[80px]">
+            <div className="font-mono text-[9px] uppercase tracking-wider text-white/22">Borrowers</div>
+            <div className="mt-1 font-mono text-[11px] text-white/50">${formatUsdc(totalExposure, 0)}</div>
+          </div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-white/15" />
+          <div className="shrink-0 rounded-lg border border-[#ad7b21]/25 bg-[#ad7b21]/[0.06] px-3 py-2.5 text-center min-w-[80px]">
+            <div className="font-mono text-[9px] uppercase tracking-wider text-[#ad7b21]/60">Reserve</div>
+            <div className="mt-1 font-mono text-[11px] text-[#c49a40]">${formatUsdc(reserveBal, 0)}</div>
+          </div>
+          <div className="shrink-0 flex flex-col gap-1.5 mx-2">
+            {([
+              { label: 'Prime 70%', color: '#38596a' },
+              { label: 'Core  20%', color: '#ad7b21' },
+              { label: 'Alpha 10%', color: '#9f442b' },
+            ] as const).map(({ label, color }) => (
+              <div key={label} className="flex items-center gap-1">
+                <div className="h-px w-5 rounded" style={{ backgroundColor: `${color}80` }} />
+                <ChevronRight className="h-2.5 w-2.5 shrink-0" style={{ color: `${color}60` }} />
+                <span className="font-mono text-[9px] whitespace-nowrap" style={{ color: `${color}80` }}>{label}</span>
+              </div>
+            ))}
+          </div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-[#9f442b]/25" />
+          <div className="shrink-0 rounded-lg border border-[#9f442b]/20 bg-[#9f442b]/[0.06] px-3 py-2.5 text-center min-w-[80px]">
+            <div className="font-mono text-[9px] uppercase tracking-wider text-[#9f442b]/60">Loss Bucket</div>
+            <div className={`mt-1 font-mono text-[11px] ${lossBucketBal > 0n ? 'text-[#e8a090]' : 'text-white/20'}`}>
+              ${formatUsdc(lossBucketBal, 0)}
+            </div>
+          </div>
+        </div>
+        <p className="mt-3 font-mono text-[9px] text-white/16 leading-relaxed">
+          Yield flows: Prime (priority) → Core → Alpha &nbsp;·&nbsp; Losses cascade: Alpha (first) → Core → Prime → Loss Bucket
+        </p>
+      </section>
 
       {/* Step 1: Protocol Setup */}
       <section className="rounded-xl border border-white/10 bg-white/5 p-5 space-y-4 relative overflow-hidden">
@@ -830,21 +987,62 @@ export function AdminPanel() {
               <h3 className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Yield Accrual</h3>
               <span className="text-[10px] text-emerald-400/50 italic">Waterfall Distribution</span>
             </div>
-            <div className="space-y-2">
-              <label className="text-[10px] text-white/30 uppercase">Amount (USDC)</label>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] text-white/30 uppercase">Amount (USDC)</label>
+                <span className="font-mono text-sm font-semibold text-emerald-300">
+                  ${parseFloat(params.yieldAmount || '0').toLocaleString()}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="10"
+                max="10000"
+                step="10"
+                value={parseFloat(params.yieldAmount) || 100}
+                onChange={(e) => setParams(p => ({ ...p, yieldAmount: e.target.value }))}
+                className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-emerald-900/40 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-400"
+              />
+              <div className="flex justify-between font-mono text-[9px] text-white/20">
+                <span>$10</span><span>$2,500</span><span>$5,000</span><span>$10,000</span>
+              </div>
+              {/* Preview impact */}
+              {tvl > 0n && (
+                <div className="rounded border border-emerald-500/15 bg-emerald-500/[0.04] px-3 py-2">
+                  <div className="font-mono text-[9px] uppercase text-emerald-400/50 mb-1.5">Projected NAV Impact</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      { label: 'Prime', trancheKind: TrancheKind.Prime },
+                      { label: 'Core',  trancheKind: TrancheKind.Core  },
+                      { label: 'Alpha', trancheKind: TrancheKind.Alpha },
+                    ] as const).map(({ label, trancheKind }) => {
+                      const t = vd?.tranches.find(tr => tr.kind === trancheKind);
+                      const share = tvl > 0n && t && t.totalAssets > 0n
+                        ? Number(t.totalAssets * BigInt(Math.round(parseFloat(params.yieldAmount || '0') * 1_000_000)) / tvl) / 1_000_000
+                        : 0;
+                      return (
+                        <div key={label} className="text-center">
+                          <div className="font-mono text-[9px] text-white/25">{label}</div>
+                          <div className="font-mono text-[11px] text-emerald-300">+${share.toFixed(2)}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={params.yieldAmount}
                   onChange={(e) => setParams(p => ({ ...p, yieldAmount: e.target.value }))}
-                  className="flex-1 bg-black/20 border border-emerald-500/20 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500/50"
+                  className="w-24 bg-black/20 border border-emerald-500/20 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500/50"
                 />
                 <button
                   onClick={accrueYield}
                   disabled={!wallet}
-                  className="px-4 py-1.5 rounded bg-emerald-500/20 border border-emerald-500/30 text-emerald-200 text-xs font-semibold hover:bg-emerald-500/30 transition-all disabled:opacity-40"
+                  className="flex-1 px-4 py-1.5 rounded bg-emerald-500/20 border border-emerald-500/30 text-emerald-200 text-xs font-semibold hover:bg-emerald-500/30 transition-all disabled:opacity-40"
                 >
-                  Apply
+                  Apply Yield
                 </button>
               </div>
             </div>
@@ -932,27 +1130,103 @@ export function AdminPanel() {
         </div>
       </section>
 
-      {/* Log */}
+      {/* ── TRANSACTION LOG (filterable) ───────────────────────────────── */}
       {log.length > 0 && (
-        <section className="rounded-xl border border-white/10 bg-black/40 p-4">
-          <div className="mb-2 flex items-center justify-between">
+        <section className="rounded-xl border border-white/10 bg-black/40 p-4 space-y-2">
+          <div className="flex items-center justify-between gap-3">
             <h2 className="text-xs font-medium text-white/50">Transaction Log</h2>
-            <button
-              onClick={() => setLog([])}
-              className="text-[10px] text-white/30 hover:text-white/60 underline decoration-white/10 underline-offset-2"
-            >
-              clear
-            </button>
+            <div className="flex items-center gap-2 flex-1 max-w-xs">
+              <Filter className="h-3 w-3 shrink-0 text-white/20" />
+              <input
+                type="text"
+                placeholder="Filter entries…"
+                value={logFilter}
+                onChange={(e) => setLogFilter(e.target.value)}
+                className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 font-mono text-[10px] text-white placeholder-white/20 focus:outline-none focus:border-white/20"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              {logFilter && (
+                <span className="font-mono text-[9px] text-white/25">{filteredLog.length}/{log.length}</span>
+              )}
+              <button
+                onClick={() => { setLog([]); setLogFilter(''); }}
+                className="text-[10px] text-white/30 hover:text-white/60 underline decoration-white/10 underline-offset-2"
+              >
+                clear
+              </button>
+            </div>
           </div>
           <div className="max-h-48 space-y-0.5 overflow-y-auto font-mono text-xs text-white/60">
-            {log.map((line, i) => (
-              <div key={i} className={line.startsWith('[') && line.includes('✓') ? 'text-emerald-400/80' : line.includes('✗') ? 'text-red-400/80' : ''}>
+            {filteredLog.length === 0 && logFilter ? (
+              <div className="text-white/20 text-[10px] py-2">No entries match &ldquo;{logFilter}&rdquo;</div>
+            ) : filteredLog.map((line, i) => (
+              <div key={i} className={
+                line.includes('✓') ? 'text-emerald-400/80' :
+                line.includes('✗') ? 'text-red-400/80' : ''
+              }>
                 {line}
               </div>
             ))}
           </div>
         </section>
       )}
+
+      {/* ── PDA INSPECTOR ──────────────────────────────────────────────── */}
+      <section className="rounded-xl border border-white/[0.06] bg-[#070707] overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowPdaInspector(v => !v)}
+          className="flex w-full items-center justify-between px-5 py-3.5 text-left transition-colors hover:bg-white/[0.02]"
+        >
+          <div className="flex items-center gap-2">
+            <Database className="h-3.5 w-3.5 text-white/25" strokeWidth={1.5} />
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/28">PDA Inspector</span>
+          </div>
+          <span className="font-mono text-[9px] text-white/20">{showPdaInspector ? '▲ collapse' : '▼ expand'}</span>
+        </button>
+        {showPdaInspector && (() => {
+          const p = getPdas(currentLoanId);
+          const rows: Array<{ label: string; address: string; note?: string }> = [
+            { label: 'Global Config',    address: p.config.toBase58(),         note: 'USDC mint + oracle list' },
+            { label: 'Vault',            address: p.vault.toBase58(),          note: `ID ${VAULT_ID}` },
+            { label: 'USDC Reserve',     address: p.reserve.toBase58(),        note: `$${formatUsdc(reserveBal, 2)} balance` },
+            { label: 'Loss Bucket',      address: p.lossBucket.toBase58(),     note: `$${formatUsdc(lossBucketBal, 2)} balance` },
+            { label: 'Loan',             address: p.loan.toBase58(),           note: `ID ${currentLoanId}` },
+            { label: 'Prime Tranche',    address: p.tranches.prime.toBase58(), note: `$${formatUsdc(vd?.tranches.find(t => t.kind === TrancheKind.Prime)?.totalAssets ?? 0n, 2)} TVL` },
+            { label: 'Core Tranche',     address: p.tranches.core.toBase58(),  note: `$${formatUsdc(vd?.tranches.find(t => t.kind === TrancheKind.Core)?.totalAssets ?? 0n, 2)} TVL` },
+            { label: 'Alpha Tranche',    address: p.tranches.alpha.toBase58(), note: `$${formatUsdc(vd?.tranches.find(t => t.kind === TrancheKind.Alpha)?.totalAssets ?? 0n, 2)} TVL` },
+            { label: 'Prime Mint',       address: p.mints.prime.toBase58() },
+            { label: 'Core Mint',        address: p.mints.core.toBase58() },
+            { label: 'Alpha Mint',       address: p.mints.alpha.toBase58() },
+            { label: 'Prime AMM Pool',   address: p.pools.prime.toBase58() },
+            { label: 'Core AMM Pool',    address: p.pools.core.toBase58() },
+            { label: 'Alpha AMM Pool',   address: p.pools.alpha.toBase58() },
+          ];
+          return (
+            <div className="border-t border-white/[0.05] divide-y divide-white/[0.03]">
+              {rows.map(({ label, address, note }) => (
+                <div key={label} className="flex items-center justify-between gap-4 px-5 py-2.5 hover:bg-white/[0.015] transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="shrink-0 font-mono text-[10px] text-white/35 w-32">{label}</span>
+                    <span className="font-mono text-[10px] text-white/50 truncate">{address}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {note && <span className="font-mono text-[9px] text-white/22">{note}</span>}
+                    <button
+                      type="button"
+                      onClick={() => { navigator.clipboard.writeText(address); }}
+                      className="rounded border border-white/[0.06] px-1.5 py-0.5 font-mono text-[9px] text-white/25 transition-colors hover:border-white/15 hover:text-white/50"
+                    >
+                      copy
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+      </section>
 
       {/* Pending Loan Applications */}
       {applications.filter(a => a.status === 'pending').length > 0 && (

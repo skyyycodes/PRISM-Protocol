@@ -15,13 +15,13 @@ export function useAllVaults() {
     refetchInterval: 10000,
     queryFn: async () => {
       const { core } = buildPrograms(connection, keypair);
-      const allVaults = await core.account.vault.all();
-      
-      return allVaults.map(v => ({
+      type RawVault = { publicKey: import('@solana/web3.js').PublicKey; account: { id: number; state: object } };
+      const allVaults = (await core.account.vault.all()) as RawVault[];
+
+      return allVaults.map((v) => ({
         publicKey: v.publicKey,
         id: v.account.id,
         state: v.account.state,
-        // In a real app we might fetch more metadata here or in a separate query
       }));
     }
   });
