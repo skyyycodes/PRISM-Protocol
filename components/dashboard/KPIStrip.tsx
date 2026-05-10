@@ -16,34 +16,36 @@ const SPARKLINE_DATA = [
 ];
 
 function Sparkline({ points }: { points: number[] }) {
-  const W = 72;
-  const H = 28;
+  const VW = 100;
+  const VH = 24;
   const min = Math.min(...points);
   const max = Math.max(...points);
   const range = max - min || 1;
 
   const coords = points
     .map((p, i) => {
-      const x = (i / (points.length - 1)) * W;
-      const y = H - ((p - min) / range) * (H - 2) - 1;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
+      const x = (i / (points.length - 1)) * VW;
+      const y = VH - ((p - min) / range) * (VH - 4) - 2;
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
     })
     .join(' ');
 
   return (
     <svg
-      width={W}
-      height={H}
-      viewBox={`0 0 ${W} ${H}`}
-      className="shrink-0 opacity-70"
+      width="100%"
+      height={VH}
+      viewBox={`0 0 ${VW} ${VH}`}
+      preserveAspectRatio="none"
+      className="opacity-60"
     >
       <polyline
         points={coords}
         fill="none"
         stroke={PINK}
-        strokeWidth="1.5"
+        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
       />
     </svg>
   );
@@ -120,23 +122,25 @@ export function KPIStrip({
       {metrics.map((m) => (
         <div
           key={m.label}
-          className="group flex flex-col justify-between px-6 py-6 transition-colors hover:bg-white/[0.04] min-h-[110px]"
+          className="group flex flex-col gap-2 px-5 py-5 transition-colors hover:bg-white/[0.04] overflow-hidden"
         >
           {/* Label */}
-          <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/30">
+          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/30">
             {m.label}
           </span>
 
-          {/* Value + sparkline */}
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <div className="font-mono text-[26px] font-medium leading-none text-white/90 tabular-nums">
-              {m.value}
-            </div>
+          {/* Value — full width, never truncated */}
+          <div className="font-mono text-[22px] font-medium leading-none text-white/90 tabular-nums">
+            {m.value}
+          </div>
+
+          {/* Sparkline — full card width */}
+          <div className="w-full">
             <Sparkline points={SPARKLINE_DATA[m.sparkIdx]} />
           </div>
 
           {/* Subtitle */}
-          <span className={`mt-3 font-mono text-[11px] ${m.subColor}`}>
+          <span className={`font-mono text-[10px] ${m.subColor}`}>
             {m.sub}
           </span>
         </div>
