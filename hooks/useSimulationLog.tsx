@@ -38,14 +38,29 @@ export function SimulationLogProvider({ children }: { children: ReactNode }) {
   }, [entries]);
 
   const addEntry = useCallback((entry: Omit<LogEntry, 'id' | 'timestamp'>) => {
-    setEntries((current) => [
-      {
-        ...entry,
-        id: crypto.randomUUID(),
-        timestamp: new Date().toISOString(),
-      },
-      ...current,
-    ]);
+    const newEntry: LogEntry = {
+      ...entry,
+      id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+    };
+
+    setEntries((current) => [newEntry, ...current]);
+
+    // Persist to DB if it has a signature (on-chain event)
+    if (entry.signature) {
+      fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          signature: entry.signature,
+          eventType: entry.action,
+          signer: 'N/A', // We don't always have the signer here, but signature is enough to index
+          success: entry.status === 'success',
+          timestamp: Math.floor(Date.now() / 1000),
+          message: entry.message,
+        }),
+      }).catch(console.error);
+    }
   }, []);
 
   const clear = useCallback(() => setEntries([]), []);

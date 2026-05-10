@@ -162,7 +162,7 @@ function PageHeader({ data }: { data: DashboardData }) {
             Mission Control
           </h1>
           <p className="mt-2 font-mono text-sm text-white/30">
-            {roleLabel} · 5s chain refresh
+            {roleLabel !== 'Protocol Admin' && `${roleLabel} · `}5s chain refresh
           </p>
         </div>
 
@@ -189,13 +189,15 @@ function PageHeader({ data }: { data: DashboardData }) {
 
           {/* Identity badges */}
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.015] px-4 py-2">
-              <span
-                className="h-2 w-2 rounded-full shrink-0"
-                style={{ backgroundColor: '#eca8d6', boxShadow: '0 0 4px rgba(236,168,214,0.45)' }}
-              />
-              <span className="font-mono text-sm text-white/50">{roleLabel}</span>
-            </div>
+            {roleLabel !== 'Protocol Admin' && (
+              <div className="flex items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.015] px-4 py-2">
+                <span
+                  className="h-2 w-2 rounded-full shrink-0"
+                  style={{ backgroundColor: '#eca8d6', boxShadow: '0 0 4px rgba(236,168,214,0.45)' }}
+                />
+                <span className="font-mono text-sm text-white/50">{roleLabel}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.015] px-4 py-2">
               <span className={`h-2 w-2 rounded-full shrink-0 ${data.connected ? 'bg-emerald-400' : 'bg-white/12'}`} />
               <span className="font-mono text-sm text-white/35">{data.walletLabel}</span>

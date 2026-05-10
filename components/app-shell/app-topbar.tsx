@@ -45,14 +45,7 @@ export function AppTopbar() {
           <span className="hidden sm:inline">Filters</span>
         </button>
 
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/40" />
-          <input
-            type="text"
-            placeholder="Search PRISM..."
-            className="h-9 w-full rounded-md border border-white/10 bg-black/50 px-4 pl-9 text-sm text-white placeholder:text-white/35 transition-colors focus:border-white/30 focus:outline-none sm:placeholder:text-white/35"
-          />
-        </div>
+
 
         <div className="relative">
           <button

@@ -56,7 +56,7 @@ export function DashboardSidebar({ insights = [] }: DashboardSidebarProps) {
           <div className="grid grid-cols-1 gap-2.5">
             {[
               { label: 'Rebalance Allocation', href: '/earn' },
-              { label: 'Access Credit Line',   href: '/borrower' },
+              { label: 'Access Credit Line',   href: '/borrow' },
               { label: 'Export Risk Report',   href: '#' },
             ].map((action) => (
               <button

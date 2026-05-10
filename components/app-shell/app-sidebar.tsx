@@ -12,14 +12,16 @@ import {
   HelpCircle,
   LogOut,
   Shield,
+  Cpu,
+  LineChart,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { icon: Home, label: 'Dashboard', href: '/dashboard' },
-  { icon: Wallet, label: 'Market', href: '/earn' },
-  { icon: User, label: 'Identity', href: '/protect' },
-  { icon: BarChart3, label: 'Analytics', href: '/trade' },
-  { icon: Key, label: 'Borrow', href: '/borrower' },
+  { icon: Home,      label: 'Dashboard',    href: '/dashboard' },
+  { icon: Wallet,    label: 'Market',       href: '/earn'      },
+  { icon: LineChart, label: 'Trade',        href: '/trade'     },
+  { icon: Cpu,       label: 'Terminal',     href: '/terminal'  },
+  { icon: Key,       label: 'Borrow',       href: '/borrow'    },
 ];
 
 const BOTTOM_ITEMS = [
