@@ -7,12 +7,14 @@ import {
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
 } from '@solana/spl-token';
-import { useConnection } from '@solana/wallet-adapter-react';
+import { useConnection, useWallet, useAnchorWallet } from '@solana/wallet-adapter-react';
 import { Keypair, SYSVAR_RENT_PUBKEY, SystemProgram } from '@solana/web3.js';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
   Banknote,
+  CreditCard,
+  ExternalLink,
   Flame,
   Landmark,
   Lock,
@@ -94,6 +96,8 @@ function formatError(error: unknown) {
 
 export function ActionPanel() {
   const { connection } = useConnection();
+  const wallet = useAnchorWallet();
+  const { publicKey } = useWallet();
   const queryClient = useQueryClient();
   const identity = useIdentity();
   const { addEntry } = useSimulationLog();
@@ -118,14 +122,15 @@ export function ActionPanel() {
   const investorTrancheConfig = TRANCHE_CONFIG[investorTranche];
 
   const common = useMemo(() => {
-    const { core, amm } = buildPrograms(connection, identity.keypair);
+    const signer = wallet || identity.keypair;
+    const { core, amm } = buildPrograms(connection, signer);
     const [config] = getConfigPda(core.programId);
     const [vault] = getVaultPda(VAULT_ID, core.programId);
     const [reserve] = getVaultReservePda(vault, core.programId);
     const [lossBucket] = getLossBucketPda(vault, core.programId);
     const [loan] = getLoanPda(vault, 0, core.programId);
     return { core, amm, config, vault, reserve, lossBucket, loan };
-  }, [connection, identity.keypair]);
+  }, [connection, identity.keypair, wallet]);
 
   async function tokenBalance(address: Awaited<ReturnType<typeof getAssociatedTokenAddress>>) {
     try {
@@ -149,7 +154,7 @@ export function ActionPanel() {
     return parts.join(' | ');
   }
 
-  async function snapshot(signer: Keypair, kind: TrancheKind) {
+  async function snapshot(signer: { publicKey: import('@solana/web3.js').PublicKey }, kind: TrancheKind) {
     const data = vaultState.data;
     const usdcMint = data?.usdcMint ?? USDC_MINT;
     const [vault] = getVaultPda(VAULT_ID, common.core.programId);
@@ -191,6 +196,21 @@ export function ActionPanel() {
         'AMM Quote Reserve': delta(before.ammQuote, after.ammQuote),
       },
     });
+
+    toast.success(`${action} confirmed`, {
+      description: (
+        <a 
+          href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 font-mono text-[10px] text-emerald-400 hover:underline"
+        >
+          View on Explorer: {signature.slice(0, 8)}...{signature.slice(-8)}
+          <ExternalLink className="h-2.5 w-2.5" />
+        </a>
+      ),
+      duration: 5000,
+    });
   }
 
   async function afterMutation() {
@@ -228,22 +248,23 @@ export function ActionPanel() {
       const usdcMint = vaultState.data?.usdcMint ?? USDC_MINT;
       const [tranche] = getTranchePda(common.vault, investorTranche, common.core.programId);
       const [mint] = getTrancheMintPda(common.vault, investorTranche, common.core.programId);
+      const userPubkey = common.provider.publicKey;
       const signature = await common.core.methods
         .deposit(investorTranche, bn(amount))
         .accounts({
-          user: identity.keypair.publicKey,
+          user: userPubkey,
           config: common.config,
           vault: common.vault,
           tranche,
           trancheMint: mint,
-          userUsdcAta: await getAssociatedTokenAddress(usdcMint, identity.keypair.publicKey),
+          userUsdcAta: await getAssociatedTokenAddress(usdcMint, userPubkey),
           vaultUsdcReserve: common.reserve,
-          userTrancheAta: await getAssociatedTokenAddress(mint, identity.keypair.publicKey),
+          userTrancheAta: await getAssociatedTokenAddress(mint, userPubkey),
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
-        .signers([identity.keypair])
+        .signers(wallet ? [] : [identity.keypair])
         .rpc({ commitment: 'confirmed' });
       const after = await snapshot(identity.keypair, investorTranche);
       recordSuccess(
@@ -266,20 +287,21 @@ export function ActionPanel() {
       const usdcMint = vaultState.data?.usdcMint ?? USDC_MINT;
       const [tranche] = getTranchePda(common.vault, investorTranche, common.core.programId);
       const [mint] = getTrancheMintPda(common.vault, investorTranche, common.core.programId);
+      const userPubkey = common.provider.publicKey;
       const signature = await common.core.methods
         .withdraw(investorTranche, bn(shares))
         .accounts({
-          user: identity.keypair.publicKey,
+          user: userPubkey,
           config: common.config,
           vault: common.vault,
           tranche,
           trancheMint: mint,
-          userUsdcAta: await getAssociatedTokenAddress(usdcMint, identity.keypair.publicKey),
+          userUsdcAta: await getAssociatedTokenAddress(usdcMint, userPubkey),
           vaultUsdcReserve: common.reserve,
-          userTrancheAta: await getAssociatedTokenAddress(mint, identity.keypair.publicKey),
+          userTrancheAta: await getAssociatedTokenAddress(mint, userPubkey),
           tokenProgram: TOKEN_PROGRAM_ID,
         })
-        .signers([identity.keypair])
+        .signers(wallet ? [] : [identity.keypair])
         .rpc({ commitment: 'confirmed' });
       const after = await snapshot(identity.keypair, investorTranche);
       recordSuccess(
@@ -298,25 +320,24 @@ export function ActionPanel() {
   const accrueYield = useMutation({
     mutationFn: async () => {
       const amount = parseUsdc(yieldAmount);
-      const admin = identity.identities.admin.keypair;
+      const authorityPubkey = common.provider.publicKey;
       const borrower = identity.identities.borrower.keypair;
-      const programs = buildPrograms(connection, admin);
       const before = await snapshot(borrower, TrancheKind.Prime);
-      const signature = await programs.core.methods
+      const signature = await common.core.methods
         .accrueYield(bn(amount))
         .accounts({
-          authority: admin.publicKey,
+          authority: authorityPubkey,
           config: common.config,
           vault: common.vault,
-          tranchePrime: getTranchePda(common.vault, TrancheKind.Prime, programs.core.programId)[0],
-          trancheCore: getTranchePda(common.vault, TrancheKind.Core, programs.core.programId)[0],
-          trancheAlpha: getTranchePda(common.vault, TrancheKind.Alpha, programs.core.programId)[0],
+          tranchePrime: getTranchePda(common.vault, TrancheKind.Prime, common.core.programId)[0],
+          trancheCore: getTranchePda(common.vault, TrancheKind.Core, common.core.programId)[0],
+          trancheAlpha: getTranchePda(common.vault, TrancheKind.Alpha, common.core.programId)[0],
           vaultUsdcReserve: common.reserve,
           borrower: borrower.publicKey,
           borrowerUsdcAta: await getAssociatedTokenAddress(vaultState.data?.usdcMint ?? USDC_MINT, borrower.publicKey),
           tokenProgram: TOKEN_PROGRAM_ID,
         })
-        .signers([admin, borrower])
+        .signers([borrower]) // Anchor will automatically add common.provider.wallet if it's a signer in the account list
         .rpc({ commitment: 'confirmed' });
       const after = await snapshot(borrower, TrancheKind.Prime);
       recordSuccess('Admin Accrue Yield', 'Protocol Admin', before, after, await navSnapshot(), signature);
@@ -328,26 +349,24 @@ export function ActionPanel() {
   const triggerDefault = useMutation({
     mutationFn: async () => {
       const amount = parseUsdc(lossAmount);
-      const admin = identity.identities.admin.keypair;
-      const programs = buildPrograms(connection, admin);
-      const before = await snapshot(admin, TrancheKind.Alpha);
+      const authorityPubkey = common.provider.publicKey;
+      const before = await snapshot(identity.identities.admin.keypair, TrancheKind.Alpha);
       const seq = Number(toBigInt(vaultState.data?.vault?.creditEventSeq ?? 0));
-      const signature = await programs.core.methods
+      const signature = await common.core.methods
         .triggerCreditEvent(0, bn(amount), 5000)
         .accounts({
-          authority: admin.publicKey,
+          authority: authorityPubkey,
           config: common.config,
           vault: common.vault,
-          tranchePrime: getTranchePda(common.vault, TrancheKind.Prime, programs.core.programId)[0],
-          trancheCore: getTranchePda(common.vault, TrancheKind.Core, programs.core.programId)[0],
-          trancheAlpha: getTranchePda(common.vault, TrancheKind.Alpha, programs.core.programId)[0],
+          tranchePrime: getTranchePda(common.vault, TrancheKind.Prime, common.core.programId)[0],
+          trancheCore: getTranchePda(common.vault, TrancheKind.Core, common.core.programId)[0],
+          trancheAlpha: getTranchePda(common.vault, TrancheKind.Alpha, common.core.programId)[0],
           vaultUsdcReserve: common.reserve,
           lossBucket: common.lossBucket,
-          creditEvent: getCreditEventPda(common.vault, seq, programs.core.programId)[0],
+          creditEvent: getCreditEventPda(common.vault, seq, common.core.programId)[0],
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
-        .signers([admin])
         .rpc({ commitment: 'confirmed' });
       const after = await snapshot(admin, TrancheKind.Alpha);
       recordSuccess('Admin Trigger Default (50% demo severity)', 'Protocol Admin', before, after, await navSnapshot(), signature);
@@ -475,9 +494,14 @@ export function ActionPanel() {
     onError: (error) => toast.error(formatError(error)),
   });
 
-  async function sellOnAmm(signer: Keypair, kind: TrancheKind, amount: bigint, label: string) {
+  async function sellOnAmm(signer: Keypair | AnchorWallet, kind: TrancheKind, amount: bigint, label: string) {
     const programs = buildPrograms(connection, signer);
-    const before = await snapshot(signer, kind);
+    const pubkey = 'publicKey' in signer ? signer.publicKey : signer.publicKey;
+    // ... wait, if it's a keypair, it has publicKey property. If it's AnchorWallet, it has publicKey property.
+    const before = await snapshot('payer' in signer ? (signer as any) : { publicKey: signer.publicKey }, kind);
+    // snapshot expects a Keypair because it uses it for ATA derivation.
+    // I should update snapshot too.
+    
     const [mint] = getTrancheMintPda(common.vault, kind, programs.core.programId);
     const signature = await programs.amm.methods
       .swap(bn(amount), new BN(0), 0)
@@ -490,14 +514,16 @@ export function ActionPanel() {
         userQuoteAta: await getAssociatedTokenAddress(vaultState.data?.usdcMint ?? USDC_MINT, signer.publicKey),
         tokenProgram: TOKEN_PROGRAM_ID,
       })
-      .signers([signer])
       .rpc({ commitment: 'confirmed' });
-    const after = await snapshot(signer, kind);
+    const after = await snapshot('payer' in signer ? (signer as any) : { publicKey: signer.publicKey }, kind);
     recordSuccess(label, signer.publicKey.toBase58(), before, after, await navSnapshot(), signature);
   }
 
   const emergencySell = useMutation({
-    mutationFn: async () => sellOnAmm(identity.keypair, investorTranche, parseUsdc(swapAmount), `${identity.label} AMM Emergency Exit`),
+    mutationFn: async () => {
+      const signer = wallet || identity.keypair;
+      await sellOnAmm(signer, investorTranche, parseUsdc(swapAmount), `${identity.label} AMM Emergency Exit`);
+    },
     onSuccess: afterMutation,
     onError: (error) => toast.error(formatError(error)),
   });
@@ -518,14 +544,13 @@ export function ActionPanel() {
 
   const disburse = useMutation({
     mutationFn: async () => {
-      const admin = identity.identities.admin.keypair;
+      const adminPubkey = common.provider.publicKey;
       const borrower = identity.identities.borrower.keypair;
-      const programs = buildPrograms(connection, admin);
       const before = await snapshot(borrower, TrancheKind.Prime);
-      const signature = await programs.core.methods
+      const signature = await common.core.methods
         .disburseLoan()
         .accounts({
-          admin: admin.publicKey,
+          admin: adminPubkey,
           config: common.config,
           vault: common.vault,
           loan: common.loan,
@@ -533,7 +558,6 @@ export function ActionPanel() {
           borrowerUsdcAta: await getAssociatedTokenAddress(vaultState.data?.usdcMint ?? USDC_MINT, borrower.publicKey),
           tokenProgram: TOKEN_PROGRAM_ID,
         })
-        .signers([admin])
         .rpc({ commitment: 'confirmed' });
       const after = await snapshot(borrower, TrancheKind.Prime);
       recordSuccess('Borrower Disbursement (admin-authorized)', 'Borrower', before, after, await navSnapshot(), signature);
@@ -547,26 +571,24 @@ export function ActionPanel() {
 
   const repay = useMutation({
     mutationFn: async () => {
-      const borrower = identity.identities.borrower.keypair;
-      const programs = buildPrograms(connection, borrower);
+      const borrowerPubkey = common.provider.publicKey;
       const amount = parseUsdc(loanAmount);
-      const before = await snapshot(borrower, TrancheKind.Prime);
-      const signature = await programs.core.methods
+      const before = await snapshot({ publicKey: borrowerPubkey }, TrancheKind.Prime);
+      const signature = await common.core.methods
         .repayLoan(bn(amount))
         .accounts({
-          borrower: borrower.publicKey,
+          borrower: borrowerPubkey,
           config: common.config,
           vault: common.vault,
           loan: common.loan,
-          borrowerUsdcAta: await getAssociatedTokenAddress(vaultState.data?.usdcMint ?? USDC_MINT, borrower.publicKey),
+          borrowerUsdcAta: await getAssociatedTokenAddress(vaultState.data?.usdcMint ?? USDC_MINT, borrowerPubkey),
           vaultUsdcReserve: common.reserve,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
-        .signers([borrower])
         .rpc({ commitment: 'confirmed' });
-      const after = await snapshot(borrower, TrancheKind.Prime);
+      const after = await snapshot({ publicKey: borrowerPubkey }, TrancheKind.Prime);
       recordSuccess('Borrower Repay Loan', 'Borrower', before, after, await navSnapshot(), signature);
     },
     onSuccess: async () => {
@@ -578,41 +600,38 @@ export function ActionPanel() {
 
   const initialize = useMutation({
     mutationFn: async () => {
-      const admin = identity.identities.admin.keypair;
-      const programs = buildPrograms(connection, admin);
-      const [config] = getConfigPda(programs.core.programId);
-      const [vault] = getVaultPda(VAULT_ID, programs.core.programId);
-      const [reserve] = getVaultReservePda(vault, programs.core.programId);
-      const [lossBucket] = getLossBucketPda(vault, programs.core.programId);
-      const [loan] = getLoanPda(vault, 0, programs.core.programId);
+      const adminPubkey = common.provider.publicKey;
+      const [config] = getConfigPda(common.core.programId);
+      const [vault] = getVaultPda(VAULT_ID, common.core.programId);
+      const [reserve] = getVaultReservePda(vault, common.core.programId);
+      const [lossBucket] = getLossBucketPda(vault, common.core.programId);
+      const [loan] = getLoanPda(vault, 0, common.core.programId);
 
-      if (!(await programs.core.account.globalConfig.fetchNullable(config))) {
-        await programs.core.methods
+      if (!(await common.core.account.globalConfig.fetchNullable(config))) {
+        await common.core.methods
           .initializeGlobalConfig(0, [
             identity.identities.borrower.keypair.publicKey,
             ENCRYPT_ORACLE_PUBKEY,
             CLOAK_ORACLE_PUBKEY,
           ])
           .accounts({
-            admin: admin.publicKey,
+            admin: adminPubkey,
             config,
             usdcMint: vaultState.data?.usdcMint ?? USDC_MINT,
             systemProgram: SystemProgram.programId,
           })
-          .signers([admin])
           .rpc({ commitment: 'confirmed' });
       }
 
-      if (!(await programs.core.account.vault.fetchNullable(vault))) {
-        await programs.core.methods
+      if (!(await common.core.account.vault.fetchNullable(vault))) {
+        await common.core.methods
           .initializeVault(VAULT_ID)
-          .accounts({ admin: admin.publicKey, config, vault, systemProgram: SystemProgram.programId })
-          .signers([admin])
+          .accounts({ admin: adminPubkey, config, vault, systemProgram: SystemProgram.programId })
           .rpc({ commitment: 'confirmed' });
-        await programs.core.methods
+        await common.core.methods
           .initializeVaultReserves()
           .accounts({
-            admin: admin.publicKey,
+            admin: adminPubkey,
             config,
             vault,
             usdcMint: vaultState.data?.usdcMint ?? USDC_MINT,
@@ -620,12 +639,11 @@ export function ActionPanel() {
             tokenProgram: TOKEN_PROGRAM_ID,
             systemProgram: SystemProgram.programId,
           })
-          .signers([admin])
           .rpc({ commitment: 'confirmed' });
-        await programs.core.methods
+        await common.core.methods
           .initializeVaultLossBucket()
           .accounts({
-            admin: admin.publicKey,
+            admin: adminPubkey,
             config,
             vault,
             usdcMint: vaultState.data?.usdcMint ?? USDC_MINT,
@@ -633,31 +651,29 @@ export function ActionPanel() {
             tokenProgram: TOKEN_PROGRAM_ID,
             systemProgram: SystemProgram.programId,
           })
-          .signers([admin])
           .rpc({ commitment: 'confirmed' });
       }
 
       for (const kind of [TrancheKind.Prime, TrancheKind.Core, TrancheKind.Alpha] as const) {
-        const [tranche] = getTranchePda(vault, kind, programs.core.programId);
-        if (await programs.core.account.tranche.fetchNullable(tranche)) continue;
-        await programs.core.methods
+        const [tranche] = getTranchePda(vault, kind, common.core.programId);
+        if (await common.core.account.tranche.fetchNullable(tranche)) continue;
+        await common.core.methods
           .initializeTranche(kind, kind === TrancheKind.Prime ? 500 : kind === TrancheKind.Core ? 800 : 1500)
           .accounts({
-            admin: admin.publicKey,
+            admin: adminPubkey,
             config,
             vault,
             tranche,
-            trancheMint: getTrancheMintPda(vault, kind, programs.core.programId)[0],
+            trancheMint: getTrancheMintPda(vault, kind, common.core.programId)[0],
             tokenProgram: TOKEN_PROGRAM_ID,
             systemProgram: SystemProgram.programId,
             rent: SYSVAR_RENT_PUBKEY,
           })
-          .signers([admin])
           .rpc({ commitment: 'confirmed' });
       }
 
-      if (!(await programs.core.account.loan.fetchNullable(loan))) {
-        await programs.core.methods
+      if (!(await common.core.account.loan.fetchNullable(loan))) {
+        await common.core.methods
           .initializeLoan(
             0,
             bn(DEFAULT_DEMO_LOAN_PRINCIPAL),
@@ -665,8 +681,7 @@ export function ActionPanel() {
             new BN(Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60),
             identity.identities.borrower.keypair.publicKey,
           )
-          .accounts({ admin: admin.publicKey, config, vault, loan, systemProgram: SystemProgram.programId })
-          .signers([admin])
+          .accounts({ admin: adminPubkey, config, vault, loan, systemProgram: SystemProgram.programId })
           .rpc({ commitment: 'confirmed' });
       }
 
@@ -674,47 +689,53 @@ export function ActionPanel() {
 
       // Initialize AMM pools for each tranche
       for (const kind of [TrancheKind.Prime, TrancheKind.Core, TrancheKind.Alpha] as const) {
-        const [trancheMint] = getTrancheMintPda(vault, kind, programs.core.programId);
-        const [pool] = getPoolPda(trancheMint, programs.amm.programId);
-        if (!(await programs.amm.account.ammPool.fetchNullable(pool))) {
-          await programs.amm.methods
+        const [trancheMint] = getTrancheMintPda(vault, kind, common.core.programId);
+        const [pool] = getPoolPda(trancheMint, common.amm.programId);
+        if (!(await common.amm.account.ammPool.fetchNullable(pool))) {
+          await common.amm.methods
             .initializePool(30)
             .accounts({
-              admin: admin.publicKey,
+              admin: adminPubkey,
               trancheMint,
               quoteMint: usdcMint,
               pool,
               systemProgram: SystemProgram.programId,
             })
-            .signers([admin])
             .rpc({ commitment: 'confirmed' });
-          await programs.amm.methods
+          await common.amm.methods
             .initializePoolReserves()
             .accounts({
-              admin: admin.publicKey,
+              admin: adminPubkey,
               pool,
               trancheMint,
               quoteMint: usdcMint,
-              trancheReserve: getPoolTrancheReservePda(trancheMint, programs.amm.programId)[0],
-              quoteReserve: getPoolQuoteReservePda(trancheMint, programs.amm.programId)[0],
-              lpMint: getLpMintPda(trancheMint, programs.amm.programId)[0],
+              trancheReserve: getPoolTrancheReservePda(trancheMint, common.amm.programId)[0],
+              quoteReserve: getPoolQuoteReservePda(trancheMint, common.amm.programId)[0],
+              lpMint: getLpMintPda(trancheMint, common.amm.programId)[0],
               tokenProgram: TOKEN_PROGRAM_ID,
               systemProgram: SystemProgram.programId,
             })
-            .signers([admin])
             .rpc({ commitment: 'confirmed' });
         }
       }
 
-      // Ensure borrower USDC ATA exists so accrueYield doesn't fail with AccountNotInitialized
+      // Ensure borrower USDC ATA exists
       const borrower = identity.identities.borrower.keypair;
       const borrowerAta = await getAssociatedTokenAddress(usdcMint, borrower.publicKey);
       if (!(await connection.getAccountInfo(borrowerAta))) {
         const { Transaction: Tx } = await import('@solana/web3.js');
         const tx = new Tx().add(
-          createAssociatedTokenAccountInstruction(admin.publicKey, borrowerAta, borrower.publicKey, usdcMint),
+          createAssociatedTokenAccountInstruction(adminPubkey, borrowerAta, borrower.publicKey, usdcMint),
         );
-        await programs.core.provider.sendAndConfirm(tx, [admin]);
+        // If wallet connected, use wallet to send this one-off tx
+        if (wallet) {
+          tx.feePayer = adminPubkey;
+          tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+          const signed = await wallet.signTransaction(tx);
+          await connection.sendRawTransaction(signed.serialize());
+        } else {
+          await common.provider.sendAndConfirm(tx, [identity.identities.admin.keypair]);
+        }
       }
 
       addEntry({
@@ -774,9 +795,15 @@ export function ActionPanel() {
           <div className="text-sm font-semibold text-white">Action Panel</div>
           <p className="mt-1 text-xs text-white/45">{identity.label} signed transactions only.</p>
         </div>
-        <span className="rounded-md bg-white/10 px-2 py-1 font-mono text-[10px] uppercase text-white/60">
-          confirmed
-        </span>
+        <div className="flex flex-col items-end gap-1">
+          <span className="rounded-md bg-white/10 px-2 py-1 font-mono text-[10px] uppercase text-white/60">
+            confirmed
+          </span>
+          <div className="flex items-center gap-1.5 font-mono text-[10px] text-emerald-400/80">
+            <CreditCard className="h-2.5 w-2.5" />
+            {formatUsdc(balances?.usdc ?? 0n, 2)} USDC
+          </div>
+        </div>
       </div>
 
       {identity.role === 'senior' || identity.role === 'junior' ? (

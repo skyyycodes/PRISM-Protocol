@@ -9,7 +9,13 @@ import prismCoreIdl from '@/app/lib/idl/prism_core.json';
 
 type SignableTransaction = Transaction | VersionedTransaction;
 
-class KeypairWallet {
+export interface AnchorWallet {
+  publicKey: import('@solana/web3.js').PublicKey;
+  signTransaction<T extends SignableTransaction>(transaction: T): Promise<T>;
+  signAllTransactions<T extends SignableTransaction>(transactions: T[]): Promise<T[]>;
+}
+
+class KeypairWallet implements AnchorWallet {
   constructor(readonly payer: Keypair) {}
 
   get publicKey() {
@@ -30,14 +36,18 @@ class KeypairWallet {
   }
 }
 
-export function buildProvider(connection: Connection, signer: Keypair) {
-  return new AnchorProvider(connection, new KeypairWallet(signer), {
+export function buildProvider(connection: Connection, signer?: Keypair | AnchorWallet) {
+  const wallet = signer 
+    ? ('signTransaction' in signer ? signer : new KeypairWallet(signer))
+    : new KeypairWallet(Keypair.generate());
+
+  return new AnchorProvider(connection, wallet as any, {
     commitment: 'confirmed',
     preflightCommitment: 'processed',
   });
 }
 
-export function buildPrograms(connection: Connection, signer: Keypair = Keypair.generate()) {
+export function buildPrograms(connection: Connection, signer?: Keypair | AnchorWallet) {
   const provider = buildProvider(connection, signer);
   return {
     provider,

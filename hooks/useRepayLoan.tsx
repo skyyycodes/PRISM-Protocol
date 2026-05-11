@@ -51,12 +51,23 @@ export function useRepayLoan() {
 
       return tx;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (sig, variables) => {
       const [vaultPda] = getVaultPda(variables.vaultId);
       const [loanPda] = getLoanPda(vaultPda, variables.loanId);
       qc.invalidateQueries({ queryKey: ['loan-account', loanPda.toBase58()] });
       qc.invalidateQueries({ queryKey: ['active-loans', variables.vaultId] });
-      toast.success('Repayment successful');
+      toast.success('Repayment successful', {
+        description: (
+          <a
+            href={`https://explorer.solana.com/tx/${sig}?cluster=devnet`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 flex items-center gap-1 font-mono text-[10px] text-pink-400/80 hover:text-pink-400 hover:underline"
+          >
+            TX: {sig.slice(0, 8)}...{sig.slice(-8)}
+          </a>
+        ),
+      });
     },
     onError: (e: Error) => {
       console.error('Repayment failed:', e);

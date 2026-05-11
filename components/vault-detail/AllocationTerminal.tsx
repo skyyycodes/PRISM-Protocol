@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { formatUsdc } from '@/app/lib/format';
 import { useCancelInvestIntent, useFiatInvestCheckout, useFiatInvestStatus } from '@/hooks/useFiatInvest';
+import { useIdentityBalances } from '@/hooks/useIdentityBalances';
 
 interface AllocationTerminalProps {
   vaultStatus?: string;
@@ -34,11 +35,18 @@ export function AllocationTerminal({ vaultStatus, tranches, onTrancheChange }: A
   const [tab, setTab] = useState<'usdc' | 'inr'>('usdc');
   
   const { publicKey } = useWallet();
+  const { data: balances } = useIdentityBalances();
   const pathname = usePathname();
   const deposit = useDeposit();
   const fiatCheckout = useFiatInvestCheckout();
   const fiatStatus = useFiatInvestStatus(publicKey?.toBase58() ?? null, selectedKind);
   const cancelIntent = useCancelInvestIntent(publicKey?.toBase58() ?? null, selectedKind);
+
+  function handleMax() {
+    if (balances?.usdc) {
+      setAmount(formatUsdc(balances.usdc));
+    }
+  }
 
   const [dismissedIntentId, setDismissedIntentId] = useState<string | null>(null);
   const statusRaw = fiatStatus.data?.status ?? 'none';
@@ -201,7 +209,15 @@ export function AllocationTerminal({ vaultStatus, tranches, onTrancheChange }: A
                {tab === 'usdc' && (
                  <div className="space-y-6">
                     <div>
-                      <label className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/30 block mb-4">Allocation Amount (USDC)</label>
+                      <div className="flex items-center justify-between mb-4">
+                        <label className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/30 block">Allocation Amount (USDC)</label>
+                        <button 
+                          onClick={handleMax}
+                          className="font-mono text-[9px] uppercase tracking-widest text-white/20 hover:text-white/50 transition-colors"
+                        >
+                          Balance: {balances ? formatUsdc(balances.usdc, 2) : '0.00'} <span className="ml-1 text-emerald-400/50 underline">Max</span>
+                        </button>
+                      </div>
                       <div className="relative group">
                         <div className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-white/20">$</div>
                         <input

@@ -77,7 +77,19 @@ export function useDeposit() {
       return sig;
     },
     onSuccess: (sig, { trancheKind }) => {
-      toast.success(`Deposited into ${TRANCHE_LABELS[trancheKind]}! tx: ${sig.slice(0, 16)}…`);
+      const label = `Deposited into ${TRANCHE_LABELS[trancheKind]}!`;
+      toast.success(label, {
+        description: (
+          <a
+            href={`https://explorer.solana.com/tx/${sig}?cluster=devnet`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 flex items-center gap-1 font-mono text-[10px] text-pink-400/80 hover:text-pink-400 hover:underline"
+          >
+            TX: {sig.slice(0, 8)}...{sig.slice(-8)}
+          </a>
+        ),
+      });
       queryClient.invalidateQueries({ queryKey: ['vaultState'] });
       queryClient.invalidateQueries({ queryKey: ['userPosition'] });
     },

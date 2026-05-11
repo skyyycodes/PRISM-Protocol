@@ -117,7 +117,7 @@ export function useAttachIkaCollateral() {
       const [ikaCollateralPda] = getIkaCollateralPda(loanPda);
       const [configPda] = getConfigPda();
 
-      await program.methods
+      const sig = await program.methods
         .attachIkaCollateral(
           Array.from(params.dwallet.dwalletId) as unknown as number[],
           params.chainId,
@@ -133,11 +133,22 @@ export function useAttachIkaCollateral() {
         })
         .rpc({ commitment: 'confirmed', skipPreflight: true });
 
-      return loanPda;
+      return { sig, loanPda };
     },
-    onSuccess: (loanPda) => {
+    onSuccess: ({ sig, loanPda }) => {
       qc.invalidateQueries({ queryKey: ['ika-collateral', loanPda.toBase58()] });
-      toast.success('IKA collateral registered (Pending oracle verification)');
+      toast.success('IKA collateral registered', {
+        description: (
+          <a
+            href={`https://explorer.solana.com/tx/${sig}?cluster=devnet`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 flex items-center gap-1 font-mono text-[10px] text-pink-400/80 hover:text-pink-400 hover:underline"
+          >
+            TX: {sig.slice(0, 8)}...{sig.slice(-8)}
+          </a>
+        ),
+      });
     },
     onError: (e: Error) => toast.error(`Attach failed: ${e.message}`),
   });
@@ -185,6 +196,20 @@ export function useVerifyIkaCollateral() {
         await connection.confirmTransaction(sig, 'confirmed');
 
         qc.invalidateQueries({ queryKey: ['ika-collateral', loanPda.toBase58()] });
+        
+        toast.success('IKA collateral verified', {
+          description: (
+            <a
+              href={`https://explorer.solana.com/tx/${sig}?cluster=devnet`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 flex items-center gap-1 font-mono text-[10px] text-pink-400/80 hover:text-pink-400 hover:underline"
+            >
+              TX: {sig.slice(0, 8)}...{sig.slice(-8)}
+            </a>
+          ),
+        });
+
         return sig;
       } finally {
         setIsPolling(false);
@@ -235,7 +260,7 @@ export function useReleaseIkaCollateral() {
       const [loanPda] = getLoanPda(vaultPda, Number(params.loanId));
       const [ikaCollateralPda] = getIkaCollateralPda(loanPda);
 
-      await program.methods
+      const sig = await program.methods
         .releaseIkaCollateral()
         .accounts({
           signer: wallet.publicKey,
@@ -244,11 +269,22 @@ export function useReleaseIkaCollateral() {
         })
         .rpc({ commitment: 'confirmed', skipPreflight: true });
 
-      return loanPda;
+      return { sig, loanPda };
     },
-    onSuccess: (loanPda) => {
+    onSuccess: ({ sig, loanPda }) => {
       qc.invalidateQueries({ queryKey: ['ika-collateral', loanPda.toBase58()] });
-      toast.success('Collateral released — IKA Network will unlock your BTC/ETH');
+      toast.success('Collateral released', {
+        description: (
+          <a
+            href={`https://explorer.solana.com/tx/${sig}?cluster=devnet`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 flex items-center gap-1 font-mono text-[10px] text-pink-400/80 hover:text-pink-400 hover:underline"
+          >
+            TX: {sig.slice(0, 8)}...{sig.slice(-8)}
+          </a>
+        ),
+      });
     },
     onError: (e: Error) => toast.error(`Release failed: ${e.message}`),
   });

@@ -6,9 +6,9 @@ import { BN } from '@coral-xyz/anchor';
 import {
   TOKEN_PROGRAM_ID,
   getAssociatedTokenAddress,
-  createAssociatedTokenAccountIdempotent,
+  createAssociatedTokenAccountIdempotentInstruction,
 } from '@solana/spl-token';
-import { Transaction } from '@solana/web3.js';
+import { Transaction, SendTransactionError } from '@solana/web3.js';
 import { toast } from 'sonner';
 
 import { USDC_MINT, VAULT_ID, TrancheKind } from '@/app/lib/constants';
@@ -38,67 +38,105 @@ const TRANCHE_LABELS = ['pPRIME', 'pCORE', 'pALPHA'] as const;
 export function useSwap() {
   const { connection } = useConnection();
   const { keypair } = useIdentity();
-  const { signTransaction, publicKey: walletPublicKey } = useWallet();
+  const { sendTransaction, publicKey: walletPublicKey } = useWallet();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ trancheKind, amountIn, minAmountOut, direction }: SwapParams) => {
-      const { amm } = buildPrograms(connection, keypair);
-      const [vaultPda] = getVaultPda(VAULT_ID);
-      const [trancheMint] = getTrancheMintPda(vaultPda, trancheKind);
-      const [poolPda] = getPoolPda(trancheMint, amm.programId);
-      const [trancheReserve] = getPoolTrancheReservePda(trancheMint, amm.programId);
-      const [quoteReserve] = getPoolQuoteReservePda(trancheMint, amm.programId);
+      try {
+        const { amm } = buildPrograms(connection, keypair);
+        const authority = walletPublicKey || keypair.publicKey;
 
-      const userTrancheAta = await getAssociatedTokenAddress(trancheMint, keypair.publicKey);
-      const userQuoteAta = await getAssociatedTokenAddress(USDC_MINT, keypair.publicKey);
+        const [vaultPda] = getVaultPda(VAULT_ID);
+        const [trancheMint] = getTrancheMintPda(vaultPda, trancheKind);
+        const [poolPda] = getPoolPda(trancheMint, amm.programId);
+        const [trancheReserve] = getPoolTrancheReservePda(trancheMint, amm.programId);
+        const [quoteReserve] = getPoolQuoteReservePda(trancheMint, amm.programId);
 
-      // Ensure the destination ATA exists; the AMM does not create it.
-      const destAta = direction === SWAP_DIR_USDC_TO_TRANCHE ? userTrancheAta : userQuoteAta;
-      const destMint = direction === SWAP_DIR_USDC_TO_TRANCHE ? trancheMint : USDC_MINT;
-      const destAccountInfo = await connection.getAccountInfo(destAta);
-      if (!destAccountInfo) {
-        await createAssociatedTokenAccountIdempotent(connection, keypair, destMint, keypair.publicKey);
-      }
+        const userTrancheAta = await getAssociatedTokenAddress(trancheMint, authority);
+        const userQuoteAta = await getAssociatedTokenAddress(USDC_MINT, authority);
 
-      const ix = await amm.methods
-        .swap(new BN(amountIn.toString()), new BN(minAmountOut.toString()), direction)
-        .accounts({
-          user: keypair.publicKey,
-          pool: poolPda,
-          trancheReserve,
-          quoteReserve,
-          userTrancheAta,
-          userQuoteAta,
-          tokenProgram: TOKEN_PROGRAM_ID,
-        })
-        .instruction();
+        const destAta = direction === SWAP_DIR_USDC_TO_TRANCHE ? userTrancheAta : userQuoteAta;
+        const destMint = direction === SWAP_DIR_USDC_TO_TRANCHE ? trancheMint : USDC_MINT;
+        
+        const destAccountInfo = await Promise.race([
+          connection.getAccountInfo(destAta),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('RPC timeout checking destination account')), 10000))
+        ]) as any;
+        
+        const transaction = new Transaction();
 
-      const tx = new Transaction().add(ix);
+        if (!destAccountInfo) {
+          transaction.add(
+            createAssociatedTokenAccountIdempotentInstruction(
+              authority,
+              destAta,
+              authority,
+              destMint
+            )
+          );
+        }
 
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-      tx.recentBlockhash = blockhash;
+        const ix = await amm.methods
+          .swap(new BN(amountIn.toString()), new BN(minAmountOut.toString()), direction)
+          .accounts({
+            user: authority,
+            pool: poolPda,
+            trancheReserve,
+            quoteReserve,
+            userTrancheAta,
+            userQuoteAta,
+            tokenProgram: TOKEN_PROGRAM_ID,
+          })
+          .instruction();
 
-      if (walletPublicKey && signTransaction) {
-        // Wallet-confirmed path:
-        //   1. Wallet signs as fee payer → Phantom/Solflare popup appears
-        //   2. Identity keypair partial-signs as the instruction authority
-        //   3. We send the fully-signed tx ourselves
-        tx.feePayer = walletPublicKey;
-        const walletSigned = await signTransaction(tx);
-        walletSigned.partialSign(keypair);
-        const raw = walletSigned.serialize();
-        const sig = await connection.sendRawTransaction(raw, { skipPreflight: false });
-        await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed');
+        transaction.add(ix);
+
+        const { blockhash, lastValidBlockHeight } = await Promise.race([
+          connection.getLatestBlockhash('processed'),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('RPC timeout fetching blockhash')), 10000))
+        ]) as any;
+
+        transaction.recentBlockhash = blockhash;
+        transaction.feePayer = authority;
+
+        if (walletPublicKey) {
+          const sig = await sendTransaction(transaction, connection, { 
+            skipPreflight: false,
+            preflightCommitment: 'processed' 
+          });
+          
+          await Promise.race([
+            connection.confirmTransaction(sig, 'confirmed'),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Transaction confirmation timeout (30s)')), 30000))
+          ]);
+          return sig;
+        }
+
+        // Fallback signing logic
+        transaction.sign(keypair);
+        const sig = await connection.sendRawTransaction(transaction.serialize(), {
+          skipPreflight: false,
+          preflightCommitment: 'processed'
+        });
+        
+        await Promise.race([
+          connection.confirmTransaction(sig, 'confirmed'),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Transaction confirmation timeout (30s)')), 30000))
+        ]);
         return sig;
+      } catch (err) {
+        console.error('Swap Execution Error:', err);
+        if (err instanceof SendTransactionError) {
+          try {
+            const logs = await err.getLogs(connection);
+            console.error('On-chain Logs:', logs);
+          } catch {
+            // ignore log fetch error
+          }
+        }
+        throw err;
       }
-
-      // Fallback: no wallet connected — silent keypair signing.
-      tx.feePayer = keypair.publicKey;
-      tx.sign(keypair);
-      const sig = await connection.sendRawTransaction(tx.serialize());
-      await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed');
-      return sig;
     },
     onSuccess: (sig, { trancheKind, direction }) => {
       const trancheLabel = TRANCHE_LABELS[trancheKind];
@@ -106,7 +144,19 @@ export function useSwap() {
         direction === SWAP_DIR_USDC_TO_TRANCHE
           ? `Bought ${trancheLabel}`
           : `Sold ${trancheLabel} for USDC`;
-      toast.success(`${label} · tx: ${sig.slice(0, 16)}…`);
+      
+      toast.success(label, {
+        description: (
+          <a
+            href={`https://explorer.solana.com/tx/${sig}?cluster=devnet`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 flex items-center gap-1 font-mono text-[10px] text-pink-400/80 hover:text-pink-400 hover:underline"
+          >
+            TX: {sig.slice(0, 8)}...{sig.slice(-8)}
+          </a>
+        ),
+      });
       queryClient.invalidateQueries({ queryKey: ['vault-state'] });
       queryClient.invalidateQueries({ queryKey: ['identity-balances'] });
     },
