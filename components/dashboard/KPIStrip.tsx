@@ -7,14 +7,8 @@ import { formatUsdc } from '@/app/lib/format';
 
 const PINK = '#e879a0';
 
-const SPARKLINE_DATA = [
-  [4, 6, 5, 8, 7, 10, 9, 13, 12, 15, 14, 18],   // net worth   – uptrend
-  [3, 5, 4, 7, 6, 8,  9, 11, 10, 13, 15, 16],   // supplied    – steady up
-  [10, 8, 9, 7, 8, 6, 7,  5,  6,  4,  5,  3],   // borrowed    – downtrend
-  [2, 3, 2, 4, 3, 5, 4,  6,  5,  8,  7, 10],   // daily yield – accelerating
-  [14, 15, 13, 15, 14, 16, 15, 16, 15, 17, 16, 18], // health – stable high
-  [0, 0, 1, 0, 1, 2, 1, 3, 2, 4, 3, 5],         // claimable  – step-up
-];
+// Flat placeholder — shown when there's no historical time-series data yet.
+const FLAT_POINTS = [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10];
 
 function Sparkline({ points }: { points: number[] }) {
   const VW = 100;
@@ -37,7 +31,7 @@ function Sparkline({ points }: { points: number[] }) {
       height={VH}
       viewBox={`0 0 ${VW} ${VH}`}
       preserveAspectRatio="none"
-      className="opacity-60"
+      className="opacity-30"
     >
       <polyline
         points={coords}
@@ -82,44 +76,38 @@ export function KPIStrip({
     {
       label: 'Net Worth',
       value: isMounted ? `$${formatUsdc(netWorth, 2)}` : '$0.00',
-      sub: netWorth > 0n ? '+2.4% this week' : 'No positions yet',
+      sub: netWorth > 0n ? 'Active positions' : 'No positions yet',
       subColor: netWorth > 0n ? 'text-emerald-400/70' : 'text-white/25',
-      sparkIdx: 0,
     },
     {
       label: 'Total Supplied',
       value: isMounted ? `$${formatUsdc(totalSupplied, 2)}` : '$0.00',
       sub: totalSupplied > 0n ? 'Earning across tranches' : 'Nothing earning yet',
       subColor: 'text-white/30',
-      sparkIdx: 1,
     },
     {
       label: 'Total Borrowed',
       value: isMounted ? `$${formatUsdc(totalBorrowed, 2)}` : '$0.00',
       sub: totalBorrowed > 0n ? 'Active credit position' : 'No active loans',
       subColor: 'text-white/30',
-      sparkIdx: 2,
     },
     {
       label: 'Daily Yield',
       value: isMounted ? `$${formatUsdc(dailyYield, 2)}` : '$0.00',
-      sub: dailyYield > 0n ? '↑ 0.3% from yesterday' : 'Accrues on deposit',
+      sub: dailyYield > 0n ? 'Accruing yield' : 'Accrues on deposit',
       subColor: dailyYield > 0n ? 'text-emerald-400/70' : 'text-white/25',
-      sparkIdx: 3,
     },
     {
       label: 'Health Factor',
       value: isMounted ? String(healthFactor) : '—',
       sub: hfSafe ? 'Position is healthy' : 'At risk — add collateral',
       subColor: hfSafe ? 'text-emerald-400/70' : 'text-rose-400/80',
-      sparkIdx: 4,
     },
     {
       label: 'Claimable',
       value: isMounted ? `$${formatUsdc(claimableRewards, 2)}` : '$0.00',
       sub: claimableRewards > 0n ? 'Ready to withdraw →' : 'No rewards pending',
       subColor: claimableRewards > 0n ? 'text-[#eca8d6]/70' : 'text-white/25',
-      sparkIdx: 5,
     },
   ];
 
@@ -140,9 +128,9 @@ export function KPIStrip({
             {m.value}
           </div>
 
-          {/* Sparkline — full card width */}
+          {/* Sparkline — flat until historical data is available */}
           <div className="w-full">
-            <Sparkline points={SPARKLINE_DATA[m.sparkIdx]} />
+            <Sparkline points={FLAT_POINTS} />
           </div>
 
           {/* Subtitle */}

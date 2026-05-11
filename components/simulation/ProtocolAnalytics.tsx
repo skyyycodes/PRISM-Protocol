@@ -265,9 +265,9 @@ export function ProtocolAnalytics() {
             
             <div className="space-y-5">
               {[
-                { label: 'Sync Status', value: 'Nominal', color: 'text-emerald-400' },
-                { label: 'Latency', value: '420ms', color: 'text-white/60' },
-                { label: 'Last Block', value: '293,102,492', color: 'text-white/60' },
+                { label: 'Sync Status', value: isLoading ? '…' : events?.length ? 'Live' : 'Idle', color: 'text-emerald-400' },
+                { label: 'Latency', value: '< 600ms', color: 'text-white/60' },
+                { label: 'Events Indexed', value: String(events?.length ?? 0), color: 'text-white/60' },
               ].map(item => (
                 <div key={item.label} className="flex items-center justify-between">
                   <span className="font-mono text-[10px] text-white/25 uppercase tracking-widest">{item.label}</span>
