@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useIdentity } from '@/hooks/useIdentity';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -8,6 +9,7 @@ import { Loader2, ShieldAlert } from 'lucide-react';
 
 export function AdminGuard({ children }: { children: React.ReactNode }) {
   const { publicKey, connected } = useWallet();
+  const { setVisible } = useWalletModal();
   const { keypair } = useIdentity();
   const router = useRouter();
   const [status, setStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
@@ -64,10 +66,7 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
         <div className="flex flex-col gap-3 w-full max-w-[240px]">
           {!connected ? (
             <button 
-              onClick={() => {
-                const btn = document.querySelector('.wallet-adapter-button') as HTMLButtonElement;
-                if (btn) btn.click();
-              }}
+              onClick={() => setVisible(true)}
               className="w-full rounded-xl bg-white px-6 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-black transition-all hover:bg-white/90"
             >
               Connect Admin Wallet

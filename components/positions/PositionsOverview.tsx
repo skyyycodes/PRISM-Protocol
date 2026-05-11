@@ -7,6 +7,7 @@ import { formatUsdc } from '@/app/lib/format';
 import { useUserPosition } from '@/hooks/useUserPosition';
 import { useVaultState } from '@/hooks/useVaultState';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 
 // ─── Sparkline ────────────────────────────────────────────────────────────────
 
@@ -434,6 +435,7 @@ function EmptyPositions() {
 
 export function PositionsOverview() {
   const { connected } = useWallet();
+  const { setVisible } = useWalletModal();
   const data = usePositionsData();
 
   if (!connected) {
@@ -450,10 +452,7 @@ export function PositionsOverview() {
           Connect your wallet to view your active tranches, real-time NAV growth, and accumulated protocol yield.
         </p>
         <button 
-          onClick={() => {
-            const btn = document.querySelector('.wallet-adapter-button') as HTMLButtonElement;
-            if (btn) btn.click();
-          }}
+          onClick={() => setVisible(true)}
           className="rounded-xl bg-white px-8 py-4 font-mono text-[13px] font-bold uppercase tracking-widest text-black transition-all hover:bg-white/90 hover:scale-[1.02] active:scale-[0.98] shadow-[0_20px_50px_rgba(255,255,255,0.1)]"
         >
           Connect Wallet to View Positions
