@@ -5,7 +5,7 @@
 This section does double duty: on-chain instruction specs (used by section 5) AND the demo video storyboard.
 
 ---
-
+ 
 
 ## 4.1 Demo arc — final ordering
 
