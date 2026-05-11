@@ -16,8 +16,7 @@ export interface CreateCheckoutParams {
   amountUsdCents: number; // smallest unit (cents)
   borrowerPubkey: string;
   successUrl: string;
-  // webhookUrl removed — Dodo webhooks are configured per-business in the dashboard,
-  // not per-checkout-session.
+  appUrl: string; // base URL of the app, derived from request headers in the route
 }
 
 export interface CheckoutSession {
@@ -39,7 +38,7 @@ export async function createCheckout(params: CreateCheckoutParams): Promise<Chec
     const successUrl = new URL(params.successUrl);
     successUrl.searchParams.set('payment_id', paymentId);
     // Local mock checkout page that POSTs a self-signed webhook back.
-    const mockUrl = new URL('/dodo-mock-pay', getAppOrigin());
+    const mockUrl = new URL('/dodo-mock-pay', params.appUrl);
     mockUrl.searchParams.set('payment_id', paymentId);
     mockUrl.searchParams.set('amount_cents', params.amountUsdCents.toString());
     mockUrl.searchParams.set('loan_id', params.loanId.toString());
@@ -92,8 +91,9 @@ export async function createCheckout(params: CreateCheckoutParams): Promise<Chec
 }
 
 function getAppOrigin(): string {
-  // NEXT_PUBLIC_APP_URL is set per-demo to the cloudflared tunnel URL.
-  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return 'http://localhost:3000';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

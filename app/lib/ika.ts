@@ -133,8 +133,10 @@ export interface OracleAttestation {
 // IKA oracle HTTP client
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Default to a relative path so it always hits the same origin in any environment.
+// Override with NEXT_PUBLIC_IKA_ORACLE_URL to point at the real IKA oracle.
 const IKA_ORACLE_URL =
-  process.env.NEXT_PUBLIC_IKA_ORACLE_URL ?? 'https://oracle.ika.xyz/v1';
+  process.env.NEXT_PUBLIC_IKA_ORACLE_URL ?? '/api/ika-test-oracle';
 
 /**
  * Fetch oracle attestation for a locked dWallet collateral.
