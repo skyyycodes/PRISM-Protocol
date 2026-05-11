@@ -93,7 +93,10 @@
       "PowerShell(Test-Path *)",
       "Bash(read h *)",
       "Bash(printf '%d ' 0x__TRACKED_VAR__)",
-      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\manov\\\\Desktop\\\\code\\\\PRISM-Protocol\" -Recurse -Directory | Select-Object -First 30 | ForEach-Object { $_.FullName })"
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\manov\\\\Desktop\\\\code\\\\PRISM-Protocol\" -Recurse -Directory | Select-Object -First 30 | ForEach-Object { $_.FullName })",
+      "Bash(git fetch *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\manov\\\\Desktop\\\\code\\\\PRISM-Protocol\" -Recurse -Filter \"*.tsx\" -o ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -First 20)"
     ]
   }
 }

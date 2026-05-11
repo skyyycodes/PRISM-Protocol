@@ -53,7 +53,7 @@ type RawDuneTx = {
 
 export async function fetchProtocolEvents(
   address: string,
-  limit = 20,
+  limit = 50,
 ): Promise<ProtocolEvent[]> {
   try {
     // 1. Fetch from Dune SIM (Mainnet Target)

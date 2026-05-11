@@ -145,7 +145,7 @@ export function ProtocolAnalytics() {
           icon={Activity} 
           label="Total Transactions" 
           value={isLoading ? '...' : stats?.total ?? 0} 
-          sub="Last 20 indexed events"
+          sub="Last 50 indexed events"
           color="blue"
         />
         <MetricCard 
