@@ -1,7 +1,9 @@
 'use client';
 
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import {
+  Activity,
   RefreshCw,
   TriangleAlert,
 } from 'lucide-react';
@@ -344,41 +346,75 @@ function HorizontalTicker() {
 
 export default function PrismOverview() {
   const data = useDashboardData();
+  const { connected } = useWallet();
+  const { setVisible } = useWalletModal();
 
   return (
     <div className="w-full max-w-[1800px] mx-auto space-y-6 pb-16">
       <PageHeader data={data} />
       <DataState data={data} />
 
-      <KPIStrip
-        netWorth={data.netWorth}
-        totalSupplied={data.totalSupplied}
-        totalBorrowed={data.totalBorrowed}
-        dailyYield={data.dailyYield}
-        healthFactor={data.healthFactor}
-        claimableRewards={0n}
-      />
+      {!connected ? (
+        <div className="relative overflow-hidden rounded-xl border border-white/[0.10] bg-white/[0.02] py-24 px-8 text-center backdrop-blur-sm">
+          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
+          <div className="relative z-10 max-w-xl mx-auto space-y-8">
+            <div className="flex justify-center">
+              <div className="relative">
+                <div className="absolute inset-0 bg-white/20 blur-[80px] rounded-full" />
+                <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] shadow-2xl">
+                  <Activity className="h-10 w-10 text-white/40" strokeWidth={1.5} />
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <h2 className="font-display text-4xl text-white tracking-tight mb-4">Initialize Terminal</h2>
+              <p className="text-white/40 leading-relaxed font-mono text-sm uppercase tracking-wider">
+                Connect your wallet to synchronize your portfolio exposure, track vault positions, and manage institutional credit facilities.
+              </p>
+            </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 items-start">
-        <div className="space-y-6">
-          <DashboardHero
-            tranches={data.tranches}
-            userPositions={data.userPositions}
-            exposure={data.exposure}
-          />
-          <LoansSection
-            loans={data.loans}
-            borrowingCapacity={data.borrowingCapacity}
-          />
+            <button
+              onClick={() => setVisible(true)}
+              className="rounded-xl bg-white px-10 py-4 font-mono text-[13px] font-bold uppercase tracking-widest text-black transition-all hover:bg-white/90 hover:scale-[1.02] active:scale-[0.98] shadow-[0_20px_60px_rgba(255,255,255,0.1)]"
+            >
+              Connect Wallet
+            </button>
+          </div>
         </div>
+      ) : (
+        <>
+          <KPIStrip
+            netWorth={data.netWorth}
+            totalSupplied={data.totalSupplied}
+            totalBorrowed={data.totalBorrowed}
+            dailyYield={data.dailyYield}
+            healthFactor={data.healthFactor}
+            claimableRewards={0n}
+          />
 
-        <div className="sticky top-6">
-          <DashboardSidebar
-            exposure={data.exposure}
-            insights={data.insights}
-          />
-        </div>
-      </div>
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 items-start">
+            <div className="space-y-6">
+              <DashboardHero
+                tranches={data.tranches}
+                userPositions={data.userPositions}
+                exposure={data.exposure}
+              />
+              <LoansSection
+                loans={data.loans}
+                borrowingCapacity={data.borrowingCapacity}
+              />
+            </div>
+
+            <div className="sticky top-6">
+              <DashboardSidebar
+                exposure={data.exposure}
+                insights={data.insights}
+              />
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="pt-2">
         <HorizontalTicker />

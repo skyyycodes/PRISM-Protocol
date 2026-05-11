@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { formatUsdc } from '@/app/lib/format';
 
+import Link from 'next/link';
+
 interface Loan {
   id: string;
   collateral: string;
@@ -75,9 +77,9 @@ export function LoansSection({ loans = [], borrowingCapacity = 0n }: LoansSectio
               No active borrowing exposure.<br />
               Lock IKA collateral to access your line of credit.
             </p>
-            <button className="w-full py-3.5 bg-white text-black font-mono text-xs font-bold uppercase tracking-[0.2em] hover:bg-white/90 transition-colors rounded">
+            <Link href="/borrow" className="w-full py-3.5 bg-white text-black font-mono text-xs font-bold uppercase tracking-[0.2em] hover:bg-white/90 transition-colors rounded text-center">
               Open Credit Line
-            </button>
+            </Link>
           </div>
         </div>
       ) : (
@@ -120,12 +122,12 @@ export function LoansSection({ loans = [], borrowingCapacity = 0n }: LoansSectio
                     </td>
                     <td className="px-6 py-5 text-right">
                       <div className="flex items-center gap-2 justify-end">
-                        <button className="px-4 py-2 rounded bg-white/5 border border-white/10 font-mono text-xs text-white/60 hover:bg-white/10 hover:text-white transition-colors">
+                        <Link href="/borrow" className="px-4 py-2 rounded bg-white/5 border border-white/10 font-mono text-xs text-white/60 hover:bg-white/10 hover:text-white transition-colors">
                           Repay
-                        </button>
-                        <button className="px-4 py-2 rounded bg-white/5 border border-white/10 font-mono text-xs text-white/60 hover:bg-white/10 hover:text-white transition-colors">
+                        </Link>
+                        <Link href="/borrow" className="px-4 py-2 rounded bg-white/5 border border-white/10 font-mono text-xs text-white/60 hover:bg-white/10 hover:text-white transition-colors">
                           Manage
-                        </button>
+                        </Link>
                       </div>
                     </td>
                   </tr>

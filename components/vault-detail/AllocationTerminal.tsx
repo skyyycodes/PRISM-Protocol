@@ -42,6 +42,9 @@ export function AllocationTerminal({ vaultStatus, tranches, onTrancheChange }: A
   const fiatStatus = useFiatInvestStatus(publicKey?.toBase58() ?? null, selectedKind);
   const cancelIntent = useCancelInvestIntent(publicKey?.toBase58() ?? null, selectedKind);
 
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => setIsMounted(true), []);
+
   function handleMax() {
     if (balances?.usdc) {
       setAmount(formatUsdc(balances.usdc));
@@ -130,6 +133,8 @@ export function AllocationTerminal({ vaultStatus, tranches, onTrancheChange }: A
       }
     }
   }, [status, creditedAmountMicro, deposit.isPending, deposit.isSuccess, paymentId, isAlreadyFinished]);
+
+  if (!isMounted) return null;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-px overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03]">

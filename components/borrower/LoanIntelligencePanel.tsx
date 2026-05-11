@@ -3,7 +3,14 @@
 import { useMemo } from 'react';
 import { useBorrowerState } from '@/hooks/useBorrowerState';
 import { useVaultState } from '@/hooks/useVaultState';
+import { useAllVaults } from '@/hooks/useAllVaults';
 import { formatUsdc } from '@/app/lib/format';
+import {
+  PROTOCOL_DEFAULT_APR_PCT,
+  PROTOCOL_MIN_COLLATERAL_RATIO,
+  PROTOCOL_MAX_LTV_PCT,
+  INSTITUTIONAL_CREDIT_LIMIT_USD,
+} from '@/app/lib/constants';
 import {
   BarChart,
   Activity,
@@ -61,14 +68,18 @@ export function LoanIntelligencePanel() {
   const effectiveVaultId = selectedVaultId ?? 0;
   const vaultState = useVaultState(effectiveVaultId);
   const data = vaultState.data;
+  const allVaults = useAllVaults();
 
   const numAmount = Number(amount) || 0;
   const numCollateral = Number(collateralUsd) || 0;
 
-  const apr = 8.5;
+  // APR: read from on-chain globalConfig.defaultYieldRateBps when available,
+  // fall back to the protocol constant.
+  const configYieldBps = (data as any)?.config?.defaultYieldRateBps as number | undefined;
+  const apr = configYieldBps != null ? configYieldBps / 100 : PROTOCOL_DEFAULT_APR_PCT;
+
   const ltv = numCollateral > 0 ? (numAmount / numCollateral) * 100 : 0;
-  const collateralRatio = numAmount > 0 ? (numCollateral / numAmount) * 100 : 0;
-  const healthFactor = ltv > 0 ? 1.2 / (ltv / 100) : 0;
+  const healthFactor = ltv > 0 ? PROTOCOL_MIN_COLLATERAL_RATIO / (ltv / 100) : 0;
 
   const interest = numAmount * (apr / 100) * (duration / 365);
   const totalDue = numAmount + interest;
@@ -85,7 +96,7 @@ export function LoanIntelligencePanel() {
   const approvalProb = useMemo(() => {
     if (numAmount === 0) return 0;
     if (selectedVaultId === null) return 0;
-    if (ltv > 80) return 28;
+    if (ltv > PROTOCOL_MAX_LTV_PCT) return 28;
     if (ltv > 65) return 62;
     if (ltv > 0) return 94;
     return 75;
@@ -129,7 +140,7 @@ export function LoanIntelligencePanel() {
             />
             <Metric
               label="Limit Capacity"
-              value="$500,000 USDC"
+              value={`$${INSTITUTIONAL_CREDIT_LIMIT_USD.toLocaleString()} USDC`}
               sub="Standard Protocol Limit"
             />
           </div>
@@ -227,19 +238,30 @@ export function LoanIntelligencePanel() {
 
           <PanelSection title="Tranche Structure" icon={Layers}>
             <div className="space-y-3">
-              {[
-                { label: 'Prime Tranche',  pct: 50, color: 'bg-sky-400/30',   note: 'Senior / Low Yield' },
-                { label: 'Core Tranche',   pct: 35, color: 'bg-amber-400/30', note: 'Mezzanine / Med Yield' },
-                { label: 'Alpha Tranche',  pct: 15, color: 'bg-rose-400/30',  note: 'Junior / High Yield' },
-              ].map(({ label, pct, color, note }) => (
-                <div key={label}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-mono text-xs uppercase tracking-wider text-white/25">{label}</span>
-                    <span className="font-mono text-xs text-white/20">{note}</span>
-                  </div>
-                  <ProgressBar value={pct} color={color} />
-                </div>
-              ))}
+              {(() => {
+                const tranches = data?.tranches ?? [];
+                const totalTvl = tranches.reduce((s, t) => s + t.totalAssets, 0n);
+                const trancheRows = [
+                  { label: 'Prime Tranche', kind: 0, color: 'bg-sky-400/30',   note: 'Senior / Low Yield' },
+                  { label: 'Core Tranche',  kind: 1, color: 'bg-amber-400/30', note: 'Mezzanine / Med Yield' },
+                  { label: 'Alpha Tranche', kind: 2, color: 'bg-rose-400/30',  note: 'Junior / High Yield' },
+                ];
+                return trancheRows.map(({ label, kind, color, note }) => {
+                  const t = tranches.find(tr => tr.kind === kind);
+                  const pct = totalTvl > 0n && t
+                    ? Math.round(Number((t.totalAssets * 100n) / totalTvl))
+                    : [50, 35, 15][kind];
+                  return (
+                    <div key={label}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-mono text-xs uppercase tracking-wider text-white/25">{label}</span>
+                        <span className="font-mono text-xs text-white/20">{note}</span>
+                      </div>
+                      <ProgressBar value={pct} color={color} />
+                    </div>
+                  );
+                });
+              })()}
               <p className="text-xs text-white/20 leading-relaxed pt-2 border-t border-white/[0.03]">
                 Your facility is backed by tiered liquidity. The Alpha tranche provides loss-absorption protection.
               </p>
@@ -248,13 +270,31 @@ export function LoanIntelligencePanel() {
         </>
       )}
 
-      {/* Protocol State (General Info) */}
+      {/* Protocol State — real data from useAllVaults */}
       {currentStep === 1 && (
         <PanelSection title="Network State" icon={Activity}>
           <div className="space-y-3">
-            <Metric label="Active Markets" value="4 Live" color="text-white/50" />
-            <Metric label="Global TVL" value="$12.4M" color="text-white/50" />
-            <Metric label="24H Volume" value="$2.1M" color="text-white/40" />
+            {(() => {
+              const vaults = allVaults.data ?? [];
+              const activeCount = vaults.length;
+              const globalTvl = vaults.reduce((sum, v) =>
+                sum + v.tranches.reduce((s, t) => s + t.totalAssets, 0n), 0n);
+              return (
+                <>
+                  <Metric
+                    label="Active Markets"
+                    value={allVaults.isLoading ? '…' : `${activeCount} Live`}
+                    color="text-white/50"
+                  />
+                  <Metric
+                    label="Global TVL"
+                    value={allVaults.isLoading ? '…' : `$${formatUsdc(globalTvl, 0)}`}
+                    color="text-white/50"
+                  />
+                  <Metric label="24H Volume" value="—" color="text-white/40" />
+                </>
+              );
+            })()}
           </div>
         </PanelSection>
       )}

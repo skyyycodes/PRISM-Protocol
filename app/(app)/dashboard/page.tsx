@@ -1,4 +1,9 @@
+import { Metadata } from 'next';
 import { SimulationHarness } from "@/components/simulation/SimulationHarness";
+
+export const metadata: Metadata = {
+  title: 'Dashboard',
+};
 
 export default function DashboardPage() {
   return (

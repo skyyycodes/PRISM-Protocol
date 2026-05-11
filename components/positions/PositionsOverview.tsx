@@ -6,6 +6,8 @@ import { TrancheKind, Q64_ONE } from '@/app/lib/constants';
 import { formatUsdc } from '@/app/lib/format';
 import { useUserPosition } from '@/hooks/useUserPosition';
 import { useVaultState } from '@/hooks/useVaultState';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 
 // ─── Sparkline ────────────────────────────────────────────────────────────────
 
@@ -432,7 +434,32 @@ function EmptyPositions() {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function PositionsOverview() {
+  const { connected } = useWallet();
+  const { setVisible } = useWalletModal();
   const data = usePositionsData();
+
+  if (!connected) {
+    return (
+      <div className="w-full max-w-4xl mx-auto mt-20 flex flex-col items-center justify-center text-center px-6">
+        <div className="relative mb-10">
+          <div className="absolute inset-0 bg-white/20 blur-[100px] rounded-full" />
+          <div className="relative flex h-24 w-24 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl shadow-2xl">
+            <Briefcase className="h-10 w-10 text-white/40" strokeWidth={1.5} />
+          </div>
+        </div>
+        <h1 className="font-display text-4xl text-white tracking-tight mb-4">Portfolio Exposure</h1>
+        <p className="max-w-md text-white/40 leading-relaxed mb-10">
+          Connect your wallet to view your active tranches, real-time NAV growth, and accumulated protocol yield.
+        </p>
+        <button 
+          onClick={() => setVisible(true)}
+          className="rounded-xl bg-white px-8 py-4 font-mono text-[13px] font-bold uppercase tracking-widest text-black transition-all hover:bg-white/90 hover:scale-[1.02] active:scale-[0.98] shadow-[0_20px_50px_rgba(255,255,255,0.1)]"
+        >
+          Connect Wallet to View Positions
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-[1800px] mx-auto space-y-6 pb-16">

@@ -1,4 +1,9 @@
+import { Metadata } from 'next';
 import { ProtocolAnalytics } from '@/components/simulation/ProtocolAnalytics';
+
+export const metadata: Metadata = {
+  title: 'Protocol Observability',
+};
 
 export default function TerminalPage() {
   return (

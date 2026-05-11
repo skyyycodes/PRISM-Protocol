@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useLoanApplications } from '@/hooks/useLoanApplications';
 import { BorrowerProvider } from '@/hooks/useBorrowerState';
@@ -7,6 +8,7 @@ import { BorrowingWorkflow } from '@/components/borrower/BorrowingWorkflow';
 import { LoanIntelligencePanel } from '@/components/borrower/LoanIntelligencePanel';
 import { useAllVaults } from '@/hooks/useAllVaults';
 import { cn } from '@/lib/utils';
+import { INSTITUTIONAL_CREDIT_LIMIT_USD } from '@/app/lib/constants';
 import {
   Activity,
   AlertTriangle,
@@ -89,7 +91,7 @@ function PageHeader() {
           <div className="hidden md:block text-right">
             <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/30 mb-1">Credit Capacity</div>
             <div className="font-mono text-2xl font-medium text-white/85 tabular-nums">
-              {connected ? '$500K' : '—'}
+              {connected ? `$${(INSTITUTIONAL_CREDIT_LIMIT_USD / 1000).toFixed(0)}K` : '—'}
             </div>
           </div>
           <div className="hidden md:block w-px h-12 bg-white/[0.06]" />
@@ -118,8 +120,11 @@ function StatusBar() {
   const allVaults = useAllVaults();
 
   const existingApp = publicKey ? getByBorrower(publicKey.toBase58()) : undefined;
-  const totalMarkets = (allVaults.data ?? []).length;
-  const isHealthy = true;
+  const vaultList = allVaults.data ?? [];
+  const totalMarkets = vaultList.length;
+  // Healthy when every initialized vault is in Active state
+  const isHealthy = vaultList.length === 0
+    || vaultList.every(v => Object.keys(v.state ?? {})[0] === 'active');
 
   const walletShort = publicKey
     ? `${publicKey.toBase58().slice(0, 4)}…${publicKey.toBase58().slice(-4)}`
@@ -137,7 +142,7 @@ function StatusBar() {
     },
     {
       label: 'Credit Capacity',
-      value: connected ? '$500,000' : '—',
+      value: connected ? `$${INSTITUTIONAL_CREDIT_LIMIT_USD.toLocaleString()}` : '—',
       icon: TrendingUp,
       iconColor: 'text-sky-400/80',
       iconBg: 'bg-sky-500/[0.06] border-sky-500/20',
@@ -218,6 +223,18 @@ function StatusBar() {
 
 // ─── Inner Layout ─────────────────────────────────────────────────────────────
 function BorrowerPageInner() {
+  const { publicKey } = useWallet();
+  const { getByBorrower } = useLoanApplications();
+  const existingApp = publicKey ? getByBorrower(publicKey.toBase58()) : undefined;
+
+  useEffect(() => {
+    if (existingApp?.status === 'approved' && existingApp.loanId !== undefined) {
+      document.title = 'Repayment Center | PRISM Protocol';
+    } else {
+      document.title = 'Borrower Facility | PRISM Protocol';
+    }
+  }, [existingApp]);
+
   return (
     <div data-app-scroll className="relative flex-1 overflow-y-auto px-4 pt-7 pb-4 [overscroll-behavior:contain]">
       <div className="mx-auto w-full max-w-[1800px]">

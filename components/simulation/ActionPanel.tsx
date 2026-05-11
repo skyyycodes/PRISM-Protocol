@@ -101,9 +101,13 @@ export function ActionPanel() {
   const { publicKey } = useWallet();
   const queryClient = useQueryClient();
   const identity = useIdentity();
+  const { data: balances } = useIdentityBalances();
   const { addEntry } = useSimulationLog();
   const { registerActions } = useSimulationActions();
   const vaultState = useVaultState();
+
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => setIsMounted(true), []);
   const [depositAmount, setDepositAmount] = useState('100.000000');
   const [withdrawShares, setWithdrawShares] = useState('1.000000');
   const [yieldAmount, setYieldAmount] = useState(formatUsdc(DEFAULT_DEMO_YIELD_AMOUNT));
@@ -112,7 +116,6 @@ export function ActionPanel() {
   const [swapAmount, setSwapAmount] = useState('10.000000');
 
   const upsertLoan = useUpsertLoan();
-  const { data: balances } = useIdentityBalances();
 
   const investorTranche =
     identity.role === 'senior'
@@ -125,13 +128,13 @@ export function ActionPanel() {
 
   const common = useMemo(() => {
     const signer = wallet || identity.keypair;
-    const { core, amm, provider } = buildPrograms(connection, signer);
+    const { provider, core, amm } = buildPrograms(connection, signer);
     const [config] = getConfigPda(core.programId);
     const [vault] = getVaultPda(VAULT_ID, core.programId);
     const [reserve] = getVaultReservePda(vault, core.programId);
     const [lossBucket] = getLossBucketPda(vault, core.programId);
     const [loan] = getLoanPda(vault, 0, core.programId);
-    return { core, amm, provider, config, vault, reserve, lossBucket, loan };
+    return { provider, core, amm, config, vault, reserve, lossBucket, loan };
   }, [connection, identity.keypair, wallet]);
 
   async function tokenBalance(address: Awaited<ReturnType<typeof getAssociatedTokenAddress>>) {
@@ -371,7 +374,7 @@ export function ActionPanel() {
           systemProgram: SystemProgram.programId,
         })
         .rpc({ commitment: 'confirmed' });
-      const after = await snapshot(admin, TrancheKind.Alpha);
+      const after = await snapshot(identity.identities.admin.keypair, TrancheKind.Alpha);
       recordSuccess('Admin Trigger Default (50% demo severity)', 'Protocol Admin', before, after, await navSnapshot(), signature);
     },
     onSuccess: afterMutation,
@@ -785,6 +788,8 @@ export function ActionPanel() {
     shieldYieldViaCloak.isPending ||
     recordCloakPayout.isPending ||
     reactivate.isPending;
+
+  if (!isMounted) return null;
 
   return (
     <section className="rounded-lg border border-white/10 bg-black/30 p-5" aria-label="Action panel">

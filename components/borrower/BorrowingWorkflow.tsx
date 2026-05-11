@@ -33,6 +33,12 @@ import { useVaultState } from '@/hooks/useVaultState';
 import { useIkaCollateralAccount, useLoanAccount } from '@/hooks/useIkaCollateral';
 import { getVaultPda, getLoanPda } from '@/app/lib/pda';
 import { LoanRepayment } from './LoanRepayment';
+import {
+  POOL_NAMES,
+  PROTOCOL_DEFAULT_APR_PCT,
+  INSTITUTIONAL_CREDIT_LIMIT_USD,
+  INDIVIDUAL_CREDIT_LIMIT_USD,
+} from '@/app/lib/constants';
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
@@ -106,13 +112,7 @@ function VaultCard({
   const utilization = tvl > 0n ? Number(((tvl - liquidity) * 100n) / tvl) : 0;
   const isHealthy = (data?.lossBucketBalance ?? 0n) === 0n;
 
-  const POOL_NAMES: Record<number, string> = {
-    0: 'Institutional Stablecoin Credit',
-    1: 'BTC Treasury Lending',
-    2: 'Real Estate Credit Pool',
-    3: 'Growth Capital Market',
-  };
-  const poolName = POOL_NAMES[vaultId] ?? `Structured Credit Pool`;
+  const poolName = POOL_NAMES[vaultId] ?? `Structured Credit Pool #${vaultId}`;
 
   return (
     <button
@@ -159,7 +159,7 @@ function VaultCard({
             'font-mono text-xl font-bold tracking-tight',
             isSelected ? 'text-white' : 'text-white/40',
           )}>
-            8.50% APR
+            {PROTOCOL_DEFAULT_APR_PCT.toFixed(2)}% APR
           </div>
           <div className="mt-1 font-mono text-xs uppercase tracking-widest text-white/20">
             Base Interest Rate
@@ -242,7 +242,7 @@ function StepProfile({
               value: 'institutional' as const,
               label: 'Institutional',
               description: 'Corporate treasury, credit fund, or registered professional entity.',
-              limit: '$500,000 Capacity',
+              limit: `$${INSTITUTIONAL_CREDIT_LIMIT_USD.toLocaleString()} Capacity`,
               tier: 'Tier 1',
               icon: Building2,
             },
@@ -250,7 +250,7 @@ function StepProfile({
               value: 'individual' as const,
               label: 'Private Entity',
               description: 'Individual professional borrower or sole proprietor classification.',
-              limit: '$100,000 Capacity',
+              limit: `$${INDIVIDUAL_CREDIT_LIMIT_USD.toLocaleString()} Capacity`,
               tier: 'Tier 2',
               icon: ShieldCheck,
             },
@@ -414,7 +414,7 @@ function StepLoanStructuring({
   const numAmount = Number(amount) || 0;
   const numCollateral = Number(collateralUsd) || 0;
   const ltv = numCollateral > 0 ? (numAmount / numCollateral) * 100 : 0;
-  const apr = 8.5;
+  const apr = PROTOCOL_DEFAULT_APR_PCT;
   const interest = numAmount * apr / 100 * (duration / 365);
   const total = numAmount + interest;
 
@@ -690,7 +690,7 @@ function StepRiskReview({
 }) {
   const numAmount = Number(amount) || 0;
   const numCollateral = Number(collateralUsd) || 0;
-  const apr = 8.5;
+  const apr = PROTOCOL_DEFAULT_APR_PCT;
   const interest = numAmount * apr / 100 * (duration / 365);
   const total = numAmount + interest;
   const ltv = numCollateral > 0 ? (numAmount / numCollateral) * 100 : 0;
@@ -862,7 +862,7 @@ function StepSubmission({
 }) {
   const [acknowledged, setAcknowledged] = useState(false);
   const numAmount = Number(amount) || 0;
-  const apr = 8.5;
+  const apr = PROTOCOL_DEFAULT_APR_PCT;
   const interest = numAmount * apr / 100 * (duration / 365);
   const total = numAmount + interest;
   const purposeLabel = PURPOSES.find((p) => p.value === purpose)?.label ?? purpose;
@@ -1163,17 +1163,15 @@ export function BorrowingWorkflow() {
   function handleSubmit() {
     if (!publicKey || isSubmitting) return;
     setIsSubmitting(true);
-    setTimeout(() => {
-      submit({
-        borrowerPubkey: publicKey.toBase58(),
-        requestedUSDC: Number(amount),
-        maturityDays: duration,
-        purpose: PURPOSES.find((p) => p.value === purpose)?.label ?? purpose,
-        vaultId: selectedVaultId!,
-      });
-      setIsSubmitting(false);
-      setCurrentStep(7);
-    }, 1200);
+    submit({
+      borrowerPubkey: publicKey.toBase58(),
+      requestedUSDC: Number(amount),
+      maturityDays: duration,
+      purpose: PURPOSES.find((p) => p.value === purpose)?.label ?? purpose,
+      vaultId: selectedVaultId!,
+    });
+    setIsSubmitting(false);
+    setCurrentStep(7);
   }
 
   if (!connected) {

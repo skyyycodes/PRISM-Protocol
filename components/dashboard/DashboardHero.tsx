@@ -39,6 +39,8 @@ const TRANCHE_META = {
   },
 } as const;
 
+import Link from 'next/link';
+
 interface DashboardHeroProps {
   tranches: any[];
   userPositions: Array<{ kind: TrancheKind; balance: bigint }>;
@@ -186,12 +188,12 @@ export function DashboardHero({ tranches, exposure = [] }: DashboardHeroProps) {
         </div>
 
         <div className="flex gap-3">
-          <button className="flex-1 py-3 bg-white text-black font-mono text-xs font-bold uppercase tracking-[0.2em] hover:bg-white/90 transition-colors rounded">
+          <Link href="/positions" className="flex-1 py-3 bg-white text-black font-mono text-xs font-bold uppercase tracking-[0.2em] hover:bg-white/90 transition-colors rounded text-center">
             Manage All Positions
-          </button>
-          <button className="flex-1 py-3 border border-white/10 text-white/50 font-mono text-xs font-bold uppercase tracking-[0.2em] hover:bg-white/5 transition-colors rounded">
+          </Link>
+          <Link href="/earn" className="flex-1 py-3 border border-white/10 text-white/50 font-mono text-xs font-bold uppercase tracking-[0.2em] hover:bg-white/5 transition-colors rounded text-center">
             Extract Yield
-          </button>
+          </Link>
         </div>
       </div>
 

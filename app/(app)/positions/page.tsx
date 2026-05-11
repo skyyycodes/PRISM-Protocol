@@ -1,4 +1,9 @@
+import { Metadata } from 'next';
 import { PositionsOverview } from '@/components/positions/PositionsOverview';
+
+export const metadata: Metadata = {
+  title: 'Portfolio Exposure',
+};
 
 export default function PositionsPage() {
   return (

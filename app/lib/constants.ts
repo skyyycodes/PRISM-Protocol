@@ -54,6 +54,22 @@ export const DEFAULT_DEMO_LOSS_AMOUNT = 6_500_000_000n;
 export const DEFAULT_DEMO_YIELD_AMOUNT = 100_000_000n;
 export const DEFAULT_DEMO_LOAN_PRINCIPAL = 20_000_000_000n;
 
+// ── Protocol risk parameters (single source of truth) ─────────────────────────
+export const PROTOCOL_DEFAULT_APR_PCT = 8.5;
+export const PROTOCOL_MIN_COLLATERAL_RATIO = 1.2;
+export const PROTOCOL_MAX_LTV_PCT = 80;
+export const INSTITUTIONAL_CREDIT_LIMIT_USD = 500_000;
+export const INDIVIDUAL_CREDIT_LIMIT_USD = 100_000;
+
+// Pool display names keyed by vault id. No on-chain metadata exists for these
+// yet, so they live here until a vault metadata instruction is added.
+export const POOL_NAMES: Record<number, string> = {
+  0: 'Institutional Stablecoin Credit',
+  1: 'BTC Treasury Lending',
+  2: 'Real Estate Credit Pool',
+  3: 'Growth Capital Market',
+};
+
 // Ed25519 pubkey of the demo Encrypt FHE oracle.
 // Derived from a deterministic 32-byte zero seed so the mock oracle route
 // (app/api/encrypt-oracle/route.ts) and the on-chain allowlist agree.

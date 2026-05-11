@@ -64,9 +64,9 @@ const fieldNotes = [
 ];
 
 export const metadata: Metadata = {
-  title: "Blog - PRISM Protocol",
+  title: "Protocol Intelligence",
   description:
-    "Research notes, architecture essays, and protocol updates from PRISM Protocol.",
+    "Research notes, architecture essays, and protocol updates from the team building programmable credit risk on Solana.",
 };
 
 function ArticleCard({

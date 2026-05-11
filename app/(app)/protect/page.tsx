@@ -1,4 +1,9 @@
+import { Metadata } from 'next';
 import { PrismProtect } from '@/components/simulation/PrismAppSurfaces';
+
+export const metadata: Metadata = {
+  title: 'Risk Engine',
+};
 
 export default function ProtectPage() {
   return (
