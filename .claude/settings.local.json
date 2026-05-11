@@ -92,7 +92,8 @@
       "Bash(anchor build *)",
       "PowerShell(Test-Path *)",
       "Bash(read h *)",
-      "Bash(printf '%d ' 0x__TRACKED_VAR__)"
+      "Bash(printf '%d ' 0x__TRACKED_VAR__)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\manov\\\\Desktop\\\\code\\\\PRISM-Protocol\" -Recurse -Directory | Select-Object -First 30 | ForEach-Object { $_.FullName })"
     ]
   }
 }

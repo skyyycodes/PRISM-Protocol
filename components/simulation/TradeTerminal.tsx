@@ -730,6 +730,11 @@ function HorizontalTicker() {
 export function TradeTerminal() {
   const data = useTradeData();
   const [activeTab, setActiveTab] = useState<(typeof TRADE_TABS)[number]>('Secondary swap');
+  
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => setIsMounted(true), []);
+
+  if (!isMounted) return null;
 
   return (
     <div className="mx-auto w-full max-w-[1600px] space-y-10 px-10 pb-20 pt-4">

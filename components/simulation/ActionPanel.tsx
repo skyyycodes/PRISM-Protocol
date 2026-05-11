@@ -55,7 +55,7 @@ import {
   getVaultPda,
   getVaultReservePda,
 } from '@/app/lib/pda';
-import { buildPrograms } from '@/app/lib/program';
+import { buildPrograms, type AnchorWallet } from '@/app/lib/program';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import mmSecret from '@/contracts/keys/mm.json';
@@ -67,6 +67,7 @@ import {
 import { useUpsertLoan } from '@/hooks/useActiveLoans';
 import { useCloakPayout, useRecordCloakPayout } from '@/hooks/useCloakPayout';
 import { useIdentity } from '@/hooks/useIdentity';
+import { useIdentityBalances } from '@/hooks/useIdentityBalances';
 import { useSimulationActions } from '@/hooks/useSimulationActions';
 import { useSimulationLog } from '@/hooks/useSimulationLog';
 import { useReactivateVault } from '@/hooks/useReactivateVault';
@@ -100,9 +101,13 @@ export function ActionPanel() {
   const { publicKey } = useWallet();
   const queryClient = useQueryClient();
   const identity = useIdentity();
+  const { data: balances } = useIdentityBalances();
   const { addEntry } = useSimulationLog();
   const { registerActions } = useSimulationActions();
   const vaultState = useVaultState();
+
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => setIsMounted(true), []);
   const [depositAmount, setDepositAmount] = useState('100.000000');
   const [withdrawShares, setWithdrawShares] = useState('1.000000');
   const [yieldAmount, setYieldAmount] = useState(formatUsdc(DEFAULT_DEMO_YIELD_AMOUNT));
@@ -123,13 +128,13 @@ export function ActionPanel() {
 
   const common = useMemo(() => {
     const signer = wallet || identity.keypair;
-    const { core, amm } = buildPrograms(connection, signer);
+    const { provider, core, amm } = buildPrograms(connection, signer);
     const [config] = getConfigPda(core.programId);
     const [vault] = getVaultPda(VAULT_ID, core.programId);
     const [reserve] = getVaultReservePda(vault, core.programId);
     const [lossBucket] = getLossBucketPda(vault, core.programId);
     const [loan] = getLoanPda(vault, 0, core.programId);
-    return { core, amm, config, vault, reserve, lossBucket, loan };
+    return { provider, core, amm, config, vault, reserve, lossBucket, loan };
   }, [connection, identity.keypair, wallet]);
 
   async function tokenBalance(address: Awaited<ReturnType<typeof getAssociatedTokenAddress>>) {
@@ -368,7 +373,7 @@ export function ActionPanel() {
           systemProgram: SystemProgram.programId,
         })
         .rpc({ commitment: 'confirmed' });
-      const after = await snapshot(admin, TrancheKind.Alpha);
+      const after = await snapshot(identity.identities.admin.keypair, TrancheKind.Alpha);
       recordSuccess('Admin Trigger Default (50% demo severity)', 'Protocol Admin', before, after, await navSnapshot(), signature);
     },
     onSuccess: afterMutation,
@@ -496,9 +501,8 @@ export function ActionPanel() {
 
   async function sellOnAmm(signer: Keypair | AnchorWallet, kind: TrancheKind, amount: bigint, label: string) {
     const programs = buildPrograms(connection, signer);
-    const pubkey = 'publicKey' in signer ? signer.publicKey : signer.publicKey;
-    // ... wait, if it's a keypair, it has publicKey property. If it's AnchorWallet, it has publicKey property.
-    const before = await snapshot('payer' in signer ? (signer as any) : { publicKey: signer.publicKey }, kind);
+    const pubkey = signer.publicKey;
+    const before = await snapshot({ publicKey: pubkey }, kind);
     // snapshot expects a Keypair because it uses it for ATA derivation.
     // I should update snapshot too.
     
@@ -515,7 +519,7 @@ export function ActionPanel() {
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc({ commitment: 'confirmed' });
-    const after = await snapshot('payer' in signer ? (signer as any) : { publicKey: signer.publicKey }, kind);
+    const after = await snapshot({ publicKey: pubkey }, kind);
     recordSuccess(label, signer.publicKey.toBase58(), before, after, await navSnapshot(), signature);
   }
 
@@ -787,6 +791,8 @@ export function ActionPanel() {
     shieldYieldViaCloak.isPending ||
     recordCloakPayout.isPending ||
     reactivate.isPending;
+
+  if (!isMounted) return null;
 
   return (
     <section className="rounded-lg border border-white/10 bg-black/30 p-5" aria-label="Action panel">
