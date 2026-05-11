@@ -355,7 +355,8 @@ export function ActionPanel() {
     mutationFn: async () => {
       const amount = parseUsdc(lossAmount);
       const authorityPubkey = common.provider.publicKey;
-      const before = await snapshot(identity.identities.admin.keypair, TrancheKind.Alpha);
+      const admin = identity.identities.admin.keypair;
+      const before = await snapshot(admin, TrancheKind.Alpha);
       const seq = Number(toBigInt(vaultState.data?.vault?.creditEventSeq ?? 0));
       const signature = await common.core.methods
         .triggerCreditEvent(0, bn(amount), 5000)
@@ -501,11 +502,7 @@ export function ActionPanel() {
 
   async function sellOnAmm(signer: Keypair | AnchorWallet, kind: TrancheKind, amount: bigint, label: string) {
     const programs = buildPrograms(connection, signer);
-    const pubkey = signer.publicKey;
-    const before = await snapshot({ publicKey: pubkey }, kind);
-    // snapshot expects a Keypair because it uses it for ATA derivation.
-    // I should update snapshot too.
-    
+    const before = await snapshot(signer, kind);
     const [mint] = getTrancheMintPda(common.vault, kind, programs.core.programId);
     const signature = await programs.amm.methods
       .swap(bn(amount), new BN(0), 0)
@@ -519,7 +516,7 @@ export function ActionPanel() {
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc({ commitment: 'confirmed' });
-    const after = await snapshot({ publicKey: pubkey }, kind);
+    const after = await snapshot(signer, kind);
     recordSuccess(label, signer.publicKey.toBase58(), before, after, await navSnapshot(), signature);
   }
 

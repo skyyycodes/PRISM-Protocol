@@ -6,6 +6,7 @@ This section does double duty: on-chain instruction specs (used by section 5) AN
 
 ---
 
+
 ## 4.1 Demo arc — final ordering
 
 **Target length:** 2:15–2:30. **Hard ceiling: 2:30.** Not 3 minutes — judges watch 20–50 demos and attention drops after 2 minutes. Faster = sharper.
