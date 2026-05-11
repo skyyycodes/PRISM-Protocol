@@ -5,8 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DOCS_URL } from "@/lib/site-links";
-import { WaitlistDialog } from "@/components/landing/waitlist-dialog";
-import { BookOpen, ChevronDown, FileText, Rss } from "lucide-react";
+import { ArrowUpRight, BookOpen, ChevronDown, FileText, Rss } from "lucide-react";
 
 const navLinks = [
   { name: "Tranches",      href: "/#features"      },
@@ -149,14 +148,16 @@ export function Navigation() {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-4">
-            <WaitlistDialog>
-              <Button
-                size="sm"
-                className={`rounded-full transition-all duration-500 ${isScrolled ? "bg-foreground hover:bg-foreground/90 text-background px-4 h-8 text-xs" : "bg-white hover:bg-white/90 text-black px-6"}`}
-              >
-                Join Waitlist
-              </Button>
-            </WaitlistDialog>
+            <Button
+              asChild
+              size="sm"
+              className={`group rounded-full transition-all duration-500 ${isScrolled ? "bg-foreground hover:bg-foreground/90 text-background px-4 h-8 text-xs" : "bg-white hover:bg-white/90 text-black px-6"}`}
+            >
+              <Link href="/dashboard" className="inline-flex items-center gap-1.5">
+                Launch app
+                <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              </Link>
+            </Button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -274,14 +275,16 @@ export function Navigation() {
             >
               <a href={DOCS_URL}>View docs</a>
             </Button>
-            <WaitlistDialog>
-              <Button
-                className="h-13 rounded-full bg-foreground text-base text-background sm:h-14"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Join Waitlist
-              </Button>
-            </WaitlistDialog>
+            <Button
+              asChild
+              className="group h-13 rounded-full bg-foreground text-base text-background sm:h-14"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <Link href="/dashboard" className="inline-flex items-center gap-2">
+                Launch app
+                <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
