@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { formatUsdc } from '@/app/lib/format';
 
 // ─── Sparkline ────────────────────────────────────────────────────────────────
@@ -70,47 +71,52 @@ export function KPIStrip({
   healthFactor,
   claimableRewards,
 }: KPIStripProps) {
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const hfSafe = typeof healthFactor === 'number' ? healthFactor >= 1.5 : true;
 
   const metrics = [
     {
       label: 'Net Worth',
-      value: `$${formatUsdc(netWorth, 2)}`,
+      value: isMounted ? `$${formatUsdc(netWorth, 2)}` : '$0.00',
       sub: netWorth > 0n ? '+2.4% this week' : 'No positions yet',
       subColor: netWorth > 0n ? 'text-emerald-400/70' : 'text-white/25',
       sparkIdx: 0,
     },
     {
       label: 'Total Supplied',
-      value: `$${formatUsdc(totalSupplied, 2)}`,
+      value: isMounted ? `$${formatUsdc(totalSupplied, 2)}` : '$0.00',
       sub: totalSupplied > 0n ? 'Earning across tranches' : 'Nothing earning yet',
       subColor: 'text-white/30',
       sparkIdx: 1,
     },
     {
       label: 'Total Borrowed',
-      value: `$${formatUsdc(totalBorrowed, 2)}`,
+      value: isMounted ? `$${formatUsdc(totalBorrowed, 2)}` : '$0.00',
       sub: totalBorrowed > 0n ? 'Active credit position' : 'No active loans',
       subColor: 'text-white/30',
       sparkIdx: 2,
     },
     {
       label: 'Daily Yield',
-      value: `$${formatUsdc(dailyYield, 2)}`,
+      value: isMounted ? `$${formatUsdc(dailyYield, 2)}` : '$0.00',
       sub: dailyYield > 0n ? '↑ 0.3% from yesterday' : 'Accrues on deposit',
       subColor: dailyYield > 0n ? 'text-emerald-400/70' : 'text-white/25',
       sparkIdx: 3,
     },
     {
       label: 'Health Factor',
-      value: String(healthFactor),
+      value: isMounted ? String(healthFactor) : '—',
       sub: hfSafe ? 'Position is healthy' : 'At risk — add collateral',
       subColor: hfSafe ? 'text-emerald-400/70' : 'text-rose-400/80',
       sparkIdx: 4,
     },
     {
       label: 'Claimable',
-      value: `$${formatUsdc(claimableRewards, 2)}`,
+      value: isMounted ? `$${formatUsdc(claimableRewards, 2)}` : '$0.00',
       sub: claimableRewards > 0n ? 'Ready to withdraw →' : 'No rewards pending',
       subColor: claimableRewards > 0n ? 'text-[#eca8d6]/70' : 'text-white/25',
       sparkIdx: 5,

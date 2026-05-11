@@ -7,33 +7,34 @@ import { usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import {
-  Home,
-  Wallet,
-  Key,
+  LayoutDashboard,
+  WalletCards,
+  HandCoins,
   LogOut,
-  Shield,
-  Cpu,
-  LineChart,
-  BookOpen,
-  Briefcase,
+  ShieldCheck,
+  Terminal,
+  ChartCandlestick,
+  BookOpenText,
+  BriefcaseBusiness,
   Copy,
   ExternalLink,
+  Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
-  { icon: Home,      label: 'Dashboard', href: '/dashboard' },
-  { icon: Briefcase, label: 'Positions', href: '/positions' },
-  { icon: Wallet,    label: 'Earn',      href: '/earn'      },
-  { icon: LineChart, label: 'Trade',     href: '/trade'     },
-  { icon: Cpu,       label: 'Terminal',  href: '/terminal'  },
-  { icon: Key,       label: 'Borrow',    href: '/borrow'    },
+  { icon: LayoutDashboard,  label: 'Dashboard', href: '/dashboard' },
+  { icon: BriefcaseBusiness, label: 'Positions', href: '/positions' },
+  { icon: WalletCards,       label: 'Earn',      href: '/earn'      },
+  { icon: ChartCandlestick,  label: 'Trade',     href: '/trade'     },
+  { icon: Terminal,          label: 'Terminal',  href: '/terminal'  },
+  { icon: HandCoins,         label: 'Borrow',    href: '/borrow'    },
 ];
 
 const BOTTOM_ITEMS = [
-  { icon: Shield,   label: 'Admin',   href: '/admin', external: false },
-  { icon: BookOpen, label: 'Docs',    href: 'https://docs.prismprotocol.dev', external: true },
-  { icon: LogOut,   label: 'Log out', href: '/', external: false },
+  { icon: ShieldCheck,  label: 'Admin',   href: '/admin', external: false },
+  { icon: BookOpenText, label: 'Docs',    href: 'https://docs.prismprotocol.dev', external: true },
+  { icon: LogOut,       label: 'Log out', href: '/', external: false },
 ];
 
 function shortAddress(addr: string) {
@@ -168,10 +169,10 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        'group/sidebar fixed left-0 top-0 z-50 flex h-full flex-col overflow-hidden border-r border-white/[0.05] py-5 transition-all duration-300 ease-out',
+        'group/sidebar fixed left-0 top-0 z-50 flex h-full flex-col overflow-hidden border-r border-white/[0.05] py-5 transition-all duration-300 ease-out backdrop-blur-xl',
         walletOpen
-          ? 'w-[240px] bg-black/55'
-          : 'w-[72px] hover:w-[240px] bg-black/20 hover:bg-black/55',
+          ? 'w-[240px] bg-black/85 shadow-[20px_0_50px_rgba(0,0,0,0.5)]'
+          : 'w-[72px] hover:w-[240px] bg-black/20 hover:bg-black/85 hover:shadow-[20px_0_50px_rgba(0,0,0,0.5)]',
       )}
     >
       {/* Logo + Title */}
@@ -196,7 +197,7 @@ export function AppSidebar() {
       </Link>
 
       {/* Navigation */}
-      <nav className="flex flex-1 flex-col gap-1.5">
+      <nav className="flex flex-1 flex-col gap-1">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -204,23 +205,31 @@ export function AppSidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className="group/item flex items-center gap-3 h-11 pl-4 pr-3"
+              className={cn(
+                "group/item relative flex items-center gap-3 h-11 pl-4 pr-3 transition-colors",
+                isActive ? "bg-white/[0.04]" : "hover:bg-white/[0.02]"
+              )}
             >
+              {/* Active indicator bar */}
+              {isActive && (
+                <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
+              )}
+
               <div
                 className={cn(
-                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all duration-200',
+                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all duration-200',
                   isActive
                     ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)]'
-                    : 'text-white/30 group-hover/item:text-white',
+                    : 'text-white/40 group-hover/item:text-white/90',
                 )}
               >
-                <Icon className="h-[20px] w-[20px]" strokeWidth={isActive ? 2 : 1.5} />
+                <Icon className="h-5 w-5" strokeWidth={isActive ? 2.25 : 1.75} />
               </div>
               <span
                 className={cn(
-                  'whitespace-nowrap font-mono text-sm transition-opacity duration-200',
+                  'whitespace-nowrap font-mono text-[13px] tracking-tight transition-opacity duration-200',
                   walletOpen ? 'opacity-100' : 'opacity-0 group-hover/sidebar:opacity-100',
-                  isActive ? 'text-white font-semibold' : 'text-white/60 group-hover/item:text-white',
+                  isActive ? 'text-white font-medium' : 'text-white/50 group-hover/item:text-white/80',
                 )}
               >
                 {item.label}
@@ -231,27 +240,28 @@ export function AppSidebar() {
       </nav>
 
       {/* Bottom Actions */}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1 border-t border-white/[0.05] pt-4">
         <SidebarWalletButton walletOpen={walletOpen} setWalletOpen={setWalletOpen} />
 
         {BOTTOM_ITEMS.map((item) => {
           const Icon = item.icon;
           const content = (
             <>
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white/30 transition-colors group-hover/item:text-white">
-                <Icon className="h-[20px] w-[20px]" strokeWidth={1.5} />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white/40 transition-colors group-hover/item:text-white/90">
+                <Icon className="h-5 w-5" strokeWidth={1.75} />
               </div>
               <span
                 className={cn(
-                  'whitespace-nowrap font-mono text-sm text-white/60 transition-opacity duration-200 group-hover/item:text-white',
+                  'whitespace-nowrap font-mono text-[13px] tracking-tight transition-opacity duration-200',
                   walletOpen ? 'opacity-100' : 'opacity-0 group-hover/sidebar:opacity-100',
+                  'text-white/50 group-hover/item:text-white/80',
                 )}
               >
                 {item.label}
               </span>
             </>
           );
-          const className = "group/item flex items-center gap-3 h-11 pl-4 pr-3";
+          const className = "group/item flex items-center gap-3 h-11 pl-4 pr-3 hover:bg-white/[0.02] transition-colors";
 
           return item.external ? (
             <a
