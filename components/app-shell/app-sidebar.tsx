@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import {
@@ -55,6 +56,7 @@ function SidebarWalletButton({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; bottom: number }>({ left: 248, bottom: 0 });
+  const portalTarget = typeof document === 'undefined' ? null : document.body;
 
   // Keep dropdown anchored to sidebar's right edge (sidebar is forced expanded while open)
   useEffect(() => {
@@ -62,13 +64,17 @@ function SidebarWalletButton({
     const update = () => {
       const rect = buttonRef.current!.getBoundingClientRect();
       setPos({
-        left: rect.right + 8,
+        left: Math.max(rect.right + 8, 248),
         bottom: window.innerHeight - rect.bottom,
       });
     };
     update();
+    const frame = requestAnimationFrame(update);
     window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('resize', update);
+    };
   }, [walletOpen]);
 
   useEffect(() => {
@@ -96,6 +102,8 @@ function SidebarWalletButton({
         ref={buttonRef}
         type="button"
         onClick={handleClick}
+        aria-expanded={walletOpen}
+        aria-haspopup="menu"
         className="group/item flex w-full items-center gap-3 h-11 pl-4 pr-3"
       >
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-pink-500/40 bg-pink-500/[0.18] text-pink-200 shadow-[0_0_15px_rgba(236,72,153,0.18)] transition-colors group-hover/item:bg-pink-500/[0.28]">
@@ -111,11 +119,12 @@ function SidebarWalletButton({
         </span>
       </button>
 
-      {walletOpen && connected && publicKey && (
+      {portalTarget && walletOpen && connected && publicKey && createPortal(
         <div
           ref={dropdownRef}
+          role="menu"
           style={{ left: pos.left, bottom: pos.bottom }}
-          className="fixed w-56 overflow-hidden rounded-md border border-white/10 bg-black/95 shadow-2xl backdrop-blur z-[60]"
+          className="fixed z-[80] w-56 overflow-hidden rounded-md border border-white/10 bg-black/95 shadow-2xl backdrop-blur"
         >
           <div className="border-b border-white/10 px-3 py-2 text-[11px] text-white/50">
             Connected via {wallet?.adapter.name ?? 'wallet'}
@@ -126,6 +135,7 @@ function SidebarWalletButton({
               navigator.clipboard.writeText(publicKey.toBase58());
               setWalletOpen(false);
             }}
+            role="menuitem"
             className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
           >
             <Copy className="h-3.5 w-3.5" />
@@ -136,6 +146,7 @@ function SidebarWalletButton({
             target="_blank"
             rel="noreferrer"
             onClick={() => setWalletOpen(false)}
+            role="menuitem"
             className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
           >
             <ExternalLink className="h-3.5 w-3.5" />
@@ -147,12 +158,14 @@ function SidebarWalletButton({
               disconnect();
               setWalletOpen(false);
             }}
+            role="menuitem"
             className="flex w-full items-center gap-2 border-t border-white/10 px-3 py-2.5 text-left text-sm text-pink-300 transition-colors hover:bg-pink-500/10"
           >
             <LogOut className="h-3.5 w-3.5" />
             Disconnect
           </button>
-        </div>
+        </div>,
+        portalTarget,
       )}
     </>
   );

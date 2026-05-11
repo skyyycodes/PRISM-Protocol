@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PRISM Protocol — Pitch Deck</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ───────────────────────────── PRISM design tokens ───────────────────────────── */
+    :root {
+      --bg:           #000;
+      --bg-1:         #050505;
+      --bg-2:         #070707;
+      --surface-1:    rgba(255,255,255,0.02);
+      --surface-2:    rgba(255,255,255,0.04);
+      --surface-3:    rgba(255,255,255,0.06);
+      --border-1:     rgba(255,255,255,0.06);
+      --border-2:     rgba(255,255,255,0.10);
+      --border-3:     rgba(255,255,255,0.15);
+      --text:         #fff;
+      --text-2:       rgba(255,255,255,0.65);
+      --text-3:       rgba(255,255,255,0.40);
+      --text-4:       rgba(255,255,255,0.22);
+      --text-5:       rgba(255,255,255,0.10);
+
+      --pink:         #ec4899;
+      --purple:       #a855f7;
+      --violet:       #8b5cf6;
+
+      --prime:        #5a8aa6;   /* lifted from #38596a for screen contrast */
+      --core:         #d99728;   /* lifted from #ad7b21 */
+      --alpha:        #c95636;   /* lifted from #9f442b */
+
+      --emerald:      #34d399;
+      --rose:         #fb7185;
+      --amber:        #fbbf24;
+
+      --font-sans:    'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-serif:   'Instrument Serif', 'Times New Roman', serif;
+      --font-mono:    'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%; width: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    /* ───────────────────────────── Deck container ───────────────────────────── */
+    .deck { position: fixed; inset: 0; }
+
+    .slide {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      padding: 64px 88px 72px;
+      opacity: 0; pointer-events: none;
+      transition: opacity .45s cubic-bezier(.16,1,.3,1);
+      background: var(--bg);
+      overflow: hidden;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    /* PRISM signature: dual radial gradients (pink TR + purple BL) */
+    .slide::before {
+      content: ''; position: absolute; inset: 0; z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 60% 80% at 100% 0%, rgba(236,72,153,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 60% at 0% 100%, rgba(168,85,247,0.10) 0%, transparent 50%);
+    }
+
+    /* Faint grid overlay */
+    .slide::after {
+      content: ''; position: absolute; inset: 0; z-index: 0;
+      pointer-events: none; opacity: 0.20;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    .slide-inner { position: relative; z-index: 1; display: flex; flex-direction: column; flex: 1; gap: 28px; min-height: 0; }
+
+    /* Animate-in cascade */
+    .slide.active .ani { animation: rise .55s cubic-bezier(.16,1,.3,1) both; }
+    .slide.active .ani:nth-child(1) { animation-delay: 0s; }
+    .slide.active .ani:nth-child(2) { animation-delay: .07s; }
+    .slide.active .ani:nth-child(3) { animation-delay: .14s; }
+    .slide.active .ani:nth-child(4) { animation-delay: .21s; }
+    .slide.active .ani:nth-child(5) { animation-delay: .28s; }
+    .slide.active .ani:nth-child(6) { animation-delay: .35s; }
+    .slide.active .ani:nth-child(7) { animation-delay: .42s; }
+    @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ───────────────────────────── Typography ───────────────────────────── */
+    .display {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-weight: 400;
+      letter-spacing: -2px;
+      line-height: 0.95;
+    }
+    .h-hero    { font-size: clamp(72px, 9.5vw, 156px); }
+    .h-big     { font-size: clamp(54px, 6.5vw, 104px); }
+    .h-1       { font-size: clamp(40px, 4.6vw, 76px); }
+    .h-2       { font-size: clamp(28px, 2.6vw, 44px); font-family: var(--font-sans); font-style: normal; font-weight: 500; letter-spacing: -1px; line-height: 1.15; }
+    .body      { font-size: clamp(15px, 1.05vw, 19px); line-height: 1.55; color: var(--text-2); font-weight: 400; }
+    .body-sm   { font-size: 13px; line-height: 1.55; color: var(--text-2); }
+
+    .mono      { font-family: var(--font-mono); }
+    .eyebrow   { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: .32em; color: var(--text-3); }
+    .eyebrow-pink { color: rgba(236,72,153,0.75); }
+    .eyebrow-emerald { color: rgba(52,211,153,0.85); }
+
+    .tabular   { font-variant-numeric: tabular-nums; }
+    .italic    { font-style: italic; }
+    .serif     { font-family: var(--font-serif); }
+
+    /* Status dot */
+    .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--emerald); box-shadow: 0 0 8px rgba(52,211,153,.6); animation: pulse 2s ease-in-out infinite; vertical-align: middle; margin-right: 8px; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+    /* ───────────────────────────── Components ───────────────────────────── */
+    .card {
+      background: var(--surface-2);
+      border: 1px solid var(--border-2);
+      border-radius: 14px;
+      padding: 22px 24px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      position: relative;
+    }
+    .card-soft { background: var(--surface-1); border: 1px solid var(--border-1); border-radius: 14px; padding: 22px 24px; }
+    .card-accent {
+      position: relative;
+      overflow: hidden;
+    }
+    .card-accent::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 2px; border-radius: 2px;
+    }
+    .card-prime::before { background: var(--prime); }
+    .card-core::before  { background: var(--core); }
+    .card-alpha::before { background: var(--alpha); }
+    .card-pink::before  { background: var(--pink); }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-2);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--text-2);
+    }
+    .pill-emerald { color: var(--emerald); border-color: rgba(52,211,153,.25); background: rgba(52,211,153,.06); }
+    .pill-pink    { color: var(--pink); border-color: rgba(236,72,153,.25); background: rgba(236,72,153,.06); }
+    .pill-amber   { color: var(--amber); border-color: rgba(251,191,36,.20); background: rgba(251,191,36,.05); }
+
+    .divider { height: 1px; background: var(--border-1); margin: 4px 0; }
+
+    /* Slide nav UI */
+    .nav {
+      position: fixed; bottom: 24px; right: 28px; z-index: 100;
+      display: flex; align-items: center; gap: 14px;
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--text-3);
+      letter-spacing: .2em; text-transform: uppercase;
+      background: rgba(0,0,0,0.6);
+      border: 1px solid var(--border-2);
+      border-radius: 999px;
+      padding: 8px 14px;
+      backdrop-filter: blur(8px);
+    }
+    .nav button {
+      all: unset;
+      cursor: pointer;
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: var(--text-2);
+      transition: color .15s, background .15s;
+    }
+    .nav button:hover { color: var(--text); background: var(--surface-2); }
+
+    .progress {
+      position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 100;
+      background: rgba(255,255,255,0.03);
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--pink), var(--purple));
+      transition: width .35s cubic-bezier(.16,1,.3,1);
+    }
+
+    .brand-mark {
+      position: fixed; top: 22px; left: 28px; z-index: 100;
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--text-3);
+      letter-spacing: .35em; text-transform: uppercase;
+    }
+    .brand-mark .logo { width: 18px; height: 18px; }
+
+    .notes {
+      position: fixed; bottom: 24px; left: 28px; z-index: 100;
+      max-width: 520px; max-height: 220px; overflow-y: auto;
+      background: rgba(0,0,0,0.85);
+      border: 1px solid var(--border-2);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: var(--font-mono); font-size: 11px; line-height: 1.55;
+      color: var(--text-2);
+      display: none;
+    }
+    .notes-on .notes { display: block; }
+    .notes b { color: var(--pink); font-weight: 500; }
+
+    /* Slide content templates */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .grid-6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+
+    .stat-num { font-family: var(--font-mono); font-size: 38px; font-weight: 500; letter-spacing: -1px; line-height: 1; }
+    .stat-num-lg { font-family: var(--font-serif); font-style: italic; font-size: 72px; line-height: 1; letter-spacing: -2px; }
+
+    .tranche-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+    .tranche-card { padding: 28px 24px; border-radius: 14px; background: var(--surface-1); border: 1px solid var(--border-1); position: relative; overflow: hidden; }
+    .tranche-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+    .tranche-prime::before { background: var(--prime); }
+    .tranche-core::before  { background: var(--core); }
+    .tranche-alpha::before { background: var(--alpha); }
+
+    .check { color: var(--emerald); font-family: var(--font-mono); }
+
+    /* Waterfall + cascade visual */
+    .flow {
+      display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: stretch;
+    }
+    .flow-bar {
+      height: 100%;
+      display: flex; flex-direction: column; gap: 10px; justify-content: center;
+      padding: 14px;
+      border-radius: 12px;
+      background: var(--surface-1);
+      border: 1px solid var(--border-1);
+    }
+    .flow-step { padding: 10px 14px; border-radius: 8px; background: var(--surface-2); border-left: 2px solid var(--border-3); font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-2); }
+    .flow-step.prime { border-left-color: var(--prime); }
+    .flow-step.core  { border-left-color: var(--core); }
+    .flow-step.alpha { border-left-color: var(--alpha); }
+    .flow-arrow {
+      align-self: center;
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--text-3);
+      letter-spacing: .2em; text-transform: uppercase;
+      padding: 24px 8px;
+      text-align: center;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+    }
+
+    /* Default-cascade bars */
+    .bar-row { display: grid; grid-template-columns: 90px 1fr 96px; gap: 18px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border-1); }
+    .bar-row:last-child { border-bottom: 0; }
+    .bar-label { font-family: var(--font-mono); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; }
+    .bar-track { height: 14px; border-radius: 4px; background: var(--surface-1); overflow: hidden; position: relative; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 1.2s cubic-bezier(.16,1,.3,1); }
+    .bar-num { font-family: var(--font-mono); font-size: 13px; text-align: right; letter-spacing: .04em; }
+
+    /* Partner logo grid */
+    .partner-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .partner {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 22px 18px;
+      border-radius: 12px;
+      background: var(--surface-1);
+      border: 1px solid var(--border-1);
+      transition: border .2s, background .2s;
+      min-height: 130px;
+    }
+    .partner:hover { border-color: var(--border-2); background: var(--surface-2); }
+    .partner-logo { height: 28px; display: flex; align-items: center; }
+    .partner-name { font-family: var(--font-mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--text); margin-top: 4px; }
+    .partner-role { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--text-3); }
+
+    .feature-tile {
+      padding: 22px 22px; border-radius: 14px;
+      background: var(--surface-1); border: 1px solid var(--border-1);
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .feature-icon {
+      width: 36px; height: 36px; border-radius: 9px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-2);
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--pink);
+    }
+
+    .quote {
+      font-family: var(--font-serif); font-style: italic;
+      font-size: clamp(28px, 3.2vw, 50px);
+      line-height: 1.18; letter-spacing: -1px;
+      max-width: 1100px;
+    }
+
+    /* Slide-specific overrides */
+    .slide.center { justify-content: center; align-items: flex-start; }
+    .slide.middle .slide-inner { justify-content: center; }
+
+    @media (max-height: 760px) {
+      .slide { padding: 44px 64px 56px; }
+      .slide-inner { gap: 18px; }
+    }
+
+    /* ───────── Print / export ───────── */
+    @media print {
+      html, body { overflow: visible; height: auto; background: white; color: black; }
+      .nav, .notes, .progress, .brand-mark { display: none !important; }
+      .slide { position: relative; opacity: 1 !important; pointer-events: auto !important; page-break-after: always; height: 100vh; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Progress bar -->
+<div class="progress"><div class="progress-bar" id="progressBar" style="width: 10%"></div></div>
+
+<!-- Brand mark -->
+<div class="brand-mark">
+  <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+    <path d="M3 18 L12 4 L21 18 Z" />
+    <path d="M3 18 L12 11 L21 18" opacity="0.45" />
+    <path d="M8 18 L12 4 L16 18" opacity="0.25" />
+  </svg>
+  <span>PRISM Protocol</span>
+</div>
+
+<!-- Slide navigation -->
+<div class="nav" id="nav">
+  <button onclick="prev()">←</button>
+  <span><span id="cur">1</span> / <span id="total">10</span></span>
+  <button onclick="next()">→</button>
+</div>
+
+<!-- Speaker notes overlay (press N) -->
+<div class="notes" id="notes"></div>
+
+<div class="deck" id="deck">
+
+  <!-- ═══════════════════ SLIDE 1 — TITLE ═══════════════════ -->
+  <section class="slide active middle" data-notes="<b>Bar test:</b> 'PRISM turns credit risk into tradable risk layers — like a CLO on-chain, but live, transparent, and market-priced.' Pause for 2 seconds, then click forward. The slide should hold attention by feel — dark, deliberate, financial — not by reading.">
+    <div class="slide-inner" style="justify-content: center; align-items: flex-start;">
+
+      <div class="ani" style="display: flex; align-items: center; gap: 12px;">
+        <span class="dot" style="background: var(--pink); box-shadow: 0 0 10px rgba(236,72,153,.6);"></span>
+        <span class="eyebrow eyebrow-pink">Solana Frontier · Colosseum 2026</span>
+      </div>
+
+      <h1 class="display h-hero ani" style="margin-top: -8px;">
+        PRISM<span style="color: var(--text-3);">.</span>
+      </h1>
+
+      <p class="h-2 ani" style="max-width: 920px; color: var(--text-2);">
+        Programmable credit on Solana. Pool capital, slice risk into three tranches,
+        watch losses cascade and markets reprice — in real time.
+      </p>
+
+      <div class="ani" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px;">
+        <span class="pill pill-pink">Structured Credit</span>
+        <span class="pill">Two Anchor Programs</span>
+        <span class="pill">SPL Tranche Tokens</span>
+        <span class="pill pill-emerald"><span class="dot" style="margin-right: 0; width: 5px; height: 5px;"></span>Live on Devnet</span>
+      </div>
+
+      <div class="ani" style="margin-top: 36px; display: flex; gap: 64px; align-items: flex-end;">
+        <div>
+          <div class="eyebrow">Frontier Tracks</div>
+          <div class="mono" style="margin-top: 6px; font-size: 13px; color: var(--text-2);">Encrypt + Ika · Cloak · Dune SIM · Dodo</div>
+        </div>
+        <div>
+          <div class="eyebrow">Demo</div>
+          <div class="mono" style="margin-top: 6px; font-size: 13px; color: var(--text-2);">2:30 · Default-cascade hero moment</div>
+        </div>
+        <div>
+          <div class="eyebrow">Status</div>
+          <div class="mono" style="margin-top: 6px; font-size: 13px; color: var(--emerald);">Deployed · 25/25 tests passing</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════ SLIDE 2 — PROBLEM ═══════════════════ -->
+  <section class="slide" data-notes="<b>The problem.</b> Credit is the largest market on earth. Almost none of it trades — and the part that does is owned by 12 banks and a handful of CLO managers. Don't rush. Let the $100T number sit. <b>Push back if asked 'isn't Aave doing this?':</b> Aave is overcollateralized lending — it requires you to already own crypto. We're tackling unsecured/RWA credit where capital allocators care about <i>risk-tiered yield</i>, not collateral ratios.">
+    <div class="slide-inner">
+
+      <div class="ani"><span class="eyebrow eyebrow-pink">The Problem</span></div>
+
+      <h2 class="display h-big ani" style="max-width: 1200px;">
+        The $100T market<br/>that doesn't trade.
+      </h2>
+
+      <div class="divider ani" style="margin: 8px 0; max-width: 80px; background: var(--pink); height: 2px;"></div>
+
+      <div class="grid-3 ani" style="margin-top: 12px;">
+        <div class="card card-accent card-pink">
+          <div class="eyebrow" style="margin-bottom: 14px;">Opaque</div>
+          <div class="h-2" style="line-height: 1.1;">Credit lives in private balance sheets.</div>
+          <p class="body-sm" style="margin-top: 14px;">No price discovery. LPs don't know what they own until something breaks.</p>
+        </div>
+        <div class="card card-accent card-pink">
+          <div class="eyebrow" style="margin-bottom: 14px;">Illiquid</div>
+          <div class="h-2" style="line-height: 1.1;">Held to maturity. No secondary market.</div>
+          <p class="body-sm" style="margin-top: 14px;">If you want out before a loan matures, you ring a banker. Most can't.</p>
+        </div>
+        <div class="card card-accent card-pink">
+          <div class="eyebrow" style="margin-bottom: 14px;">Unprogrammable</div>
+          <div class="h-2" style="line-height: 1.1;">Waterfalls run on PDF and Excel.</div>
+          <p class="body-sm" style="margin-top: 14px;">CLO mechanics are 40-year-old plumbing dressed up by lawyers.</p>
+        </div>
+      </div>
+
+      <div class="ani" style="margin-top: 22px; display: flex; gap: 36px; align-items: baseline;">
+        <div>
+          <div class="stat-num-lg" style="color: var(--pink);">$100T+</div>
+          <div class="eyebrow" style="margin-top: 6px;">Global credit outstanding</div>
+        </div>
+        <div>
+          <div class="stat-num-lg" style="color: var(--text);">&lt;1%</div>
+          <div class="eyebrow" style="margin-top: 6px;">Tradeable on liquid markets</div>
+        </div>
+        <div>
+          <div class="stat-num-lg" style="color: var(--text-3);">12</div>
+          <div class="eyebrow" style="margin-top: 6px;">Banks that price most of it</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════ SLIDE 3 — SOLUTION ═══════════════════ -->
+  <section class="slide" data-notes="<b>The solution.</b> One vault, three risk layers. Each tranche is an SPL token that any wallet can hold and any AMM can trade. The vault doesn't ask 'which borrower do you trust?' — it asks <i>how much risk do you want to take?</i> That inversion is the whole product.">
+    <div class="slide-inner">
+
+      <div class="ani"><span class="eyebrow eyebrow-pink">The Solution</span></div>
+
+      <h2 class="display h-1 ani" style="max-width: 1100px;">
+        Three tranches. One waterfall. Tokens that markets can price.
+      </h2>
+
+      <div class="tranche-row ani" style="margin-top: 18px;">
+        <div class="tranche-card tranche-prime">
+          <div class="eyebrow" style="color: var(--prime);">Tranche 1 · Prime</div>
+          <div class="display" style="font-size: 56px; line-height: 1; margin-top: 16px; color: var(--text);">5<span style="color: var(--text-3); font-size: 30px;">%</span></div>
+          <div class="eyebrow" style="margin-top: 4px;">Target APY</div>
+          <p class="body-sm" style="margin-top: 18px; color: var(--text-2);">
+            Lowest risk. Paid <i>first</i> in yield.<br/>Absorbs losses <i>last</i>.
+          </p>
+          <div class="mono" style="font-size: 11px; color: var(--text-4); margin-top: 14px; letter-spacing: .12em;">pPRIME · SPL Token</div>
+        </div>
+        <div class="tranche-card tranche-core">
+          <div class="eyebrow" style="color: var(--core);">Tranche 2 · Core</div>
+          <div class="display" style="font-size: 56px; line-height: 1; margin-top: 16px; color: var(--text);">8<span style="color: var(--text-3); font-size: 30px;">%</span></div>
+          <div class="eyebrow" style="margin-top: 4px;">Target APY</div>
+          <p class="body-sm" style="margin-top: 18px; color: var(--text-2);">
+            Mezzanine. Balanced<br/>yield and protection.
+          </p>
+          <div class="mono" style="font-size: 11px; color: var(--text-4); margin-top: 14px; letter-spacing: .12em;">pCORE · SPL Token</div>
+        </div>
+        <div class="tranche-card tranche-alpha">
+          <div class="eyebrow" style="color: var(--alpha);">Tranche 3 · Alpha</div>
+          <div class="display" style="font-size: 56px; line-height: 1; margin-top: 16px; color: var(--text);">15<span style="color: var(--text-3); font-size: 30px;">%</span></div>
+          <div class="eyebrow" style="margin-top: 4px;">Target APY</div>
+          <p class="body-sm" style="margin-top: 18px; color: var(--text-2);">
+            First-loss capital.<br/>Paid <i>last</i>, loses <i>first</i>.
+          </p>
+          <div class="mono" style="font-size: 11px; color: var(--text-4); margin-top: 14px; letter-spacing: .12em;">pALPHA · SPL Token</div>
+        </div>
+      </div>
+
+      <div class="ani" style="margin-top: 18px; padding: 18px 22px; border-radius: 12px; background: var(--surface-1); border: 1px solid var(--border-1);">
+        <div class="grid-2" style="align-items: center;">
+          <div>
+            <div class="eyebrow eyebrow-emerald">Yield Waterfall · top-down</div>
+            <div class="mono" style="margin-top: 8px; font-size: 14px; color: var(--text);">
+              <span style="color: var(--prime);">Prime</span>
+              <span style="color: var(--text-3); margin: 0 10px;">→</span>
+              <span style="color: var(--core);">Core</span>
+              <span style="color: var(--text-3); margin: 0 10px;">→</span>
+              <span style="color: var(--alpha);">Alpha</span>
+            </div>
+          </div>
+          <div>
+            <div class="eyebrow" style="color: var(--rose);">Loss Cascade · bottom-up</div>
+            <div class="mono" style="margin-top: 8px; font-size: 14px; color: var(--text);">
+              <span style="color: var(--alpha);">Alpha</span>
+              <span style="color: var(--text-3); margin: 0 10px;">→</span>
+              <span style="color: var(--core);">Core</span>
+              <span style="color: var(--text-3); margin: 0 10px;">→</span>
+              <span style="color: var(--prime);">Prime</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════ SLIDE 4 — ARCHITECTURE ═══════════════════ -->
+  <section class="slide" data-notes="<b>Two-program architecture.</b> Credit engine and market layer are deliberately separated. An AMM bug should never become a credit-engine failure. Everything is NAV-per-share accounting in Q64.64 fixed-point — same math as ERC-4626, ported clean. Tranche tokens are classic SPL — they trade anywhere, compose into anything.">
+    <div class="slide-inner">
+
+      <div class="ani"><span class="eyebrow eyebrow-pink">How It Works</span></div>
+
+      <h2 class="display h-1 ani" style="max-width: 1000px;">Two Anchor programs.<br/>One credit primitive.</h2>
+
+      <div class="grid-2 ani" style="margin-top: 14px;">
+        <!-- prism_core -->
+        <div class="card card-accent" style="overflow: hidden;">
+          <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--pink);"></div>
+          <div class="eyebrow" style="color: var(--pink);">prism_core</div>
+          <div class="h-2" style="margin-top: 10px;">Credit risk engine</div>
+          <p class="body-sm" style="margin-top: 10px;">Vault · 3× Tranche · Loan · CreditEvent · Loss bucket · SPL mints</p>
+          <div class="mono" style="font-size: 11px; color: var(--text-3); margin-top: 18px; line-height: 1.8;">
+            deposit() <span style="color: var(--text-5);">·</span> withdraw()<br/>
+            accrue_yield() <span style="color: var(--text-5);">·</span> trigger_credit_event()<br/>
+            initialize_loan() <span style="color: var(--text-5);">·</span> disburse_loan() <span style="color: var(--text-5);">·</span> repay_loan()<br/>
+            attach_ika_collateral() <span style="color: var(--text-5);">·</span> verify_ika_collateral()<br/>
+            verify_encrypt_default() <span style="color: var(--text-5);">·</span> record_cloak_payout()
+          </div>
+        </div>
+
+        <!-- prism_amm -->
+        <div class="card card-accent" style="overflow: hidden;">
+          <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--purple);"></div>
+          <div class="eyebrow" style="color: var(--purple);">prism_amm</div>
+          <div class="h-2" style="margin-top: 10px;">Secondary market layer</div>
+          <p class="body-sm" style="margin-top: 10px;">3× constant-product pools · LP mints · 30 bps fee</p>
+          <div class="mono" style="font-size: 11px; color: var(--text-3); margin-top: 18px; line-height: 1.8;">
+            initialize_pool() <span style="color: var(--text-5);">·</span> add_liquidity()<br/>
+            remove_liquidity() <span style="color: var(--text-5);">·</span> swap()<br/><br/>
+            <span style="color: var(--text-4);">Constant product · x · y = k<br/>
+            Does not read NAV — market discovers premium/discount</span>
+          </div>
+          <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border-1);">
+            <span class="eyebrow" style="color: var(--emerald);">Blast-radius isolated</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ani" style="margin-top: 6px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;">
+        <div class="card-soft">
+          <div class="eyebrow">NAV math</div>
+          <div class="mono" style="margin-top: 8px; font-size: 13px; color: var(--text);">Q64.64 fixed-point</div>
+        </div>
+        <div class="card-soft">
+          <div class="eyebrow">Position</div>
+          <div class="mono" style="margin-top: 8px; font-size: 13px; color: var(--text);">SPL tokens · composable</div>
+        </div>
+        <div class="card-soft">
+          <div class="eyebrow">Yield</div>
+          <div class="mono" style="margin-top: 8px; font-size: 13px; color: var(--text);">Pull-pattern · visible flow</div>
+        </div>
+        <div class="card-soft">
+          <div class="eyebrow">Loss invariant</div>
+          <div class="mono" style="margin-top: 8px; font-size: 13px; color: var(--text);">Reserve = Σ tranche assets</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════ SLIDE 5 — HERO MOMENT ═══════════════════ -->
+  <section class="slide" data-notes="<b>This is the slide that wins.</b> Pre-default: all three tranches near NAV 1.00. We fire a 6,500 USDC credit event. Alpha drains to zero. Core takes a 32% hit. Prime — protected. <b>Killer line, say it slowly:</b> 'Losses don't disappear. They move.' Hold the pause. Don't talk over the bars.">
+    <div class="slide-inner">
+
+      <div class="ani"><span class="eyebrow eyebrow-pink">The Hero Moment · Default Cascade</span></div>
+
+      <h2 class="display h-1 ani" style="max-width: 1100px;">
+        Losses don't disappear.<br/><span style="color: var(--rose);">They move.</span>
+      </h2>
+
+      <div class="grid-2 ani" style="margin-top: 12px; gap: 32px;">
+
+        <!-- BEFORE -->
+        <div class="card" style="background: var(--surface-1);">
+          <div class="eyebrow" style="color: var(--text-3);">Before · NAV at t=0</div>
+          <div style="margin-top: 14px;">
+            <div class="bar-row">
+              <div class="bar-label" style="color: var(--prime);">Prime</div>
+              <div class="bar-track"><div class="bar-fill" style="width: 100%; background: var(--prime);"></div></div>
+              <div class="bar-num">1.00411</div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-label" style="color: var(--core);">Core</div>
+              <div class="bar-track"><div class="bar-fill" style="width: 100%; background: var(--core);"></div></div>
+              <div class="bar-num">1.00987</div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-label" style="color: var(--alpha);">Alpha</div>
+              <div class="bar-track"><div class="bar-fill" style="width: 100%; background: var(--alpha);"></div></div>
+              <div class="bar-num">1.00290</div>
+            </div>
+          </div>
+          <div class="mono" style="margin-top: 14px; font-size: 11px; color: var(--text-3); letter-spacing: .12em;">Vault TVL · 19,500 USDC</div>
+        </div>
+
+        <!-- AFTER -->
+        <div class="card" style="background: var(--surface-1); border-color: rgba(251,113,133,0.20); box-shadow: 0 0 30px rgba(251,113,133,0.04);">
+          <div class="eyebrow" style="color: var(--rose);">After · 6,500 USDC default</div>
+          <div style="margin-top: 14px;">
+            <div class="bar-row">
+              <div class="bar-label" style="color: var(--prime);">Prime</div>
+              <div class="bar-track"><div class="bar-fill" style="width: 100%; background: var(--prime);"></div></div>
+              <div class="bar-num" style="color: var(--emerald);">1.00411 ✓</div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-label" style="color: var(--core);">Core</div>
+              <div class="bar-track"><div class="bar-fill" style="width: 67.3%; background: var(--core);"></div></div>
+              <div class="bar-num" style="color: var(--amber);">0.6798</div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-label" style="color: var(--alpha);">Alpha</div>
+              <div class="bar-track"><div class="bar-fill" style="width: 1%; background: var(--rose);"></div></div>
+              <div class="bar-num" style="color: var(--rose);">0.0000</div>
+            </div>
+          </div>
+          <div class="mono" style="margin-top: 14px; font-size: 11px; color: var(--rose); letter-spacing: .12em;">Loss bucket · 6,500 USDC</div>
+        </div>
+
+      </div>
+
+      <div class="ani grid-3" style="margin-top: 18px;">
+        <div class="card-soft" style="text-align: left;">
+          <div class="eyebrow" style="color: var(--emerald);">User A · Prime · $5K</div>
+          <div class="mono" style="font-size: 22px; margin-top: 6px; color: var(--emerald);">+$20.55</div>
+          <div class="mono" style="font-size: 11px; color: var(--text-3); margin-top: 4px;">+0.41% · protected</div>
+        </div>
+        <div class="card-soft">
+          <div class="eyebrow" style="color: var(--amber);">User B · Core · $3K</div>
+          <div class="mono" style="font-size: 22px; margin-top: 6px; color: var(--amber);">−$960.60</div>
+          <div class="mono" style="font-size: 11px; color: var(--text-3); margin-top: 4px;">−32.0% · partial hit</div>
+        </div>
+        <div class="card-soft">
+          <div class="eyebrow" style="color: var(--rose);">User C · Alpha · $2K</div>
+          <div class="mono" style="font-size: 22px; margin-top: 6px; color: var(--rose);">−$2,000</div>
+          <div class="mono" style="font-size: 11px; color: var(--text-3); margin-top: 4px;">−100% · wiped</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════ SLIDE 6 — LIVE PRODUCT ═══════════════════ -->
+  <section class="slide" data-notes="<b>What ships.</b> Five distinct surfaces. Borrowers apply via /borrow with IKA collateral; LPs deposit at /earn; everyone trades pTRANCHE tokens at /trade; the simulation dashboard at /dashboard runs the full demo arc; /admin runs the vault. Every surface reads from the same on-chain state — useVaultState polls all PDAs every 5 seconds.">
+    <div class="slide-inner">
+
+      <div class="ani"><span class="eyebrow eyebrow-pink">Live Product</span></div>
+
+      <h2 class="display h-1 ani">Five surfaces. One credit primitive.</h2>
+
+      <div class="ani grid-3" style="margin-top: 10px;">
+
+        <div class="feature-tile">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="feature-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+            </div>
+            <div class="mono" style="font-size: 11px; letter-spacing: .18em; color: var(--text-3); text-transform: uppercase;">/dashboard</div>
+          </div>
+          <div class="h-2" style="font-size: 22px;">Simulation Harness</div>
+          <p class="body-sm">Demo arc: deposit → yield → trade → default → market reaction → withdraw.</p>
+        </div>
+
+        <div class="feature-tile">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="feature-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+            </div>
+            <div class="mono" style="font-size: 11px; letter-spacing: .18em; color: var(--text-3); text-transform: uppercase;">/earn</div>
+          </div>
+          <div class="h-2" style="font-size: 22px;">LP Marketplace</div>
+          <p class="body-sm">Deposit USDC into Prime, Core, or Alpha. Strategy presets: Safe · Balanced · Aggressive.</p>
+        </div>
+
+        <div class="feature-tile">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="feature-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 17l6-6 4 4 8-8M14 7h7v7"/></svg>
+            </div>
+            <div class="mono" style="font-size: 11px; letter-spacing: .18em; color: var(--text-3); text-transform: uppercase;">/trade</div>
+          </div>
+          <div class="h-2" style="font-size: 22px;">Tranche AMM</div>
+          <p class="body-sm">Constant-product pools for pPRIME · pCORE · pALPHA. Live market vs NAV spread.</p>
+        </div>
+
+        <div class="feature-tile">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="feature-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 4v16"/></svg>
+            </div>
+            <div class="mono" style="font-size: 11px; letter-spacing: .18em; color: var(--text-3); text-transform: uppercase;">/borrow</div>
+          </div>
+          <div class="h-2" style="font-size: 22px;">Borrower Facility</div>
+          <p class="body-sm">7-step underwriting flow. Lock BTC/ETH via IKA dWallets. Repay in USDC or fiat (Dodo).</p>
+        </div>
+
+        <div class="feature-tile">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="feature-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>
+            </div>
+            <div class="mono" style="font-size: 11px; letter-spacing: .18em; color: var(--text-3); text-transform: uppercase;">/admin</div>
+          </div>
+          <div class="h-2" style="font-size: 22px;">Mission Control</div>
+          <p class="body-sm">Init vaults · accrue yield · trigger credit events · approve loan applications.</p>
+        </div>
+
+        <div class="feature-tile" style="border-color: rgba(236,72,153,0.20); background: rgba(236,72,153,0.04);">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="feature-icon" style="border-color: rgba(236,72,153,0.4); color: var(--pink);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+            </div>
+            <div class="mono" style="font-size: 11px; letter-spacing: .18em; color: var(--pink); text-transform: uppercase;">Plus</div>
+          </div>
+          <div class="h-2" style="font-size: 22px;">Public Landing & Blog</div>
+          <p class="body-sm">Protocol narrative · waitlist · two research essays · IKA & FHE deep dives.</p>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════ SLIDE 7 — PARTNER INTEGRATIONS ═══════════════════ -->
+  <section class="slide" data-notes="<b>Every partner appears exactly where we'd otherwise need to build infrastructure ourselves.</b> IKA wires cross-chain collateral so we don't build a bridge. Encrypt does confidential default proofs so we don't build FHE. Cloak shields LP payouts so we don't build a privacy layer. Dune SIM indexes events so we don't run an indexer. Dodo handles fiat repayment so we don't integrate banks. We submit to all five tracks with one codebase.">
+    <div class="slide-inner">
+
+      <div class="ani"><span class="eyebrow eyebrow-pink">Frontier Side-Track Integrations · all wired, all on-chain</span></div>
+
+      <h2 class="display h-1 ani">Five partners. Each<br/>exactly where it belongs.</h2>
+
+      <div class="ani partner-grid" style="margin-top: 14px;">
+
+        <!-- Solana base layer -->
+        <div class="partner" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 20px; padding: 18px 22px;">
+          <div class="partner-logo" style="height: 36px; flex-shrink: 0;">
+            <!-- Solana mark: three angled bars (purple → cyan) -->
+            <svg width="48" height="36" viewBox="0 0 100 80" fill="none">
+              <defs>
+                <linearGradient id="sol1" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#9945FF"/><stop offset="1" stop-color="#14F195"/></linearGradient>
+              </defs>
+              <path d="M15 18 L85 18 L75 5 L5 5 Z" fill="url(#sol1)"/>
+              <path d="M15 48 L85 48 L75 35 L5 35 Z" fill="url(#sol1)" opacity="0.85"/>
+              <path d="M15 78 L85 78 L75 65 L5 65 Z" fill="url(#sol1)" opacity="0.70"/>
+            </svg>
+          </div>
+          <div>
+            <div class="partner-name">Solana · Anchor</div>
+            <div class="partner-role" style="margin-top: 4px;">Base layer · two programs · classic SPL</div>
+          </div>
+        </div>
+
+        <!-- Stats block -->
+        <div class="partner" style="grid-column: span 2; padding: 18px 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div>
+            <div class="stat-num" style="color: var(--text); font-size: 30px;">25/25</div>
+            <div class="partner-role" style="margin-top: 4px;">Anchor tests passing</div>
+          </div>
+          <div>
+            <div class="stat-num" style="color: var(--text); font-size: 30px;">2:30</div>
+            <div class="partner-role" style="margin-top: 4px;">Demo runtime · locked</div>
+          </div>
+        </div>
+
+        <!-- IKA (primary side track) -->
+        <div class="partner" style="border-color: rgba(236,72,153,0.25); background: rgba(236,72,153,0.04);">
+          <div class="partner-logo">
+            <!-- IKA: stylized 'i' inside hex (MPC threshold) -->
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="#ec4899" stroke-width="1.5">
+              <polygon points="16,3 28,10 28,22 16,29 4,22 4,10" />
+              <line x1="16" y1="11" x2="16" y2="22"/>
+              <circle cx="16" cy="8" r="1.2" fill="#ec4899"/>
+            </svg>
+          </div>
+          <div class="partner-name" style="color: var(--pink);">IKA Network</div>
+          <div class="partner-role">Cross-chain collateral · dWallet MPC</div>
+          <div class="mono" style="font-size: 9.5px; color: var(--text-3); margin-top: auto; letter-spacing: .15em;">Primary · $10K track</div>
+        </div>
+
+        <!-- Encrypt FHE -->
+        <div class="partner">
+          <div class="partner-logo">
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="#a855f7" stroke-width="1.5">
+              <rect x="6" y="14" width="20" height="14" rx="2"/>
+              <path d="M10 14V9a6 6 0 0 1 12 0v5"/>
+              <circle cx="16" cy="21" r="1.5" fill="#a855f7"/>
+            </svg>
+          </div>
+          <div class="partner-name">Encrypt</div>
+          <div class="partner-role">FHE default proofs</div>
+          <div class="mono" style="font-size: 9.5px; color: var(--text-3); margin-top: auto; letter-spacing: .15em;">73-byte attestation</div>
+        </div>
+
+        <!-- Cloak -->
+        <div class="partner">
+          <div class="partner-logo">
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="#8b5cf6" stroke-width="1.5">
+              <path d="M16 4 L28 10 L26 22 L16 28 L6 22 L4 10 Z"/>
+              <path d="M11 14a5 5 0 0 0 10 0" />
+            </svg>
+          </div>
+          <div class="partner-name">Cloak</div>
+          <div class="partner-role">Shielded LP payouts</div>
+          <div class="mono" style="font-size: 9.5px; color: var(--text-3); margin-top: auto; letter-spacing: .15em;">$5K · viewing keys</div>
+        </div>
+
+        <!-- Dune SIM -->
+        <div class="partner">
+          <div class="partner-logo">
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="#34d399" stroke-width="1.5">
+              <path d="M3 22 Q9 14 16 18 Q23 22 29 14"/>
+              <path d="M3 26 Q9 18 16 22 Q23 26 29 18" opacity="0.5"/>
+              <circle cx="16" cy="18" r="1.5" fill="#34d399"/>
+            </svg>
+          </div>
+          <div class="partner-name">Dune SIM</div>
+          <div class="partner-role">Real-time event indexing</div>
+          <div class="mono" style="font-size: 9.5px; color: var(--text-3); margin-top: auto; letter-spacing: .15em;">$6K plan · webhook</div>
+        </div>
+
+        <!-- Dodo Payments -->
+        <div class="partner">
+          <div class="partner-logo">
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="#fbbf24" stroke-width="1.5">
+              <rect x="4" y="8" width="24" height="16" rx="2"/>
+              <line x1="4" y1="13" x2="28" y2="13"/>
+              <line x1="8" y1="19" x2="14" y2="19"/>
+            </svg>
+          </div>
+          <div class="partner-name">Dodo Payments</div>
+          <div class="partner-role">Fiat repayment · India regional</div>
+          <div class="mono" style="font-size: 9.5px; color: var(--text-3); margin-top: auto; letter-spacing: .15em;">$5K · UPI + card</div>
+        </div>
+
+      </div>
+
+      <div class="ani" style="margin-top: 18px; font-family: var(--font-serif); font-style: italic; font-size: 20px; color: var(--text-2); border-left: 2px solid var(--pink); padding-left: 18px;">
+        &ldquo;Every external dependency appears exactly where we would otherwise need to build infrastructure ourselves.&rdquo;
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════ SLIDE 8 — WHY NOW / WHY SOLANA ═══════════════════ -->
+  <section class="slide" data-notes="<b>Why Solana.</b> Sub-cent fees make NAV-per-share accounting affordable. State compression and Q64.64 math run in 200K compute units. The Ed25519 precompile lets us verify oracle attestations in a single instruction — that's how IKA, Encrypt, and Cloak all plug in. <b>Why now:</b> RWA on-chain crossed $14B in 2025. Tokenized treasuries became table-stakes. The next 18 months are about turning that into actual <i>credit markets</i>, not just collateral wrappers.">
+    <div class="slide-inner">
+
+      <div class="ani"><span class="eyebrow eyebrow-pink">Why Now · Why Solana</span></div>
+
+      <h2 class="display h-1 ani" style="max-width: 1050px;">
+        The infrastructure to make credit programmable<br/>
+        only finished shipping <span style="color: var(--pink); font-style: italic;">this year</span>.
+      </h2>
+
+      <div class="grid-3 ani" style="margin-top: 14px;">
+        <div class="card card-accent" style="border-color: rgba(236,72,153,0.20);">
+          <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--pink);"></div>
+          <div class="eyebrow eyebrow-pink">RWA crossed $14B</div>
+          <div class="h-2" style="font-size: 22px; margin-top: 12px; line-height: 1.2;">Tokenized treasuries are normal now.</div>
+          <p class="body-sm" style="margin-top: 10px;">Tradeable on-chain credit is the next layer up — not collateral, not stables. Credit.</p>
+        </div>
+        <div class="card card-accent" style="border-color: rgba(168,85,247,0.20);">
+          <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--purple);"></div>
+          <div class="eyebrow" style="color: var(--purple);">MPC + FHE shipped</div>
+          <div class="h-2" style="font-size: 22px; margin-top: 12px; line-height: 1.2;">Cross-chain collateral and confidential proofs.</div>
+          <p class="body-sm" style="margin-top: 10px;">IKA and Encrypt make credit possible without a bridge or a public balance sheet.</p>
+        </div>
+        <div class="card card-accent" style="border-color: rgba(52,211,153,0.20);">
+          <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--emerald);"></div>
+          <div class="eyebrow" style="color: var(--emerald);">Solana fees &lt; $0.0001</div>
+          <div class="h-2" style="font-size: 22px; margin-top: 12px; line-height: 1.2;">Per-LP NAV math is finally affordable.</div>
+          <p class="body-sm" style="margin-top: 10px;">EVM gas killed structured-credit primitives. Solana's compute budget makes them trivial.</p>
+        </div>
+      </div>
+
+      <div class="ani" style="margin-top: 18px; padding: 22px 26px; border-radius: 14px; background: var(--surface-1); border: 1px solid var(--border-1);">
+        <div class="grid-4">
+          <div>
+            <div class="eyebrow">Composable</div>
+            <p class="body-sm" style="margin-top: 8px;">pTRANCHE is classic SPL — works in Kamino, Jupiter, Phoenix on day one.</p>
+          </div>
+          <div>
+            <div class="eyebrow">Permissionless</div>
+            <p class="body-sm" style="margin-top: 8px;">No KYC at the protocol layer. Any wallet can deposit, trade, or apply for a loan.</p>
+          </div>
+          <div>
+            <div class="eyebrow">Trustless settlement</div>
+            <p class="body-sm" style="margin-top: 8px;">Waterfall and cascade run in the contract. No bank, no servicer, no Excel.</p>
+          </div>
+          <div>
+            <div class="eyebrow">Auditable in real time</div>
+            <p class="body-sm" style="margin-top: 8px;">Every NAV change emits an event. Dune SIM indexes the whole credit history live.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════ SLIDE 9 — TRACTION / WHAT'S SHIPPED ═══════════════════ -->
+  <section class="slide" data-notes="<b>What's shipped, not promised.</b> Both Anchor programs are deployed on devnet, 25/25 integration tests pass on localnet including the full IKA lifecycle, the Next.js app has five live surfaces, all five side-track integrations are wired with end-to-end crypto verification scripts. The protocol works. The demo works. The submission is ready.">
+    <div class="slide-inner">
+
+      <div class="ani"><span class="eyebrow eyebrow-emerald"><span class="dot"></span>Shipped · all on devnet today</span></div>
+
+      <h2 class="display h-1 ani">Not a prototype. A protocol.</h2>
+
+      <div class="grid-4 ani" style="margin-top: 14px;">
+        <div class="card-soft" style="padding: 22px;">
+          <div class="stat-num" style="color: var(--pink); font-size: 44px;">2</div>
+          <div class="eyebrow" style="margin-top: 8px;">Anchor programs · devnet</div>
+          <div class="mono" style="margin-top: 12px; font-size: 10px; color: var(--text-4); letter-spacing: .1em; word-break: break-all; line-height: 1.5;">prism_core · prism_amm</div>
+        </div>
+        <div class="card-soft" style="padding: 22px;">
+          <div class="stat-num" style="color: var(--emerald); font-size: 44px;">25/25</div>
+          <div class="eyebrow" style="margin-top: 8px;">Integration tests passing</div>
+          <div class="mono" style="margin-top: 12px; font-size: 10px; color: var(--text-3); letter-spacing: .1em;">Full IKA lifecycle · default · recovery</div>
+        </div>
+        <div class="card-soft" style="padding: 22px;">
+          <div class="stat-num" style="color: var(--purple); font-size: 44px;">18</div>
+          <div class="eyebrow" style="margin-top: 8px;">On-chain instructions</div>
+          <div class="mono" style="margin-top: 12px; font-size: 10px; color: var(--text-3); letter-spacing: .1em;">14 core · 4 AMM</div>
+        </div>
+        <div class="card-soft" style="padding: 22px;">
+          <div class="stat-num" style="color: var(--amber); font-size: 44px;">5</div>
+          <div class="eyebrow" style="margin-top: 8px;">Sponsor tracks integrated</div>
+          <div class="mono" style="margin-top: 12px; font-size: 10px; color: var(--text-3); letter-spacing: .1em;">IKA · Encrypt · Cloak · Dune · Dodo</div>
+        </div>
+      </div>
+
+      <div class="grid-2 ani" style="margin-top: 10px;">
+        <div class="card">
+          <div class="eyebrow" style="color: var(--pink);">On-chain</div>
+          <ul style="list-style: none; padding: 0; margin-top: 12px; display: flex; flex-direction: column; gap: 9px;">
+            <li class="body-sm"><span class="check">✓</span>&nbsp;&nbsp;Vault state machine · Active · Defaulted · Resolved</li>
+            <li class="body-sm"><span class="check">✓</span>&nbsp;&nbsp;Q64.64 NAV math with unit-tested edge cases</li>
+            <li class="body-sm"><span class="check">✓</span>&nbsp;&nbsp;Reserve invariant enforced via loss-bucket transfers</li>
+            <li class="body-sm"><span class="check">✓</span>&nbsp;&nbsp;Ed25519 precompile + sysvar attestation pattern (IKA · Encrypt · Cloak)</li>
+            <li class="body-sm"><span class="check">✓</span>&nbsp;&nbsp;Multi-vault parameterized seeds — design supports N vaults</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="eyebrow" style="color: var(--purple);">Off-chain</div>
+          <ul style="list-style: none; padding: 0; margin-top: 12px; display: flex; flex-direction: column; gap: 9px;">
+            <li class="body-sm"><span class="check">✓</span>&nbsp;&nbsp;Next.js 16 app · five surfaces · live event ticker</li>
+            <li class="body-sm"><span class="check">✓</span>&nbsp;&nbsp;React Query state · 5s polling across all PDAs</li>
+            <li class="body-sm"><span class="check">✓</span>&nbsp;&nbsp;Real IKA dWallet DKG via Sui SDK (testnet)</li>
+            <li class="body-sm"><span class="check">✓</span>&nbsp;&nbsp;Three mock oracles signing byte-identical attestations</li>
+            <li class="body-sm"><span class="check">✓</span>&nbsp;&nbsp;Public landing · waitlist API · two protocol essays</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════ SLIDE 10 — CLOSING / ASK ═══════════════════ -->
+  <section class="slide" data-notes="<b>The closing.</b> Don't rush. Let the line breathe. Eye contact. <i>'Today, credit markets are opaque and illiquid. We just showed how they become programmable, transparent, and tradable.'</i> Pause. Thanks. Wait for questions.">
+    <div class="slide-inner" style="justify-content: center;">
+
+      <div class="ani"><span class="eyebrow eyebrow-pink">In Closing</span></div>
+
+      <h2 class="display h-big ani" style="max-width: 1300px;">
+        Today credit markets are<br/>
+        <span style="color: var(--text-3);">opaque</span> and <span style="color: var(--text-3);">illiquid</span>.
+      </h2>
+
+      <h2 class="display h-big ani" style="max-width: 1300px;">
+        We just showed how they become<br/>
+        <span style="color: var(--pink);">programmable</span>,
+        <span style="color: var(--purple);">transparent</span>, and
+        <span style="color: var(--emerald);">tradable</span>.
+      </h2>
+
+      <div class="divider ani" style="margin-top: 24px; max-width: 120px; height: 1px; background: var(--border-3);"></div>
+
+      <div class="ani" style="margin-top: 14px; display: flex; gap: 56px; align-items: flex-start; flex-wrap: wrap;">
+        <div>
+          <div class="eyebrow">Repo</div>
+          <div class="mono" style="font-size: 14px; margin-top: 8px; color: var(--text);">github.com/skyyycodes/PRISM-Protocol</div>
+        </div>
+        <div>
+          <div class="eyebrow">Demo</div>
+          <div class="mono" style="font-size: 14px; margin-top: 8px; color: var(--text);">prism-protocol.xyz <span style="color: var(--text-4);">· devnet</span></div>
+        </div>
+        <div>
+          <div class="eyebrow">Submissions</div>
+          <div class="mono" style="font-size: 14px; margin-top: 8px; color: var(--text);">Frontier · Encrypt+Ika · Cloak · Dune SIM · Dodo</div>
+        </div>
+      </div>
+
+      <div class="ani" style="margin-top: 32px;">
+        <span class="pill pill-pink"><span class="dot" style="background: var(--pink); box-shadow: 0 0 8px rgba(236,72,153,.6); margin-right: 0; width: 5px; height: 5px;"></span>Built for Solana Frontier · Colosseum 2026</span>
+      </div>
+
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // ─────────────────────────── Slide navigation ───────────────────────────
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  document.getElementById('total').textContent = total;
+  let idx = 0;
+
+  function show(i) {
+    idx = (i + total) % total;
+    slides.forEach((s, k) => s.classList.toggle('active', k === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('progressBar').style.width = ((idx + 1) / total * 100) + '%';
+    // Update notes panel
+    const notes = slides[idx].dataset.notes || '';
+    document.getElementById('notes').innerHTML = notes;
+  }
+  function next() { show(idx + 1); }
+  function prev() { show(idx - 1); }
+  window.next = next;
+  window.prev = prev;
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(total - 1); }
+    else if (e.key === 'n' || e.key === 'N') { document.body.classList.toggle('notes-on'); }
+    else if (e.key === 'f' || e.key === 'F') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+    else if (/^[0-9]$/.test(e.key)) {
+      const n = parseInt(e.key, 10);
+      if (n >= 1 && n <= total) show(n - 1);
+    }
+  });
+
+  // Click left/right halves to navigate
+  document.addEventListener('click', e => {
+    if (e.target.closest('.nav') || e.target.closest('.notes')) return;
+    const w = window.innerWidth;
+    if (e.clientX > w * 0.6) next();
+    else if (e.clientX < w * 0.4) prev();
+  });
+
+  // Initial render
+  show(0);
+</script>
+
+</body>
+</html>
