@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
       amountUsdCents,
       borrowerPubkey: investorPubkey,
       successUrl,
+      appUrl,
     });
 
     await recordInvestIntent({
