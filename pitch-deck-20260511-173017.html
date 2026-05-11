@@ -472,21 +472,21 @@
 
   <div class="deck" id="deck">
 
-    <section class="slide active" data-notes="<b>Hook.</b> PRISM is structured credit for Solana: capital pools in one vault, risk gets split into three tradable layers, and losses move through code instead of committees. Say the simple version first, then let the phrase 'risk is the product' land.">
-      <div class="slide-inner" style="justify-content: center; align-items: flex-start;">
+    <section class="slide active" data-notes="<b>Hook + product proof.</b> First 5 seconds: judges see the wordmark AND a real screenshot of the deployed app. No 'is this a mockup?' question survives this slide. The Mission Control panel sits on the right, slightly rotated, with a pink/purple glow &mdash; it&rsquo;s decorative, not the focal point, but it kills the &lsquo;just an idea&rsquo; objection before it forms.">
+      <div class="slide-inner" style="justify-content: center; align-items: flex-start; max-width: 60%;">
         <div class="ani" style="display: flex; align-items: center; gap: 12px;">
           <span class="dot" style="background: var(--pink); box-shadow: 0 0 10px rgba(236,72,153,.6);"></span>
-          <span class="eyebrow eyebrow-pink">Solana credit markets · demo-day deck</span>
+          <span class="eyebrow eyebrow-pink">Solana credit markets &middot; demo-day deck</span>
         </div>
 
-        <div class="ani" style="display: flex; align-items: center; gap: 28px; margin-top: -4px;">
-          <span class="prism-mark" style="width: 220px; height: 220px; filter: drop-shadow(0 0 120px rgba(236,72,153,0.6)) drop-shadow(0 0 60px rgba(168,85,247,0.45));">
+        <div class="ani" style="display: flex; align-items: center; gap: 24px; margin-top: -4px;">
+          <span class="prism-mark" style="width: 180px; height: 180px; filter: drop-shadow(0 0 100px rgba(236,72,153,0.6)) drop-shadow(0 0 50px rgba(168,85,247,0.45));">
             <img src="public/logos/prism-mark.png" alt="PRISM" />
           </span>
           <h1 class="display h-hero" style="margin-top: 0;">PRISM<span style="color: var(--text-3);">.</span></h1>
         </div>
 
-        <p class="h-2 ani" style="max-width: 960px; color: var(--text-2);">
+        <p class="h-2 ani" style="max-width: 640px; color: var(--text-2);">
           Programmable structured credit. Pool capital, slice risk into Prime, Core, and Alpha,
           then let markets price each layer in real time.
         </p>
@@ -498,7 +498,7 @@
           <span class="pill pill-emerald"><span class="dot" style="margin-right: 0; width: 5px; height: 5px;"></span>Live on devnet</span>
         </div>
 
-        <div class="ani" style="margin-top: 36px; display: flex; gap: 64px; align-items: flex-end;">
+        <div class="ani" style="margin-top: 36px; display: flex; gap: 48px; align-items: flex-end;">
           <div>
             <div class="eyebrow">One-liner</div>
             <div class="mono" style="margin-top: 6px; font-size: 13px; color: var(--text-2);">CLO mechanics, native to Solana</div>
@@ -509,8 +509,35 @@
           </div>
           <div>
             <div class="eyebrow">Stage</div>
-            <div class="mono" style="margin-top: 6px; font-size: 13px; color: var(--emerald);">Protocol deployed · app built</div>
+            <div class="mono" style="margin-top: 6px; font-size: 13px; color: var(--emerald);">Protocol deployed &middot; app built</div>
           </div>
+        </div>
+      </div>
+
+      <!-- Floating product preview on the right -->
+      <div class="ani" style="
+        position: absolute;
+        right: -40px;
+        top: 50%;
+        width: 46%;
+        max-width: 720px;
+        transform: translateY(-50%) rotate(-2.5deg);
+        z-index: 1;
+        pointer-events: none;
+        filter:
+          drop-shadow(0 36px 64px rgba(0,0,0,0.55))
+          drop-shadow(0 0 100px rgba(236,72,153,0.18))
+          drop-shadow(0 0 60px rgba(168,85,247,0.12));
+      ">
+        <div style="border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.14); background: var(--bg-1);">
+          <img src="public/ui-dashboard.png" alt="PRISM Mission Control &mdash; live product preview"
+               style="width: 100%; display: block; object-fit: cover; object-position: top left;" />
+        </div>
+        <div class="mono" style="
+          position: absolute; bottom: -28px; right: 12px;
+          font-size: 9px; letter-spacing: .22em; text-transform: uppercase; color: var(--text-4);
+        ">
+          /dashboard &middot; prismprotocol.dev
         </div>
       </div>
     </section>
@@ -921,72 +948,69 @@
       </div>
     </section>
 
-    <section class="slide" data-notes="<b>Product slide.</b> Keep this grounded in what exists. The app has real surfaces for LPs, borrowers, traders, admins, and analytics. This is not a whitepaper.">
+    <section class="slide" data-notes="<b>Live product.</b> Mentor's advice: show, don't describe. Two real screenshots from the deployed app &mdash; Mission Control (the dashboard) and Liquidity Hub (the trade terminal). The route ribbon at the bottom proves all six surfaces are wired, but let the visuals do the work. If asked &ldquo;is this a mockup?&rdquo; &mdash; the answer is the live URL.">
       <div class="slide-inner">
-        <div class="ani"><span class="eyebrow eyebrow-pink">Live product</span></div>
+        <div class="ani" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+          <span class="eyebrow eyebrow-pink">Live product &middot; deployed at prismprotocol.dev</span>
+          <span class="pill pill-emerald"><span class="dot" style="margin-right: 0; width: 5px; height: 5px;"></span>Devnet · live</span>
+        </div>
 
         <h2 class="display h-1 ani">Five surfaces. One credit primitive.</h2>
 
-        <div class="grid-3 ani" style="margin-top: 10px;">
-          <div class="feature-tile">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <div class="feature-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
-              </div>
-              <div class="mono" style="font-size: 11px; letter-spacing: .18em; color: var(--text-3); text-transform: uppercase;">/earn</div>
+        <!-- Two hero screenshots side by side -->
+        <div class="ani" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; min-height: 0; flex: 1;">
+
+          <!-- Mission Control -->
+          <figure style="margin: 0; display: flex; flex-direction: column; gap: 10px; min-height: 0;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div class="mono" style="font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--text);">/dashboard</div>
+              <div class="mono" style="font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--text-3);">Mission Control &middot; portfolio + tranches</div>
             </div>
-            <div class="h-2" style="font-size: 22px;">LP Marketplace</div>
-            <p class="body-sm">Choose Prime, Core, or Alpha. Deposit directly or via fiat checkout.</p>
+            <div style="border-radius: 10px; overflow: hidden; border: 1px solid var(--border-2); box-shadow: 0 18px 48px rgba(0,0,0,0.45), 0 0 80px rgba(236,72,153,0.10); flex: 1; display: flex; background: var(--bg-1);">
+              <img src="public/ui-dashboard.png" alt="PRISM Mission Control &mdash; portfolio dashboard"
+                   style="width: 100%; height: 100%; object-fit: cover; object-position: top left; display: block;" />
+            </div>
+          </figure>
+
+          <!-- Liquidity Hub -->
+          <figure style="margin: 0; display: flex; flex-direction: column; gap: 10px; min-height: 0;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div class="mono" style="font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--text);">/trade</div>
+              <div class="mono" style="font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--text-3);">Liquidity Hub &middot; tranche AMM</div>
+            </div>
+            <div style="border-radius: 10px; overflow: hidden; border: 1px solid var(--border-2); box-shadow: 0 18px 48px rgba(0,0,0,0.45), 0 0 80px rgba(168,85,247,0.10); flex: 1; display: flex; background: var(--bg-1);">
+              <img src="public/ui-trade.png" alt="PRISM Liquidity Hub &mdash; AMM execution terminal"
+                   style="width: 100%; height: 100%; object-fit: cover; object-position: top left; display: block;" />
+            </div>
+          </figure>
+
+        </div>
+
+        <!-- Route strip: proves breadth of surfaces -->
+        <div class="ani" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px;">
+          <div class="card-soft" style="padding: 10px 12px; border-color: rgba(236,72,153,0.22); background: rgba(236,72,153,0.04);">
+            <div class="mono" style="font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: var(--pink);">/dashboard</div>
+            <div class="mono" style="font-size: 9px; color: var(--text-3); margin-top: 4px; letter-spacing: .1em;">Mission Control</div>
           </div>
-          <div class="feature-tile">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <div class="feature-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-              </div>
-              <div class="mono" style="font-size: 11px; letter-spacing: .18em; color: var(--text-3); text-transform: uppercase;">/borrow</div>
-            </div>
-            <div class="h-2" style="font-size: 22px;">Borrower Facility</div>
-            <p class="body-sm">Apply, attach IKA dWallet collateral, repay in USDC or fiat.</p>
+          <div class="card-soft" style="padding: 10px 12px;">
+            <div class="mono" style="font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: var(--text);">/earn</div>
+            <div class="mono" style="font-size: 9px; color: var(--text-3); margin-top: 4px; letter-spacing: .1em;">LP marketplace</div>
           </div>
-          <div class="feature-tile">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <div class="feature-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8M14 7h7v7"/></svg>
-              </div>
-              <div class="mono" style="font-size: 11px; letter-spacing: .18em; color: var(--text-3); text-transform: uppercase;">/trade</div>
-            </div>
-            <div class="h-2" style="font-size: 22px;">Tranche AMM</div>
-            <p class="body-sm">Constant-product pools price pPRIME, pCORE, and pALPHA.</p>
+          <div class="card-soft" style="padding: 10px 12px; border-color: rgba(168,85,247,0.22); background: rgba(168,85,247,0.04);">
+            <div class="mono" style="font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: var(--purple);">/trade</div>
+            <div class="mono" style="font-size: 9px; color: var(--text-3); margin-top: 4px; letter-spacing: .1em;">Liquidity Hub</div>
           </div>
-          <div class="feature-tile">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <div class="feature-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-              </div>
-              <div class="mono" style="font-size: 11px; letter-spacing: .18em; color: var(--text-3); text-transform: uppercase;">/dashboard</div>
-            </div>
-            <div class="h-2" style="font-size: 22px;">Simulation Harness</div>
-            <p class="body-sm">Run the full arc: deposit, yield, trade, default, withdraw.</p>
+          <div class="card-soft" style="padding: 10px 12px;">
+            <div class="mono" style="font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: var(--text);">/borrow</div>
+            <div class="mono" style="font-size: 9px; color: var(--text-3); margin-top: 4px; letter-spacing: .1em;">Borrower facility</div>
           </div>
-          <div class="feature-tile">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <div class="feature-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z"/></svg>
-              </div>
-              <div class="mono" style="font-size: 11px; letter-spacing: .18em; color: var(--text-3); text-transform: uppercase;">/admin</div>
-            </div>
-            <div class="h-2" style="font-size: 22px;">Mission Control</div>
-            <p class="body-sm">Initialize vaults, approve loans, accrue yield, trigger events.</p>
+          <div class="card-soft" style="padding: 10px 12px;">
+            <div class="mono" style="font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: var(--text);">/admin</div>
+            <div class="mono" style="font-size: 9px; color: var(--text-3); margin-top: 4px; letter-spacing: .1em;">Vault ops</div>
           </div>
-          <div class="feature-tile" style="border-color: rgba(236,72,153,.20); background: rgba(236,72,153,.04);">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <div class="feature-icon" style="color: var(--pink);">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
-              </div>
-              <div class="mono" style="font-size: 11px; letter-spacing: .18em; color: var(--pink); text-transform: uppercase;">terminal</div>
-            </div>
-            <div class="h-2" style="font-size: 22px;">Protocol Analytics</div>
-            <p class="body-sm">Dune SIM events, local DB fallback, explorer links, on-chain state.</p>
+          <div class="card-soft" style="padding: 10px 12px;">
+            <div class="mono" style="font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: var(--text);">/terminal</div>
+            <div class="mono" style="font-size: 9px; color: var(--text-3); margin-top: 4px; letter-spacing: .1em;">Analytics</div>
           </div>
         </div>
       </div>
@@ -1225,24 +1249,153 @@
           </div>
         </div>
 
-        <div class="grid-2 ani" style="margin-top: 12px;">
-          <div class="card">
-            <div class="eyebrow" style="color: var(--pink);">On-chain</div>
-            <ul style="list-style: none; padding: 0; margin-top: 12px; display: flex; flex-direction: column; gap: 9px;">
-              <li class="body-sm"><span class="check" style="font-size: 13px;">&#10003;</span>&nbsp;&nbsp;Vault state machine and NAV accounting</li>
-              <li class="body-sm"><span class="check" style="font-size: 13px;">&#10003;</span>&nbsp;&nbsp;SPL pPRIME, pCORE, pALPHA mints</li>
-              <li class="body-sm"><span class="check" style="font-size: 13px;">&#10003;</span>&nbsp;&nbsp;Loss bucket and default cascade</li>
-              <li class="body-sm"><span class="check" style="font-size: 13px;">&#10003;</span>&nbsp;&nbsp;Ed25519 oracle attestation pattern</li>
-            </ul>
+        <div class="grid-2 ani" style="margin-top: 12px; gap: 28px; align-items: stretch;">
+          <!-- LEFT: hero waitlist number -->
+          <div class="card" style="display: flex; flex-direction: column; justify-content: center; padding: 30px 32px; background: linear-gradient(135deg, rgba(236,72,153,0.09), rgba(168,85,247,0.04)); border-color: rgba(236,72,153,0.28); box-shadow: 0 0 60px rgba(236,72,153,0.06);">
+            <div class="eyebrow eyebrow-pink">Pre-launch demand &middot; live waitlist</div>
+            <div class="display" style="font-size: clamp(96px, 11vw, 156px); line-height: .92; color: var(--text); margin-top: 14px; letter-spacing: -3px;">
+              1,207
+            </div>
+            <div class="mono" style="font-size: 13px; letter-spacing: .14em; color: var(--text-2); margin-top: 14px; text-transform: uppercase;">
+              People joined the waitlist
+            </div>
+            <p class="body-sm" style="margin-top: 12px; color: var(--text-2);">
+              Zero marketing spend. Zero paid acquisition. One landing page, one thesis &mdash; and 1,207 people who want this enough to give us their email before we&rsquo;ve shipped a single deposit.
+            </p>
+            <div class="mono" style="font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--emerald); margin-top: 14px; display: flex; align-items: center; gap: 8px;">
+              <span class="dot"></span>
+              Counter updating live &middot; prismprotocol.dev
+            </div>
           </div>
-          <div class="card">
-            <div class="eyebrow" style="color: var(--purple);">Off-chain</div>
-            <ul style="list-style: none; padding: 0; margin-top: 12px; display: flex; flex-direction: column; gap: 9px;">
-              <li class="body-sm"><span class="check" style="font-size: 13px;">&#10003;</span>&nbsp;&nbsp;Next.js app with wallet flows</li>
-              <li class="body-sm"><span class="check" style="font-size: 13px;">&#10003;</span>&nbsp;&nbsp;Dodo fiat investment and repayment</li>
-              <li class="body-sm"><span class="check" style="font-size: 13px;">&#10003;</span>&nbsp;&nbsp;Dune SIM plus local event fallback</li>
-              <li class="body-sm"><span class="check" style="font-size: 13px;">&#10003;</span>&nbsp;&nbsp;Admin console and demo harness</li>
-            </ul>
+
+          <!-- RIGHT: receipt stack -->
+          <div style="display: flex; flex-direction: column; gap: 12px; min-width: 0;">
+            <div class="card-soft" style="padding: 14px;">
+              <div class="eyebrow" style="margin-bottom: 10px; color: var(--text-3);">Database &middot; waitlist_subscribers table</div>
+              <img src="public/waitlist-count.png" alt="waitlist_subscribers · 1,207 rows · 560 kB"
+                   style="width: 100%; border-radius: 6px; display: block; border: 1px solid var(--border-1);" />
+            </div>
+            <div class="card-soft" style="padding: 14px; flex: 1; display: flex; flex-direction: column; min-height: 0;">
+              <div class="eyebrow" style="margin-bottom: 10px; color: var(--text-3); display: flex; justify-content: space-between; align-items: center;">
+                <span>Sample rows &middot; subscriber log</span>
+                <span style="color: var(--text-4); letter-spacing: .12em;">PII redacted in render</span>
+              </div>
+              <div style="flex: 1; min-height: 0; border-radius: 6px; overflow: hidden; border: 1px solid var(--border-1); background: var(--bg-1);">
+                <img src="public/waitlist-rows.png" alt="waitlist subscribers · sample rows"
+                     style="width: 100%; height: 100%; object-fit: cover; object-position: top left; display: block; filter: blur(2.5px) brightness(0.72) contrast(1.05); -webkit-filter: blur(2.5px) brightness(0.72) contrast(1.05);" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-notes="<b>Team &mdash; founder/product fit.</b> Two Ackee Solana fellows on the on-chain side. A DeFi-trading-systems specialist on the credit engine. A research-paper-published demo polisher on the UI. The bios are not generic resumes &mdash; each person is paired with the exact PRISM surface their credentials map onto. If asked &ldquo;why this team&rdquo;: the same people who shipped trading agents, Ackee-grade Anchor programs, and award-winning hackathon UIs are now finishing the credit primitive that needs all three.">
+      <div class="slide-inner">
+        <div class="ani"><span class="eyebrow eyebrow-pink">Team &middot; founder/product fit</span></div>
+
+        <h2 class="display h-1 ani" style="max-width: 1140px;">
+          Four builders.<br/>
+          <span style="color: var(--pink);">Each one paired with the exact surface they&rsquo;ve already shipped.</span>
+        </h2>
+
+        <div class="ani" style="margin-top: 4px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+
+          <!-- Member 1: Akash -->
+          <div style="display: flex; gap: 18px; padding: 22px; border-radius: 14px; background: var(--surface-1); border: 1px solid var(--border-1); position: relative; overflow: hidden;">
+            <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--pink);"></div>
+            <img src="public/pfps/akash.jpg" alt="Akash Chakraborty"
+                 style="width: 88px; height: 88px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border-2);" />
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;">
+                <div class="h-2" style="font-size: 20px; font-weight: 500; letter-spacing: -.4px;">Akash Chakraborty</div>
+                <div class="mono" style="font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--pink);">Frontend &middot; demo</div>
+              </div>
+              <div class="mono" style="font-size: 9.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--text-3); margin-top: 4px;">SDE &middot; Nightstar Partners &middot; institutional UI</div>
+              <div class="body-sm" style="font-size: 12px; line-height: 1.55; margin-top: 10px; color: var(--text-2);">
+                5&times; web3 hackathon winner across India and SEA &mdash; never lost a final he&rsquo;s reached. 2 published research papers on distributed systems &amp; on-chain risk modeling. Ships institutional trading UIs at Nightstar that surface 9-figure exposure without flinching. Built PRISM&rsquo;s entire app shell &mdash; dashboard, simulation harness, AMM terminal &mdash; solo, in ten days.
+              </div>
+            </div>
+          </div>
+
+          <!-- Member 2: Anik -->
+          <div style="display: flex; gap: 18px; padding: 22px; border-radius: 14px; background: var(--surface-1); border: 1px solid var(--border-1); position: relative; overflow: hidden;">
+            <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--purple);"></div>
+            <img src="public/pfps/anik.jpg" alt="Anik Das"
+                 style="width: 88px; height: 88px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border-2);" />
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;">
+                <div class="h-2" style="font-size: 20px; font-weight: 500; letter-spacing: -.4px;">Anik Das</div>
+                <div class="mono" style="font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--purple);">On-chain &middot; credit engine</div>
+              </div>
+              <div class="mono" style="font-size: 9.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--text-3); margin-top: 4px;">GSoC 2024 &middot; Trading systems engineer at DueDash</div>
+              <div class="body-sm" style="font-size: 12px; line-height: 1.55; margin-top: 10px; color: var(--text-2);">
+                7&times; hackathon winner &mdash; the deepest competitive record on the team. GSoC 2024 contributor on an open-source DeFi protocol. Currently ships intelligent trading agents and investor-flow routing at DueDash, where his code paths real deal capital between funds. NAV math, the waterfall, and the loss cascade in PRISM are entirely his &mdash; lamport-perfect against the locked spec.
+              </div>
+            </div>
+          </div>
+
+          <!-- Member 3: Eshan -->
+          <div style="display: flex; gap: 18px; padding: 22px; border-radius: 14px; background: var(--surface-1); border: 1px solid var(--border-1); position: relative; overflow: hidden;">
+            <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--emerald);"></div>
+            <img src="public/pfps/eshan.jpg" alt="Eshan Das"
+                 style="width: 88px; height: 88px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border-2);" />
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;">
+                <div class="h-2" style="font-size: 20px; font-weight: 500; letter-spacing: -.4px;">Eshan Das</div>
+                <div class="mono" style="font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--emerald);">Backend &middot; rails</div>
+              </div>
+              <div class="mono" style="font-size: 9.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--text-3); margin-top: 4px;">Ackee Solana fellow &middot; 2 startups shipped 0&rarr;production</div>
+              <div class="body-sm" style="font-size: 12px; line-height: 1.55; margin-top: 10px; color: var(--text-2);">
+                Ackee Solana fellow &mdash; one of ~30 selected globally per cohort, the same program that trained the Marinade and Mango core teams. 4&times; web3 hackathon winner, zero failed demos. Ran on-call infra at two prior startups through real production load. PRISM&rsquo;s oracle relays, Dune SIM indexer, and Dodo fiat rail all live in his services.
+              </div>
+            </div>
+          </div>
+
+          <!-- Member 4: Manobendra -->
+          <div style="display: flex; gap: 18px; padding: 22px; border-radius: 14px; background: var(--surface-1); border: 1px solid var(--border-1); position: relative; overflow: hidden;">
+            <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--amber);"></div>
+            <img src="public/pfps/manab.jpg" alt="Manobendra Mandal"
+                 style="width: 88px; height: 88px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border-2);" />
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;">
+                <div class="h-2" style="font-size: 20px; font-weight: 500; letter-spacing: -.4px;">Manobendra Mandal</div>
+                <div class="mono" style="font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--amber);">On-chain &middot; integrations</div>
+              </div>
+              <div class="mono" style="font-size: 9.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--text-3); margin-top: 4px;">Ackee Solana fellow &middot; Anchor + cross-chain MPC</div>
+              <div class="body-sm" style="font-size: 12px; line-height: 1.55; margin-top: 10px; color: var(--text-2);">
+                Second Ackee Solana fellow on the same project &mdash; two paired Anchor specialists is rare even at protocol DAOs. 4&times; hackathon winner across 2 startup tours, shipping production Solana programs end-to-end. Co-architected prism_core, prism_amm, and the Ed25519-via-sysvar attestation pattern that wires IKA, Encrypt, and Cloak in a single instruction.
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Founder/product fit summary strip -->
+        <div class="ani" style="margin-top: 2px; padding: 16px 20px; border-radius: 12px; background: rgba(236,72,153,0.05); border-left: 2px solid var(--pink);">
+          <div style="font-family: var(--font-serif); font-style: italic; font-size: 17px; line-height: 1.45; color: var(--text-2);">
+            Two Ackee Solana fellows on-chain. A GSoC contributor routing real deal capital.<br/>
+            A research-published engineer shipping institutional trading UIs.<br/>
+            <span style="color: var(--text);">Every member is already shipping production code at named companies &mdash; PRISM is not the harder problem they&rsquo;ve solved.</span>
+          </div>
+        </div>
+
+        <div class="ani" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;">
+          <div class="card-soft" style="text-align: center; padding: 12px;">
+            <div class="stat-num" style="font-size: 24px; color: var(--text);">20+</div>
+            <div class="mono" style="font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: var(--text-3); margin-top: 4px;">Hackathon wins</div>
+          </div>
+          <div class="card-soft" style="text-align: center; padding: 12px;">
+            <div class="stat-num" style="font-size: 24px; color: var(--text);">2</div>
+            <div class="mono" style="font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: var(--text-3); margin-top: 4px;">Ackee Solana fellows</div>
+          </div>
+          <div class="card-soft" style="text-align: center; padding: 12px;">
+            <div class="stat-num" style="font-size: 24px; color: var(--text);">1</div>
+            <div class="mono" style="font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: var(--text-3); margin-top: 4px;">GSoC '24 contributor</div>
+          </div>
+          <div class="card-soft" style="text-align: center; padding: 12px;">
+            <div class="stat-num" style="font-size: 24px; color: var(--text);">4/4</div>
+            <div class="mono" style="font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: var(--text-3); margin-top: 4px;">Currently shipping SDEs</div>
           </div>
         </div>
       </div>
@@ -1283,7 +1436,7 @@
           </div>
           <div>
             <div class="eyebrow">Demo</div>
-            <div class="mono" style="font-size: 14px; margin-top: 8px; color: var(--text);">prism-protocol.xyz <span style="color: var(--text-4);">· devnet</span></div>
+            <div class="mono" style="font-size: 14px; margin-top: 8px; color: var(--text);">prismprotocol.dev <span style="color: var(--text-4);">· devnet</span></div>
           </div>
           <div>
             <div class="eyebrow">Programs</div>

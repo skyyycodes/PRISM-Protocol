@@ -11,10 +11,11 @@ export function GET() {
   const filePath = join(process.cwd(), DECK_FILE);
   let html = readFileSync(filePath, 'utf-8');
 
-  // The standalone HTML uses `public/logos/...` paths so it works when
-  // opened directly from disk. When served via Next.js, files in `public/`
-  // are exposed at the root, so we rewrite to `/logos/...`.
-  html = html.replaceAll('src="public/logos/', 'src="/logos/');
+  // The standalone HTML uses `public/...` paths so it works when opened
+  // directly from disk. When served via Next.js, files in `public/` are
+  // exposed at the root, so we strip the `public/` prefix from every
+  // src="public/..." attribute.
+  html = html.replaceAll('src="public/', 'src="/');
 
   return new Response(html, {
     headers: {
