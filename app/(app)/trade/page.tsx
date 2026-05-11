@@ -1,4 +1,9 @@
+import { Metadata } from 'next';
 import { TradeTerminal } from '@/components/simulation/TradeTerminal';
+
+export const metadata: Metadata = {
+  title: 'Loan Operations',
+};
 
 export default function TradePage() {
   return (

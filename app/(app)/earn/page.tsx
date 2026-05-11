@@ -1,4 +1,9 @@
+import { Metadata } from 'next';
 import { MarketOverview } from '@/components/dashboard/MarketOverview';
+
+export const metadata: Metadata = {
+  title: 'Marketplace',
+};
 
 export default function EarnPage() {
   return (

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import {
   Activity,
@@ -38,6 +39,9 @@ const QUICK_LINKS = [
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminOverviewPage() {
+  useEffect(() => {
+    document.title = 'Admin Overview | PRISM Protocol';
+  }, []);
   const { vaultId } = useAdminVault();
   const vaultState = useVaultState(vaultId);
   const { applications } = useLoanApplications();

@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   CheckCircle2, 
@@ -48,6 +48,13 @@ export default function LoanDetailPage({ params }: { params: Promise<{ id: strin
   const { applications, approve, reject, updateStatus } = useLoanApplications();
 
   const app = applications.find(a => a.id === id);
+
+  useEffect(() => {
+    if (app) {
+      const displayId = app.loanId ?? id.slice(0, 8);
+      document.title = `Loan #${displayId} | PRISM Protocol`;
+    }
+  }, [app, id]);
   const vaultId = VAULT_ID;
   const vaultState = useVaultState(vaultId);
 

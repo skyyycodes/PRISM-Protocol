@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useVaultState } from '@/hooks/useVaultState';
 import { usePrismData } from '@/hooks/usePrismData';
 import { VAULT_ID, TrancheKind } from '@/app/lib/constants';
@@ -20,6 +21,9 @@ import {
 import { cn } from '@/lib/utils';
 
 export default function SimulationPage() {
+  useEffect(() => {
+    document.title = 'Protocol Simulation | PRISM Protocol';
+  }, []);
   const vaultState = useVaultState(VAULT_ID);
   const prismData = usePrismData(VAULT_ID);
 

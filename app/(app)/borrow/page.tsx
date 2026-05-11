@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useLoanApplications } from '@/hooks/useLoanApplications';
 import { BorrowerProvider } from '@/hooks/useBorrowerState';
@@ -222,6 +223,18 @@ function StatusBar() {
 
 // ─── Inner Layout ─────────────────────────────────────────────────────────────
 function BorrowerPageInner() {
+  const { publicKey } = useWallet();
+  const { getByBorrower } = useLoanApplications();
+  const existingApp = publicKey ? getByBorrower(publicKey.toBase58()) : undefined;
+
+  useEffect(() => {
+    if (existingApp?.status === 'approved' && existingApp.loanId !== undefined) {
+      document.title = 'Repayment Center | PRISM Protocol';
+    } else {
+      document.title = 'Borrower Facility | PRISM Protocol';
+    }
+  }, [existingApp]);
+
   return (
     <div data-app-scroll className="relative flex-1 overflow-y-auto px-4 pt-7 pb-4 [overscroll-behavior:contain]">
       <div className="mx-auto w-full max-w-[1800px]">
