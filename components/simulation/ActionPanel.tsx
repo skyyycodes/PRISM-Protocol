@@ -55,7 +55,7 @@ import {
   getVaultPda,
   getVaultReservePda,
 } from '@/app/lib/pda';
-import { buildPrograms } from '@/app/lib/program';
+import { buildPrograms, type AnchorWallet } from '@/app/lib/program';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import mmSecret from '@/contracts/keys/mm.json';
@@ -67,6 +67,7 @@ import {
 import { useUpsertLoan } from '@/hooks/useActiveLoans';
 import { useCloakPayout, useRecordCloakPayout } from '@/hooks/useCloakPayout';
 import { useIdentity } from '@/hooks/useIdentity';
+import { useIdentityBalances } from '@/hooks/useIdentityBalances';
 import { useSimulationActions } from '@/hooks/useSimulationActions';
 import { useSimulationLog } from '@/hooks/useSimulationLog';
 import { useReactivateVault } from '@/hooks/useReactivateVault';
@@ -111,6 +112,7 @@ export function ActionPanel() {
   const [swapAmount, setSwapAmount] = useState('10.000000');
 
   const upsertLoan = useUpsertLoan();
+  const { data: balances } = useIdentityBalances();
 
   const investorTranche =
     identity.role === 'senior'
@@ -123,13 +125,13 @@ export function ActionPanel() {
 
   const common = useMemo(() => {
     const signer = wallet || identity.keypair;
-    const { core, amm } = buildPrograms(connection, signer);
+    const { core, amm, provider } = buildPrograms(connection, signer);
     const [config] = getConfigPda(core.programId);
     const [vault] = getVaultPda(VAULT_ID, core.programId);
     const [reserve] = getVaultReservePda(vault, core.programId);
     const [lossBucket] = getLossBucketPda(vault, core.programId);
     const [loan] = getLoanPda(vault, 0, core.programId);
-    return { core, amm, config, vault, reserve, lossBucket, loan };
+    return { core, amm, provider, config, vault, reserve, lossBucket, loan };
   }, [connection, identity.keypair, wallet]);
 
   async function tokenBalance(address: Awaited<ReturnType<typeof getAssociatedTokenAddress>>) {
@@ -350,7 +352,8 @@ export function ActionPanel() {
     mutationFn: async () => {
       const amount = parseUsdc(lossAmount);
       const authorityPubkey = common.provider.publicKey;
-      const before = await snapshot(identity.identities.admin.keypair, TrancheKind.Alpha);
+      const admin = identity.identities.admin.keypair;
+      const before = await snapshot(admin, TrancheKind.Alpha);
       const seq = Number(toBigInt(vaultState.data?.vault?.creditEventSeq ?? 0));
       const signature = await common.core.methods
         .triggerCreditEvent(0, bn(amount), 5000)
@@ -496,12 +499,7 @@ export function ActionPanel() {
 
   async function sellOnAmm(signer: Keypair | AnchorWallet, kind: TrancheKind, amount: bigint, label: string) {
     const programs = buildPrograms(connection, signer);
-    const pubkey = 'publicKey' in signer ? signer.publicKey : signer.publicKey;
-    // ... wait, if it's a keypair, it has publicKey property. If it's AnchorWallet, it has publicKey property.
-    const before = await snapshot('payer' in signer ? (signer as any) : { publicKey: signer.publicKey }, kind);
-    // snapshot expects a Keypair because it uses it for ATA derivation.
-    // I should update snapshot too.
-    
+    const before = await snapshot(signer, kind);
     const [mint] = getTrancheMintPda(common.vault, kind, programs.core.programId);
     const signature = await programs.amm.methods
       .swap(bn(amount), new BN(0), 0)
@@ -515,7 +513,7 @@ export function ActionPanel() {
         tokenProgram: TOKEN_PROGRAM_ID,
       })
       .rpc({ commitment: 'confirmed' });
-    const after = await snapshot('payer' in signer ? (signer as any) : { publicKey: signer.publicKey }, kind);
+    const after = await snapshot(signer, kind);
     recordSuccess(label, signer.publicKey.toBase58(), before, after, await navSnapshot(), signature);
   }
 
