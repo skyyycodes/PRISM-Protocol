@@ -8,6 +8,13 @@ import {
   WalletProvider,
 } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
+import {
+  PhantomWalletAdapter,
+  SolflareWalletAdapter,
+  CoinbaseWalletAdapter,
+  LedgerWalletAdapter,
+  TrustWalletAdapter,
+} from "@solana/wallet-adapter-wallets";
 
 import "@solana/wallet-adapter-react-ui/styles.css";
 
@@ -22,9 +29,23 @@ export function SolanaWalletProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  // Explicit adapters for wallets that don't yet implement the Wallet Standard.
+  // Standard-compliant wallets (Phantom, Backpack, Solflare on modern versions)
+  // are also auto-detected by the adapter layer.
+  const wallets = useMemo(
+    () => [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+      new CoinbaseWalletAdapter(),
+      new LedgerWalletAdapter(),
+      new TrustWalletAdapter(),
+    ],
+    [],
+  );
+
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={[]} autoConnect>
+      <WalletProvider wallets={wallets} autoConnect={false}>
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
