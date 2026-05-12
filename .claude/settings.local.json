@@ -92,7 +92,11 @@
       "Bash(anchor build *)",
       "PowerShell(Test-Path *)",
       "Bash(read h *)",
-      "Bash(printf '%d ' 0x__TRACKED_VAR__)"
+      "Bash(printf '%d ' 0x__TRACKED_VAR__)",
+      "mcp__excalidraw__create_scene",
+      "mcp__excalidraw__delete_scene",
+      "mcp__excalidraw__edit_scene_content",
+      "mcp__excalidraw__get_scene"
     ]
   }
 }
