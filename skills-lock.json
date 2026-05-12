@@ -19,6 +19,12 @@
       "skillPath": "skills/ika-sdk/SKILL.md",
       "computedHash": "4fa148f8e6f1598b51ecfc9f7e052f95dcb9654ddfa2a29c1d828e0337ea2761"
     },
+    "remotion-best-practices": {
+      "source": "remotion-dev/skills",
+      "sourceType": "github",
+      "skillPath": "skills/remotion/SKILL.md",
+      "computedHash": "006f8413941b59eff54a7ce64851b8a2fb79e7a3a5f1a895e97a48f01482553d"
+    },
     "solana-anchor-claude-skill": {
       "source": "quiknode-labs/solana-anchor-claude-skill",
       "sourceType": "github",
