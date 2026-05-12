@@ -24,19 +24,19 @@ If you have ever wired an Anchor program by hand — copying an IDL into your re
 
 <CodeGroup>
 ```bash bun
-bun add @prism-protocol/sdk @coral-xyz/anchor @solana/web3.js @solana/spl-token
+bun add prismprotocol-sdk @coral-xyz/anchor @solana/web3.js @solana/spl-token
 ```
 
 ```bash npm
-npm install @prism-protocol/sdk @coral-xyz/anchor @solana/web3.js @solana/spl-token
+npm install prismprotocol-sdk @coral-xyz/anchor @solana/web3.js @solana/spl-token
 ```
 
 ```bash pnpm
-pnpm add @prism-protocol/sdk @coral-xyz/anchor @solana/web3.js @solana/spl-token
+pnpm add prismprotocol-sdk @coral-xyz/anchor @solana/web3.js @solana/spl-token
 ```
 
 ```bash yarn
-yarn add @prism-protocol/sdk @coral-xyz/anchor @solana/web3.js @solana/spl-token
+yarn add prismprotocol-sdk @coral-xyz/anchor @solana/web3.js @solana/spl-token
 ```
 </CodeGroup>
 
@@ -61,7 +61,7 @@ The SDK is published as ES modules with TypeScript type definitions. CommonJS co
 import {
   PRISM_CORE_PROGRAM_ID,    // PublicKey — credit engine
   PRISM_AMM_PROGRAM_ID,     // PublicKey — secondary market AMM
-} from '@prism-protocol/sdk';
+} from 'prismprotocol-sdk';
 ```
 
 These resolve to the deployed devnet addresses and override automatically when you set `NEXT_PUBLIC_PRISM_CORE_PROGRAM_ID` / `NEXT_PUBLIC_PRISM_AMM_PROGRAM_ID` environment variables.
@@ -72,7 +72,7 @@ These resolve to the deployed devnet addresses and override automatically when y
 import {
   prismCoreIdl,             // Full Anchor IDL for prism_core
   prismAmmIdl,              // Full Anchor IDL for prism_amm
-} from '@prism-protocol/sdk';
+} from 'prismprotocol-sdk';
 ```
 
 Pass these directly to `new Program(idl, provider)` to instantiate a typed Anchor program client. The IDLs are kept in lockstep with the deployed programs.
@@ -84,13 +84,13 @@ import {
   USDC_MINT,                // PublicKey of devnet USDC (Circle faucet mint)
   USDC_DECIMALS,            // 6
   USDC_BASE_UNITS,          // 1_000_000n (one USDC in micro-USD)
-} from '@prism-protocol/sdk';
+} from 'prismprotocol-sdk';
 ```
 
 ### Tranche Enum
 
 ```typescript
-import { TrancheKind } from '@prism-protocol/sdk';
+import { TrancheKind } from 'prismprotocol-sdk';
 
 TrancheKind.Prime  // 0 — paid first, absorbs losses last
 TrancheKind.Core   // 1 — intermediate
@@ -110,18 +110,18 @@ import {
   DEFAULT_FEE_BPS,          // 30 — Uniswap V2-style 0.3% AMM fee
   MAX_FEE_BPS,              // 1_000 — protocol cap at 10%
   SECONDS_PER_YEAR,         // 31_536_000
-} from '@prism-protocol/sdk';
+} from 'prismprotocol-sdk';
 ```
 
 All constants mirror the on-chain Rust values exactly so off-chain pre-flight calculations match the on-chain handler down to the last micro-USDC.
 
 ### PDA Helpers
 
-Thirteen helpers cover every program-derived address PRISM uses:
+Fifteen helpers cover every program-derived address PRISM uses:
 
 ```typescript
 import {
-  getConfigPda,                // ["config"]
+  getConfigPda,                // ["config2"]
   getVaultPda,                 // ["vault", id]
   getTranchePda,               // ["tranche", vault, kind]
   getTrancheMintPda,           // ["mint", vault, kind]
@@ -129,12 +129,14 @@ import {
   getLossBucketPda,            // ["loss_bucket", vault]
   getLoanPda,                  // ["loan", vault, loan_id]
   getCreditEventPda,           // ["credit_event", vault, seq]
-  getIkaCollateralPda,         // ["ika_collateral", loan]
+  getIkaCollateralPda,         // ["ika_collateral_v2", loan]
+  getEncryptHealthPda,         // ["encrypt_health", loan]
+  getCloakPayoutPda,           // ["cloak_payout", vault]
   getPoolPda,                  // ["amm", tranche_mint]
   getPoolTrancheReservePda,    // ["amm_tranche", tranche_mint]
   getPoolQuoteReservePda,      // ["amm_quote", tranche_mint]
   getLpMintPda,                // ["amm_lp", tranche_mint]
-} from '@prism-protocol/sdk';
+} from 'prismprotocol-sdk';
 ```
 
 Every helper returns `[PublicKey, number]` — the address and the canonical bump. The bump is precomputed and stable; you can cache it.
@@ -144,7 +146,7 @@ Every helper returns `[PublicKey, number]` — the address and the canonical bum
 The convenience factory wires a Solana connection and a `Keypair` signer into a ready-to-use pair of Anchor programs:
 
 ```typescript
-import { buildPrograms } from '@prism-protocol/sdk';
+import { buildPrograms } from 'prismprotocol-sdk';
 
 const { core, amm, provider } = buildPrograms(connection, signer);
 ```
@@ -156,7 +158,7 @@ For browser apps that use a wallet adapter, build the provider yourself with `us
 The SDK exports types generated from both IDLs so you can write strongly typed account fetches and instruction calls:
 
 ```typescript
-import type { PrismCore, PrismAmm } from '@prism-protocol/sdk';
+import type { PrismCore, PrismAmm } from 'prismprotocol-sdk';
 import type { Program } from '@coral-xyz/anchor';
 
 const core: Program<PrismCore> = /* ... */;
@@ -171,7 +173,7 @@ console.log(tranche.kind);            // { prime: {} } | { core: {} } | { alpha:
 Anchor encodes Rust enums as TypeScript discriminated unions of single-key objects. Helper unwrap utilities are exported:
 
 ```typescript
-import { stateName } from '@prism-protocol/sdk';
+import { stateName } from 'prismprotocol-sdk';
 
 stateName(tranche.kind);       // "prime"
 stateName(vault.state);        // "active" | "defaulted" | "resolved"
@@ -179,15 +181,15 @@ stateName(vault.state);        // "active" | "defaulted" | "resolved"
 
 ## Errors
 
-`prism_core` defines 18 typed errors and `prism_amm` defines 5. The SDK exports them as enums with both the variant name and the Anchor error code:
+`prism_core` defines 29 typed errors and `prism_amm` defines 5. The SDK exports them as enums with both the variant name and the Anchor error code:
 
 ```typescript
-import { PrismCoreError, PrismAmmError } from '@prism-protocol/sdk';
+import { PrismCoreError, PrismAmmError } from 'prismprotocol-sdk';
 
 PrismCoreError.VaultPaused                      // 6001
 PrismCoreError.TrancheWipedNoDepositsAllowed    // 6012
 PrismCoreError.OracleSignatureInvalid           // 6015
-PrismAmmError.SlippageExceeded                  // 7001
+PrismAmmError.SlippageExceeded                  // 6001
 ```
 
 ### Decoding Errors
@@ -195,7 +197,7 @@ PrismAmmError.SlippageExceeded                  // 7001
 Anchor wraps program errors in a structured object. Use the SDK's `decodeAnchorError` helper to surface a typed enum value plus a human-readable message:
 
 ```typescript
-import { decodeAnchorError } from '@prism-protocol/sdk';
+import { decodeAnchorError } from 'prismprotocol-sdk';
 
 try {
   await core.methods.deposit(kind, amount).accounts({ /* ... */ }).rpc();
@@ -215,10 +217,10 @@ The SDK is designed for tree-shaking. Only the helpers you import end up in your
 
 ```typescript
 // ✅ Only ~5 KB of PDA helpers + types in your bundle
-import { getVaultPda, getTranchePda, TrancheKind } from '@prism-protocol/sdk';
+import { getVaultPda, getTranchePda, TrancheKind } from 'prismprotocol-sdk';
 
 // ⚠️ Pulls the full IDL JSON (~80 KB) — fine for app code, avoid in shared libs
-import { prismCoreIdl } from '@prism-protocol/sdk';
+import { prismCoreIdl } from 'prismprotocol-sdk';
 ```
 
 The IDLs are intentionally separate entry points so a "read PDAs only" usage stays small.
@@ -236,7 +238,7 @@ import {
   getVaultPda,
   getTranchePda,
   getVaultReservePda,
-} from '@prism-protocol/sdk';
+} from 'prismprotocol-sdk';
 import { Connection } from '@solana/web3.js';
 import { Keypair } from '@solana/web3.js';
 
