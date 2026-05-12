@@ -76,7 +76,7 @@ PRISM uses Program-Derived Addresses for every protocol-controlled account. Use 
 
 | PDA | Seeds | Owner program | SDK helper |
 | --- | --- | --- | --- |
-| `GlobalConfig` | `["config"]` | `prism_core` | `getConfigPda()` |
+| `GlobalConfig` | `["config2"]` | `prism_core` | `getConfigPda()` |
 | `Vault` | `["vault", vault_id_le_bytes]` | `prism_core` | `getVaultPda(id)` |
 | `Tranche` | `["tranche", vault, [kind]]` | `prism_core` | `getTranchePda(vault, kind)` |
 | `Tranche Mint` | `["mint", vault, [kind]]` | `prism_core` | `getTrancheMintPda(vault, kind)` |
@@ -84,7 +84,9 @@ PRISM uses Program-Derived Addresses for every protocol-controlled account. Use 
 | `Loss bucket` | `["loss_bucket", vault]` | `prism_core` | `getLossBucketPda(vault)` |
 | `Loan` | `["loan", vault, loan_id_le_bytes]` | `prism_core` | `getLoanPda(vault, id)` |
 | `CreditEvent` | `["credit_event", vault, seq_le_bytes]` | `prism_core` | `getCreditEventPda(vault, seq)` |
-| `IkaCollateral` | `["ika_collateral", loan]` | `prism_core` | `getIkaCollateralPda(loan)` |
+| `IkaCollateral` | `["ika_collateral_v2", loan]` | `prism_core` | `getIkaCollateralPda(loan)` |
+| `EncryptHealth` | `["encrypt_health", loan]` | `prism_core` | `getEncryptHealthPda(loan)` |
+| `CloakPayout` | `["cloak_payout", vault]` | `prism_core` | `getCloakPayoutPda(vault)` |
 | `AmmPool` | `["amm", tranche_mint]` | `prism_amm` | `getPoolPda(trancheMint)` |
 | `AMM Tranche reserve` | `["amm_tranche", tranche_mint]` | `prism_amm` | `getPoolTrancheReservePda(trancheMint)` |
 | `AMM Quote reserve` | `["amm_quote", tranche_mint]` | `prism_amm` | `getPoolQuoteReservePda(trancheMint)` |
@@ -115,7 +117,7 @@ import {
   getPoolTrancheReservePda,
   getPoolQuoteReservePda,
   getLpMintPda,
-} from '@prism-protocol/sdk';
+} from 'prismprotocol-sdk';
 
 const VAULT_ID = 1;
 const LOAN_ID = 0;

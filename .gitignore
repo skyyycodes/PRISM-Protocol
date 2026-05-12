@@ -20,3 +20,6 @@ contracts/target/
 scratch/
 test-ledger/
 tsconfig.tsbuildinfo
+
+# SDK build output
+sdk/dist/

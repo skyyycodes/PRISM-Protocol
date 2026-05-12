@@ -41,7 +41,7 @@ Before invoking `deposit`, verify four conditions client-side. The on-chain hand
 | User has enough USDC | `userUsdcAta.amount >= amount` |
 
 ```typescript
-import { getConfigPda, getTranchePda, getVaultPda, TrancheKind } from '@prism-protocol/sdk';
+import { getConfigPda, getTranchePda, getVaultPda, TrancheKind } from 'prismprotocol-sdk';
 
 const [config] = getConfigPda();
 const [vault] = getVaultPda(0);
@@ -82,7 +82,7 @@ import {
   getTranchePda,
   getVaultPda,
   getVaultReservePda,
-} from '@prism-protocol/sdk';
+} from 'prismprotocol-sdk';
 
 const VAULT_ID = 0;
 const KIND = TrancheKind.Prime;
@@ -150,7 +150,7 @@ NAV is unchanged after a deposit — the numerator and denominator increase prop
 Use this when you want to show the user how many tranche tokens they will receive *before* signing:
 
 ```typescript
-import { Q64_ONE } from '@prism-protocol/sdk';
+import { Q64_ONE } from 'prismprotocol-sdk';
 
 function expectedShares(usdcMicro: bigint, navQ: bigint, totalSupply: bigint): bigint {
   if (totalSupply === 0n) return usdcMicro;       // first deposit: 1:1
@@ -303,7 +303,7 @@ The on-chain handler raises typed errors. Use the SDK's `decodeAnchorError` help
 | Custom: `BorrowerMismatch` | Wrong signer for `accrue_yield` | Use the borrower account stored on the loan |
 
 ```typescript
-import { decodeAnchorError } from '@prism-protocol/sdk';
+import { decodeAnchorError } from 'prismprotocol-sdk';
 
 try {
   await core.methods.deposit(KIND, AMOUNT).accounts({ /* ... */ }).rpc();

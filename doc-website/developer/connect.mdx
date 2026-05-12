@@ -17,7 +17,7 @@ This page walks through every variation — server-side keypairs, browser wallet
 
 ```text
 ┌──────────────────┐     ┌──────────────────┐     ┌──────────────────────┐
-│ @solana/web3.js  │────▶│ @coral-xyz/anchor│────▶│ @prism-protocol/sdk  │
+│ @solana/web3.js  │────▶│ @coral-xyz/anchor│────▶│ prismprotocol-sdk  │
 │ Connection       │     │ AnchorProvider   │     │ buildPrograms()      │
 │ (RPC + WS)       │     │ Program(idl)     │     │ → { core, amm }      │
 └──────────────────┘     └──────────────────┘     └──────────────────────┘
@@ -121,8 +121,8 @@ Every read or write you make from the SDK passes through this stack. The SDK doe
 
     ```typescript
     import { Program, type Idl } from '@coral-xyz/anchor';
-    import { prismCoreIdl, prismAmmIdl } from '@prism-protocol/sdk';
-    import type { PrismCore, PrismAmm } from '@prism-protocol/sdk';
+    import { prismCoreIdl, prismAmmIdl } from 'prismprotocol-sdk';
+    import type { PrismCore, PrismAmm } from 'prismprotocol-sdk';
 
     const core = new Program<PrismCore>(prismCoreIdl as Idl, provider);
     const amm = new Program<PrismAmm>(prismAmmIdl as Idl, provider);
@@ -131,7 +131,7 @@ Every read or write you make from the SDK passes through this stack. The SDK doe
     Or use the convenience factory for keypair signers:
 
     ```typescript
-    import { buildPrograms } from '@prism-protocol/sdk';
+    import { buildPrograms } from 'prismprotocol-sdk';
 
     const { core, amm, provider } = buildPrograms(connection, signer);
     ```
@@ -145,7 +145,7 @@ Every read or write you make from the SDK passes through this stack. The SDK doe
 Every account type has `fetch` (throws if missing) and `fetchNullable` (returns `null`):
 
 ```typescript
-import { getConfigPda, getVaultPda } from '@prism-protocol/sdk';
+import { getConfigPda, getVaultPda } from 'prismprotocol-sdk';
 
 const [configPda] = getConfigPda();
 const [vaultPda]  = getVaultPda(0);
@@ -166,7 +166,7 @@ console.log('oracle count: ', config.oracleAllowlist.length);
 Promise.all is fine for a handful of accounts. For dashboards that read dozens at once, prefer `getMultipleAccountsInfo` and decode manually — one network round trip instead of N:
 
 ```typescript
-import { TrancheKind, getTranchePda } from '@prism-protocol/sdk';
+import { TrancheKind, getTranchePda } from 'prismprotocol-sdk';
 
 const tranchePdas = [TrancheKind.Prime, TrancheKind.Core, TrancheKind.Alpha].map(
   (kind) => getTranchePda(vaultPda, kind)[0],
@@ -185,7 +185,7 @@ console.log(tranches.map((t) => t?.totalAssets.toString()));
 NAV-per-share is stored as a Q64.64 fixed-point `u128`. `Q64_ONE = 2^64` represents the value `1.0`. Convert with the SDK helper or inline:
 
 ```typescript
-import { Q64_ONE, formatNavQ } from '@prism-protocol/sdk';
+import { Q64_ONE, formatNavQ } from 'prismprotocol-sdk';
 
 // Helper — returns a string like "1.004110"
 formatNavQ(tranche.navPerShareQ);
