@@ -239,9 +239,10 @@ export default function DuneSimArticlePage() {
                 </div>
                 <div className="grid gap-px border border-white/10 bg-white/10">
                   {[
-                    ["Endpoint", "https://api.dune.com/api/v1/sim/solana"],
-                    ["Auth", "X-Dune-API-Key header"],
-                    ["Query", "/vault/{vaultId}/tranches"],
+                    ["Endpoint", "https://api.sim.dune.com"],
+                    ["Auth", "X-Sim-Api-Key header"],
+                    ["Query", "/beta/svm/transactions/{address}"],
+                    ["Env var", "DUNE_SIM_API_KEY"],
                     ["Latency", "sub-second"],
                     ["Infrastructure", "zero — Dune manages it"],
                   ].map(([label, value]) => (
