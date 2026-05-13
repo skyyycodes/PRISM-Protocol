@@ -1236,10 +1236,10 @@ export function BorrowingWorkflow() {
                : isApproved ? <CheckCircle2 className="h-4 w-4" />
                : <Clock className="h-4 w-4" />}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex flex-col gap-1">
               <div className="font-mono text-xs uppercase tracking-[0.25em] text-white/25">Current Required Action</div>
               <div className={cn(
-                'text-sm font-bold leading-tight',
+                'text-sm font-bold leading-snug',
                 loanIsRepaid ? 'text-blue-400'
                 : loanIsActive ? 'text-amber-200'
                 : isLocked ? 'text-emerald-400'
@@ -1255,7 +1255,7 @@ export function BorrowingWorkflow() {
                  : isAwaitingOrigin ? 'Awaiting On-Chain Origination'
                  : 'Application Under Review'}
               </div>
-              <div className="font-mono text-xs text-white/25 mt-0.5 truncate">
+              <div className="font-mono text-xs text-white/25 truncate">
                 {loanIsRepaid
                   ? 'Facility closed · release IKA collateral when ready'
                   : loanIsActive
