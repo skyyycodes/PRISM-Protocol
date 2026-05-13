@@ -116,7 +116,7 @@ export async function fetchProtocolEvents(
 
 export async function fetchDuneBalances(address: string): Promise<FetchBalancesResult> {
   try {
-    const res = await fetch(`/api/dune?endpoint=v1/solana/balances/${address}`);
+    const res = await fetch(`/api/dune?endpoint=beta/svm/balances/${address}`);
     if (!res.ok) return { wallet_address: address, balances: [] };
     const data = await res.json();
     return { wallet_address: address, balances: data.balances ?? [] };

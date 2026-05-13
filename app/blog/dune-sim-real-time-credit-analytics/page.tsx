@@ -247,7 +247,7 @@ export default function DuneSimArticlePage() {
                     ["Auth", "X-Sim-Api-Key header"],
                     ["Env var", "DUNE_SIM_API_KEY"],
                     ["Tx endpoint", "/beta/svm/transactions/{address}"],
-                    ["Balance endpoint", "/v1/solana/balances/{address}"],
+                    ["Balance endpoint", "/beta/svm/balances/{address}"],
                     ["Latency", "sub-second"],
                     ["Infrastructure", "zero — Dune manages it"],
                   ].map(([label, value]) => (

@@ -1,11 +1,12 @@
 'use client';
 
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Wallet } from 'lucide-react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 
 import { useEvents } from '@/hooks/useEvents';
 import { useDuneBalances } from '@/hooks/useDuneBalances';
 import { useSimulationLog } from '@/hooks/useSimulationLog';
-import { PRISM_CORE_PROGRAM_ID } from '@/app/lib/constants';
 import type { ProtocolEvent } from '@/app/lib/dune-sim';
 
 const EVENT_STYLES: Record<string, { dot: string; badge: string }> = {
@@ -68,7 +69,10 @@ function EventRow({ event, isLocal }: { event: ProtocolEvent; isLocal?: boolean 
 
 export function EventTickerPanel() {
   const { data, isFetching } = useEvents();
-  const { data: balances } = useDuneBalances(PRISM_CORE_PROGRAM_ID.toBase58());
+  const { publicKey } = useWallet();
+  const { setVisible } = useWalletModal();
+  const walletAddress = publicKey?.toBase58() ?? null;
+  const { data: balances, isFetching: balancesFetching } = useDuneBalances(walletAddress ?? '');
   const { entries: logEntries } = useSimulationLog();
 
   const hasDuneData = data.duneCount > 0;
@@ -96,21 +100,46 @@ export function EventTickerPanel() {
         </div>
       </div>
 
-      {/* Dune SIM API status — always visible so the integration is clear */}
-      <div className="mb-4 flex items-center gap-6 rounded border border-[#FF6154]/15 bg-[#FF6154]/5 px-4 py-2.5">
-        <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-[#FF6154]/60">Dune SIM API</span>
-        <div className="flex flex-1 flex-wrap items-center gap-x-6 gap-y-1 font-mono text-[10px] text-white/35">
-          <span>
-            <span className="text-white/20">GET</span>{' '}
-            /beta/svm/transactions/…{' '}
-            <span className="text-white/50">{data.duneCount} results</span>
-          </span>
-          <span>
-            <span className="text-white/20">GET</span>{' '}
-            /v1/solana/balances/…{' '}
-            <span className="text-white/50">{balances.balances.length} tokens</span>
-          </span>
+      {/* Dune SIM API status */}
+      <div className="mb-4 rounded border border-[#FF6154]/15 bg-[#FF6154]/5 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+          <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-[#FF6154]/60">Dune SIM API</span>
+          <div className="flex flex-1 flex-wrap items-center gap-x-6 gap-y-1 font-mono text-[10px] text-white/35">
+            <span>
+              <span className="text-white/20">GET</span>{' '}
+              /beta/svm/transactions/…{' '}
+              <span className="text-white/50">{data.duneCount} results</span>
+            </span>
+            <span>
+              <span className="text-white/20">GET</span>{' '}
+              /beta/svm/balances/…{' '}
+              {walletAddress
+                ? <span className="text-white/50">{balancesFetching ? '…' : `${balances.balances.length} tokens`}</span>
+                : <button onClick={() => setVisible(true)} className="inline-flex items-center gap-1 text-[#FF6154]/60 hover:text-[#FF6154] transition-colors cursor-pointer">
+                    <Wallet className="h-2.5 w-2.5" />
+                    connect wallet to fetch
+                  </button>
+              }
+            </span>
+          </div>
         </div>
+
+        {/* Show balances if wallet connected and Dune returned data */}
+        {walletAddress && balances.balances.length > 0 && (
+          <div className="mt-2.5 flex flex-wrap gap-3 border-t border-[#FF6154]/10 pt-2.5">
+            {balances.balances.map((b) => (
+              <span key={b.symbol} className="font-mono text-[10px] text-white/50">
+                <span className="text-white/70">{b.amount}</span> {b.symbol}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {walletAddress && balances.balances.length === 0 && !balancesFetching && (
+          <p className="mt-1.5 font-mono text-[10px] text-white/25">
+            No mainnet tokens found · Dune SIM indexes mainnet only
+          </p>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-md border border-white/10 bg-black/35">

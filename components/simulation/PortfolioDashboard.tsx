@@ -18,6 +18,7 @@ import { useUserPosition } from '@/hooks/useUserPosition';
 import { useVaultState } from '@/hooks/useVaultState';
 import { useLoanApplications } from '@/hooks/useLoanApplications';
 
+import { useDuneBalances } from '@/hooks/useDuneBalances';
 import { KPIStrip } from '@/components/dashboard/KPIStrip';
 import { DashboardHero } from '@/components/dashboard/DashboardHero';
 import { LoansSection } from '@/components/dashboard/LoansSection';
@@ -274,6 +275,9 @@ function relTime(unixSec: number): string {
 
 function HorizontalTicker() {
   const { data: duneEvents, isFetching } = useEvents();
+  const { publicKey } = useWallet();
+  const { setVisible } = useWalletModal();
+  const { data: balances } = useDuneBalances(publicKey?.toBase58() ?? '');
   const { entries: logEntries } = useSimulationLog();
 
   const hasDuneData = duneEvents.duneCount > 0;
@@ -288,16 +292,43 @@ function HorizontalTicker() {
   const events = hasDuneData ? duneEvents.events.slice(0, 20) : localEvents;
   const isLocal = !hasDuneData;
 
+  const header = (
+    <div className="flex items-center gap-3 border-b border-white/[0.04] px-5 py-2.5">
+      <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.25em] text-white/18">Live Events</span>
+      <div className="h-px flex-1 bg-white/[0.04]" />
+      <div className="flex items-center gap-3">
+        {isFetching && <RefreshCw className="h-2.5 w-2.5 animate-spin text-white/18" />}
+        {/* Endpoint 1: transactions */}
+        <span className="font-mono text-[9px] text-white/20">
+          {duneEvents.duneCount > 0 ? `${duneEvents.duneCount} events` : 'no mainnet events'}
+        </span>
+        <span className="h-3 w-px bg-white/[0.08]" />
+        {/* Endpoint 2: balances */}
+        <span className="font-mono text-[9px] text-white/20">
+          {publicKey
+            ? balances.balances.length > 0
+              ? balances.balances.map(b => `${b.amount} ${b.symbol}`).join(' · ')
+              : '0 tokens'
+            : <button onClick={() => setVisible(true)} className="text-[#FF6154]/50 hover:text-[#FF6154] transition-colors cursor-pointer">connect wallet</button>
+          }
+        </span>
+        <span className="h-3 w-px bg-white/[0.08]" />
+        {/* Dune SIM branding */}
+        <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#FF6154]/50">
+          Dune SIM{isLocal ? ' · devnet' : ' · live'}
+        </span>
+      </div>
+    </div>
+  );
+
   if (events.length === 0) {
     return (
       <section className="overflow-hidden rounded-xl border border-white/[0.08] backdrop-blur-md bg-white/[0.03]">
-        <div className="flex items-center gap-4 px-5 py-3.5">
-          <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.25em] text-white/18">Live Events</span>
-          <div className="h-px flex-1 bg-white/[0.04]" />
+        {header}
+        <div className="flex items-center justify-end px-5 py-3.5">
           <span className="font-mono text-[11px] text-white/14">
             {isFetching ? 'Fetching on-chain activity…' : 'No events yet · run a simulation action'}
           </span>
-          {isFetching && <RefreshCw className="h-3 w-3 animate-spin text-white/18" />}
         </div>
       </section>
     );
@@ -307,14 +338,7 @@ function HorizontalTicker() {
 
   return (
     <section className="overflow-hidden rounded-xl border border-white/[0.08] backdrop-blur-md bg-white/[0.03]">
-      <div className="flex items-center gap-3 border-b border-white/[0.04] px-5 py-2.5">
-        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.25em] text-white/18">Live Events</span>
-        <div className="h-px flex-1 bg-white/[0.04]" />
-        <div className="flex items-center gap-1.5">
-          {isFetching && <RefreshCw className="h-2.5 w-2.5 animate-spin text-white/18" />}
-          <span className="font-mono text-[9px] text-white/14">dune sim{isLocal ? ' · devnet' : ' · live'}</span>
-        </div>
-      </div>
+      {header}
 
       <div className="relative overflow-hidden py-3">
         <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-black/60 to-transparent" />
