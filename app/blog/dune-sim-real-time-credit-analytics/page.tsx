@@ -70,23 +70,27 @@ const prismEvents = [
 const dashboardPanels = [
   {
     panel: "Event Ticker",
+    source: "Dune SIM",
     description:
-      "A live stream of every protocol event in chronological order. Deposits, yield epochs, credit events, AMM swaps — all visible in real time as they land on-chain.",
+      "A live stream of every protocol event in chronological order. Deposits, yield epochs, credit events, AMM swaps — all pulled from the /beta/svm/transactions endpoint and labeled by instruction type.",
+  },
+  {
+    panel: "Account Balances",
+    source: "Dune SIM",
+    description:
+      "SPL token balances for protocol-controlled accounts queried via /v1/solana/balances. Shows live USDC holdings across vault reserve and tranche accounts without building a custom RPC crawler.",
   },
   {
     panel: "NAV Chart",
+    source: "On-chain RPC",
     description:
-      "Net Asset Value per tranche over time. Reconstructed from YieldDistributed and LossApplied events. The chart shows exactly when each credit event hit and how it moved tranche pricing.",
+      "Net Asset Value per tranche derived from on-chain account state. Read directly from the Anchor program accounts via RPC — not Dune — since NAV is a computed field, not an emitted event.",
   },
   {
-    panel: "TVL Tracker",
+    panel: "TVL & AMM Prices",
+    source: "On-chain RPC",
     description:
-      "Total Value Locked across Prime, Core, and Alpha — updated on every deposit and withdrawal. The floor for capital efficiency and the key metric for protocol health.",
-  },
-  {
-    panel: "AMM Price Feed",
-    description:
-      "pPRIME, pCORE, and pALPHA token prices derived from SwapExecuted events. The market's real-time view of how much each risk layer is worth.",
+      "Total Value Locked and pPRIME / pCORE / pALPHA token prices read from program accounts via RPC. Updated every 5 seconds by the useVaultState polling hook.",
   },
 ];
 
@@ -99,11 +103,11 @@ const withoutDune = [
 ];
 
 const withDune = [
-  "Single API key gives access to all PRISM events with sub-second latency.",
-  "NAV, TVL, yield, and AMM data update in real time without custom infrastructure.",
-  "Credit event log is complete and auditable from day one.",
-  "Dashboard never drifts — Dune SIM stays in sync with the chain.",
-  "Transparency is the reality: every number on the dashboard traces to an on-chain event.",
+  "Single API key gives access to protocol transaction history and account balances.",
+  "Event ticker and balance panel update in real time — no custom infrastructure.",
+  "Credit event log is complete and auditable from day one via /beta/svm/transactions.",
+  "SPL token balances queryable instantly via /v1/solana/balances — no RPC crawling.",
+  "Two endpoints, zero indexer maintenance: Dune SIM stays in sync with the chain.",
 ];
 
 function BulletList({ items }: { items: string[] }) {
@@ -239,10 +243,11 @@ export default function DuneSimArticlePage() {
                 </div>
                 <div className="grid gap-px border border-white/10 bg-white/10">
                   {[
-                    ["Endpoint", "https://api.sim.dune.com"],
+                    ["Base URL", "https://api.sim.dune.com"],
                     ["Auth", "X-Sim-Api-Key header"],
-                    ["Query", "/beta/svm/transactions/{address}"],
                     ["Env var", "DUNE_SIM_API_KEY"],
+                    ["Tx endpoint", "/beta/svm/transactions/{address}"],
+                    ["Balance endpoint", "/v1/solana/balances/{address}"],
                     ["Latency", "sub-second"],
                     ["Infrastructure", "zero — Dune manages it"],
                   ].map(([label, value]) => (
@@ -288,6 +293,9 @@ export default function DuneSimArticlePage() {
                   <div key={item.panel} className="flex gap-6 bg-black/80 p-5">
                     <div className="w-36 shrink-0">
                       <div className="font-display text-lg leading-tight text-white">{item.panel}</div>
+                      <div className={`mt-1 font-mono text-[10px] uppercase tracking-wider ${item.source === "Dune SIM" ? "text-[#eca8d6]/60" : "text-white/25"}`}>
+                        {item.source}
+                      </div>
                     </div>
                     <p className="text-sm leading-6 text-white/55">{item.description}</p>
                   </div>

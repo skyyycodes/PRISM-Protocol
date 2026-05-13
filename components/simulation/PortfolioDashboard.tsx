@@ -276,7 +276,7 @@ function HorizontalTicker() {
   const { data: duneEvents, isFetching } = useEvents();
   const { entries: logEntries } = useSimulationLog();
 
-  const hasDuneData = duneEvents.length > 0;
+  const hasDuneData = duneEvents.duneCount > 0;
   const localEvents: ProtocolEvent[] = logEntries.slice(0, 20).map((e) => ({
     signature: e.id,
     timestamp: Math.floor(new Date(e.timestamp).getTime() / 1000),
@@ -285,7 +285,7 @@ function HorizontalTicker() {
     signer: e.role,
   }));
 
-  const events = hasDuneData ? duneEvents.slice(0, 20) : localEvents;
+  const events = hasDuneData ? duneEvents.events.slice(0, 20) : localEvents;
   const isLocal = !hasDuneData;
 
   if (events.length === 0) {
@@ -312,7 +312,7 @@ function HorizontalTicker() {
         <div className="h-px flex-1 bg-white/[0.04]" />
         <div className="flex items-center gap-1.5">
           {isFetching && <RefreshCw className="h-2.5 w-2.5 animate-spin text-white/18" />}
-          <span className="font-mono text-[9px] text-white/14">{isLocal ? 'devnet sim' : 'dune sim'}</span>
+          <span className="font-mono text-[9px] text-white/14">dune sim{isLocal ? ' · devnet' : ' · live'}</span>
         </div>
       </div>
 

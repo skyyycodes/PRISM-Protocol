@@ -3,14 +3,16 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { PRISM_CORE_PROGRAM_ID } from '@/app/lib/constants';
-import { fetchProtocolEvents, type ProtocolEvent } from '@/app/lib/dune-sim';
+import { fetchProtocolEvents, type FetchEventsResult } from '@/app/lib/dune-sim';
+
+const EMPTY: FetchEventsResult = { events: [], duneCount: 0 };
 
 export function useEvents() {
-  return useQuery<ProtocolEvent[]>({
+  return useQuery<FetchEventsResult>({
     queryKey: ['dune-events', PRISM_CORE_PROGRAM_ID.toBase58()],
     queryFn: () => fetchProtocolEvents(PRISM_CORE_PROGRAM_ID.toBase58()),
     refetchInterval: 15_000,
     staleTime: 10_000,
-    initialData: [],
+    initialData: EMPTY,
   });
 }

@@ -3,7 +3,9 @@
 import { RefreshCw } from 'lucide-react';
 
 import { useEvents } from '@/hooks/useEvents';
+import { useDuneBalances } from '@/hooks/useDuneBalances';
 import { useSimulationLog } from '@/hooks/useSimulationLog';
+import { PRISM_CORE_PROGRAM_ID } from '@/app/lib/constants';
 import type { ProtocolEvent } from '@/app/lib/dune-sim';
 
 const EVENT_STYLES: Record<string, { dot: string; badge: string }> = {
@@ -65,12 +67,12 @@ function EventRow({ event, isLocal }: { event: ProtocolEvent; isLocal?: boolean 
 }
 
 export function EventTickerPanel() {
-  const { data: duneEvents, isFetching } = useEvents();
+  const { data, isFetching } = useEvents();
+  const { data: balances } = useDuneBalances(PRISM_CORE_PROGRAM_ID.toBase58());
   const { entries: logEntries } = useSimulationLog();
 
-  const hasDuneData = duneEvents.length > 0;
+  const hasDuneData = data.duneCount > 0;
 
-  // When Dune SIM returns data (mainnet), show it. On devnet fall back to local simulation log.
   const localEvents: ProtocolEvent[] = logEntries.slice(0, 15).map((e) => ({
     signature: e.id,
     timestamp: Math.floor(new Date(e.timestamp).getTime() / 1000),
@@ -79,16 +81,35 @@ export function EventTickerPanel() {
     signer: e.role,
   }));
 
-  const events = hasDuneData ? duneEvents.slice(0, 15) : localEvents;
+  const events = hasDuneData ? data.events.slice(0, 15) : localEvents;
   const isLocal = !hasDuneData;
 
   return (
     <section className="mt-16">
-      <div className="mb-6 flex items-end justify-between gap-4">
+      <div className="mb-4 flex items-end justify-between gap-4">
         <h2 className="font-display text-4xl leading-none text-white">Live Protocol Events</h2>
         <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-white/30">
           {isFetching && <RefreshCw className="h-3 w-3 animate-spin" />}
-          {isLocal ? 'Devnet sim · Dune SIM on mainnet' : 'Powered by Dune SIM'}
+          <span className="text-[#FF6154]/70">Dune SIM</span>
+          <span>·</span>
+          <span>{hasDuneData ? 'mainnet · live' : 'devnet · no mainnet txs yet'}</span>
+        </div>
+      </div>
+
+      {/* Dune SIM API status — always visible so the integration is clear */}
+      <div className="mb-4 flex items-center gap-6 rounded border border-[#FF6154]/15 bg-[#FF6154]/5 px-4 py-2.5">
+        <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-[#FF6154]/60">Dune SIM API</span>
+        <div className="flex flex-1 flex-wrap items-center gap-x-6 gap-y-1 font-mono text-[10px] text-white/35">
+          <span>
+            <span className="text-white/20">GET</span>{' '}
+            /beta/svm/transactions/…{' '}
+            <span className="text-white/50">{data.duneCount} results</span>
+          </span>
+          <span>
+            <span className="text-white/20">GET</span>{' '}
+            /v1/solana/balances/…{' '}
+            <span className="text-white/50">{balances.balances.length} tokens</span>
+          </span>
         </div>
       </div>
 

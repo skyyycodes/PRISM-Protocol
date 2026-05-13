@@ -96,7 +96,8 @@ function cx(...classes: (string | boolean | undefined)[]) {
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export function ProtocolAnalytics() {
-  const { data: events = [], isLoading, error } = useEvents();
+  const { data: eventsResult, isLoading, error } = useEvents();
+  const events = eventsResult?.events ?? [];
 
   const stats = useMemo(() => {
     if (!events.length) return null;
