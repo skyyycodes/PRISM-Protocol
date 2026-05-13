@@ -131,7 +131,7 @@ export function ProtocolAnalytics() {
         <div className="flex-1">
           <div className="font-mono text-[11px] font-bold uppercase tracking-widest text-blue-400/80 mb-0.5">Environment: Real-time SVM Sync</div>
           <p className="text-sm text-white/50 leading-relaxed">
-            Successfully synchronized with the PRISM core program on **Solana Devnet**. 
+            Successfully synchronized with the PRISM core program on <b>Solana Devnet</b>. 
             Instruction logs are now being pulled directly from the chain and indexed for institutional visibility.
           </p>
         </div>
