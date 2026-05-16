@@ -144,3 +144,25 @@ export function getLpMintPda(
     programId,
   );
 }
+
+export function getBagsCollateralPda(
+  vault: PublicKey,
+  creatorWallet: PublicKey,
+  programId: PublicKey = PRISM_CORE_PROGRAM_ID,
+): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('bags_collateral'), vault.toBuffer(), creatorWallet.toBuffer()],
+    programId,
+  );
+}
+
+export function getBagsFeeClaimerPda(
+  vault: PublicKey,
+  creatorWallet: PublicKey,
+  programId: PublicKey = PRISM_CORE_PROGRAM_ID,
+): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('bags_claimer'), vault.toBuffer(), creatorWallet.toBuffer()],
+    programId,
+  );
+}

@@ -175,4 +175,37 @@ pub mod prism_core {
     ) -> Result<()> {
         instructions::record_cloak_payout_handler(ctx, total_shielded_amount)
     }
+
+    // ── Bags fee-stream collateral ────────────────────────────────────────
+
+    /// Activate a Bags fee-stream pledge against a loan. Must be called as
+    /// instruction index 1 in a tx where index 0 is an Ed25519 precompile
+    /// instruction containing the Bags oracle's signature over the
+    /// 155-byte attestation message.
+    pub fn accept_bags_fee_collateral(
+        ctx: Context<AcceptBagsFeeCollateral>,
+        bags_token_mint: Pubkey,
+        fee_claimer_pda: Pubkey,
+        share_bps: u16,
+        trailing_30d_sol_lamports: u64,
+        valuation_usd_micro: u64,
+    ) -> Result<()> {
+        instructions::accept_bags_fee_collateral_handler(
+            ctx,
+            bags_token_mint,
+            fee_claimer_pda,
+            share_bps,
+            trailing_30d_sol_lamports,
+            valuation_usd_micro,
+        )
+    }
+
+    /// Record a Bags fee sweep against a loan. Off-chain keeper claims SOL
+    /// fees via the Bags SDK, swaps to USDC, calls `repay_loan` to apply
+    /// the USDC, then calls this instruction to record the sweep. Must be
+    /// called as instruction index 1 in a tx where index 0 is an Ed25519
+    /// precompile containing the Bags oracle's signature.
+    pub fn claim_and_settle_bags_fees(ctx: Context<ClaimAndSettleBagsFees>) -> Result<()> {
+        instructions::claim_and_settle_bags_fees_handler(ctx)
+    }
 }

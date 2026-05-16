@@ -44,6 +44,32 @@ pub struct LossApplied {
 }
 
 #[event]
+pub struct BagsCollateralActivated {
+    pub loan: Pubkey,
+    pub vault: Pubkey,
+    pub creator_wallet: Pubkey,
+    pub bags_token_mint: Pubkey,
+    pub fee_claimer_pda: Pubkey,
+    pub share_bps: u16,
+    pub valuation_usd_micro: u64,
+    pub trailing_30d_sol_lamports: u64,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct BagsFeesSwept {
+    pub loan: Pubkey,
+    pub vault: Pubkey,
+    pub bags_token_mint: Pubkey,
+    pub sweep_seq: u32,
+    pub sol_lamports_claimed: u64,
+    pub usdc_applied: u64,
+    pub cumulative_swept_lamports: u64,
+    pub cumulative_swept_usdc: u64,
+    pub timestamp: i64,
+}
+
+#[event]
 pub struct CreditEventCreated {
     pub vault: Pubkey,
     pub seq: u32,

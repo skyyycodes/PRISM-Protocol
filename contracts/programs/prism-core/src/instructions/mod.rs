@@ -1,6 +1,8 @@
+pub mod accept_bags_fee_collateral;
 pub mod accrue_yield;
 pub mod attach_encrypt_score;
 pub mod attach_ika_collateral;
+pub mod claim_and_settle_bags_fees;
 pub mod deposit;
 pub mod disburse_loan;
 pub mod initialize_global_config;
@@ -19,9 +21,11 @@ pub mod verify_encrypt_default;
 pub mod verify_ika_collateral;
 pub mod withdraw;
 
+pub use accept_bags_fee_collateral::*;
 pub use accrue_yield::*;
 pub use attach_encrypt_score::*;
 pub use attach_ika_collateral::*;
+pub use claim_and_settle_bags_fees::*;
 pub use deposit::*;
 pub use disburse_loan::*;
 pub use initialize_global_config::*;

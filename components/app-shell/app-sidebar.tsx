@@ -20,6 +20,7 @@ import {
   Copy,
   ExternalLink,
   Wallet,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
   { icon: ChartCandlestick,  label: 'Trade',     href: '/trade'     },
   { icon: Terminal,          label: 'Terminal',  href: '/terminal'  },
   { icon: HandCoins,         label: 'Borrow',    href: '/borrow'    },
+  { icon: Sparkles,          label: 'Creator',   href: '/creator-credit' },
 ];
 
 const BOTTOM_ITEMS = [

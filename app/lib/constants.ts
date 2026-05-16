@@ -90,3 +90,31 @@ export const CLOAK_ORACLE_PUBKEY = new PublicKey(
 export const CLOAK_PROGRAM_ID = new PublicKey(
   process.env.NEXT_PUBLIC_CLOAK_PROGRAM_ID ?? '11111111111111111111111111111111',
 );
+
+// ── Bags.fm integration ──────────────────────────────────────────────────────
+// The Bags REST API base URL. Override per-environment.
+export const BAGS_API_BASE_URL =
+  process.env.NEXT_PUBLIC_BAGS_API_BASE_URL ?? 'https://api.bags.fm';
+
+// Public Bags page URL for the protocol token (set after launch).
+export const BAGS_TOKEN_URL =
+  process.env.NEXT_PUBLIC_BAGS_TOKEN_URL ?? 'https://bags.fm';
+
+// Solana mint of the protocol's Bags-launched token ($PRISM).
+// Empty string until the launch script runs. UI uses this to gate live
+// fee widgets — when empty, mock data is shown.
+export const BAGS_PROTOCOL_TOKEN_MINT =
+  process.env.NEXT_PUBLIC_BAGS_PROTOCOL_TOKEN_MINT ?? '';
+
+// Ed25519 pubkey of the Bags attestation oracle. The oracle reads Bags
+// API state (fee config, claimable positions, etc.) and signs the on-chain
+// attestation messages consumed by `accept_bags_fee_collateral` and
+// `claim_and_settle_bags_fees`. Deterministic 0x22... seed for the local
+// devnet mock at /api/bags-oracle/.
+export const BAGS_ORACLE_PUBKEY = new PublicKey(
+  process.env.NEXT_PUBLIC_BAGS_ORACLE_PUBKEY ?? '6yzGfeqaT58TQjyTNJunc4uULP1qq6X5tNHobcGsCYxR',
+);
+
+// Conservative LTV against trailing 30-day fee revenue. The strategy doc
+// flags fee streams as volatile — anchor max loan-to-value low.
+export const BAGS_MAX_LTV_BPS = 3_000; // 30%

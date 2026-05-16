@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useRef } from "react";
 
+import { BagsFeesWidget } from "./bags-fees-widget";
+
 const metrics = [
   { 
     value: 6500, 
@@ -322,6 +324,13 @@ export function MetricsSection({ id }: { id?: string }) {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Bags fee-stream strip — Bags hackathon proof point */}
+        <div className={`transition-all duration-1000 delay-400 ${
+          isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+        }`}>
+          <BagsFeesWidget />
         </div>
 
         {/* Bottom ticker */}

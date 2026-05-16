@@ -63,4 +63,23 @@ pub enum PrismError {
     CloakBatchIdMismatch,
     #[msg("Cloak result byte is not 0x01 (batch not confirmed by oracle)")]
     CloakPayoutNotConfirmed,
+    // ── Bags fee-stream collateral errors ──────────────────────────────────
+    #[msg("Bags oracle signature invalid or message mismatch")]
+    BagsSignatureInvalid,
+    #[msg("creator_wallet in attestation does not match signer")]
+    BagsCreatorMismatch,
+    #[msg("bags_token_mint in attestation does not match collateral record")]
+    BagsTokenMintMismatch,
+    #[msg("fee_claimer_pda in attestation does not match collateral record")]
+    BagsClaimerMismatch,
+    #[msg("share_bps in attestation does not match collateral record")]
+    BagsShareMismatch,
+    #[msg("Bags collateral is not in Active state")]
+    BagsCollateralNotActive,
+    #[msg("Bags sweep_seq must be strictly greater than the last recorded sweep")]
+    BagsSweepReplayed,
+    #[msg("share_bps must be > 0 and <= 10000")]
+    BagsInvalidShare,
+    #[msg("Bags result byte is not 0x01 (not confirmed by oracle)")]
+    BagsAttestationNotConfirmed,
 }

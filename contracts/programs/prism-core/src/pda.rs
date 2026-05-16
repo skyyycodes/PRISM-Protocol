@@ -40,3 +40,20 @@ pub fn encrypt_health_pda(loan: &Pubkey) -> (Pubkey, u8) {
 pub fn cloak_payout_pda(vault: &Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(&[b"cloak_payout", vault.as_ref()], &ID)
 }
+
+pub fn bags_collateral_pda(vault: &Pubkey, creator_wallet: &Pubkey) -> (Pubkey, u8) {
+    Pubkey::find_program_address(
+        &[b"bags_collateral", vault.as_ref(), creator_wallet.as_ref()],
+        &ID,
+    )
+}
+
+/// PDA that the Bags fee-share config routes this token's `share_bps` of
+/// trading fees to. The protocol-controlled receiver for a given loan's
+/// fee-stream collateral.
+pub fn bags_fee_claimer_pda(vault: &Pubkey, creator_wallet: &Pubkey) -> (Pubkey, u8) {
+    Pubkey::find_program_address(
+        &[b"bags_claimer", vault.as_ref(), creator_wallet.as_ref()],
+        &ID,
+    )
+}

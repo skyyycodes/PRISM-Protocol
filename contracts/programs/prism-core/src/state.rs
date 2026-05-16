@@ -145,6 +145,39 @@ pub enum EncryptStatus {
     DefaultProven,
 }
 
+// ── Bags fee-stream collateral ───────────────────────────────────────────────
+// A creator pledges their Bags token's fee stream as collateral for a USDC
+// loan. A PRISM-controlled PDA is set as a Bags fee claimer with `share_bps`
+// allocation. Off-chain keeper periodically claims SOL fees, swaps to USDC,
+// and calls `claim_and_settle_bags_fees` to record the sweep against the loan.
+#[account]
+#[derive(InitSpace)]
+pub struct BagsCollateral {
+    pub loan: Pubkey,
+    pub vault: Pubkey,
+    pub creator_wallet: Pubkey,        // the borrower / Bags token creator
+    pub bags_token_mint: Pubkey,       // SPL mint of the Bags-launched token
+    pub fee_claimer_pda: Pubkey,       // PRISM PDA assigned as Bags fee claimer
+    pub bags_oracle: Pubkey,           // oracle that signed the activation attestation
+    pub share_bps: u16,                // fee share routed to fee_claimer_pda (out of 10_000)
+    pub valuation_usd_micro: u64,      // USD valuation at pledge time (informational)
+    pub trailing_30d_sol_lamports: u64,// 30-day rolling SOL fee revenue at pledge time
+    pub cumulative_swept_lamports: u64,// total SOL claimed since activation
+    pub cumulative_swept_usdc: u64,    // total USDC applied to the loan
+    pub sweep_seq: u32,                // monotonic counter — replay protection
+    pub status: BagsCollateralStatus,
+    pub activated_ts: i64,
+    pub last_sweep_ts: i64,
+    pub bump: u8,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, InitSpace)]
+pub enum BagsCollateralStatus {
+    Active,
+    Released,
+    Defaulted,
+}
+
 #[account]
 #[derive(InitSpace)]
 pub struct CloakPayoutRecord {
