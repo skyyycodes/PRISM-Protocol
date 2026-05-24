@@ -1,146 +1,95 @@
-import { PublicKey } from '@solana/web3.js';
-import { Buffer } from 'buffer';
+// Soroban doesn't have PDAs — entities are addressed by `(contract_id, DataKey)`.
+// This module previously exported 15 `findProgramAddressSync` helpers; we keep
+// the names so legacy imports compile but they all return placeholder strings.
+//
+// Anywhere that *actually* uses these (e.g. account fetches), the call site
+// should be rewritten to use Soroban contract reads instead. New code should
+// import from `app/lib/stellar` and call `getCoreClient().read('get_xxx', ...)`.
 
-import { PRISM_AMM_PROGRAM_ID, PRISM_CORE_PROGRAM_ID, TrancheKind } from './constants';
+import {
+  PRISM_AMM_CONTRACT_ID,
+  PRISM_CORE_CONTRACT_ID,
+} from './constants';
 
-export function getConfigPda(programId: PublicKey = PRISM_CORE_PROGRAM_ID): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync([Buffer.from('config2')], programId);
+// Stand-in shape for places that destructure `const [pda] = getXxxPda(...)`.
+// We return the contract id (Stellar contract addresses are 56-char strings)
+// plus a placeholder bump byte so the tuple destructure still works.
+type PdaTuple = [string, number];
+
+const placeholder = (cid: string): PdaTuple => [cid, 255];
+
+export function getConfigPda(programId?: string): PdaTuple {
+  return placeholder(programId ?? PRISM_CORE_CONTRACT_ID);
 }
 
-export function getVaultPda(
-  vaultId: number,
-  programId: PublicKey = PRISM_CORE_PROGRAM_ID,
-): [PublicKey, number] {
-  const idBuf = Buffer.alloc(4);
-  idBuf.writeUInt32LE(vaultId, 0);
-  return PublicKey.findProgramAddressSync([Buffer.from('vault'), idBuf], programId);
+export function getVaultPda(_vaultId: number, programId?: string): PdaTuple {
+  return placeholder(programId ?? PRISM_CORE_CONTRACT_ID);
 }
 
 export function getTranchePda(
-  vault: PublicKey,
-  kind: TrancheKind,
-  programId: PublicKey = PRISM_CORE_PROGRAM_ID,
-): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('tranche'), vault.toBuffer(), Buffer.from([kind])],
-    programId,
-  );
+  _vault: string,
+  _kind: number,
+  programId?: string,
+): PdaTuple {
+  return placeholder(programId ?? PRISM_CORE_CONTRACT_ID);
 }
 
 export function getTrancheMintPda(
-  vault: PublicKey,
-  kind: TrancheKind,
-  programId: PublicKey = PRISM_CORE_PROGRAM_ID,
-): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('mint'), vault.toBuffer(), Buffer.from([kind])],
-    programId,
-  );
+  _vault: string,
+  _kind: number,
+  programId?: string,
+): PdaTuple {
+  return placeholder(programId ?? PRISM_CORE_CONTRACT_ID);
 }
 
-export function getVaultReservePda(
-  vault: PublicKey,
-  programId: PublicKey = PRISM_CORE_PROGRAM_ID,
-): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync([Buffer.from('reserve'), vault.toBuffer()], programId);
+export function getVaultReservePda(_vault: string, programId?: string): PdaTuple {
+  return placeholder(programId ?? PRISM_CORE_CONTRACT_ID);
 }
 
-export function getLossBucketPda(
-  vault: PublicKey,
-  programId: PublicKey = PRISM_CORE_PROGRAM_ID,
-): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('loss_bucket'), vault.toBuffer()],
-    programId,
-  );
+export function getLossBucketPda(_vault: string, programId?: string): PdaTuple {
+  return placeholder(programId ?? PRISM_CORE_CONTRACT_ID);
 }
 
 export function getLoanPda(
-  vault: PublicKey,
-  loanId: number,
-  programId: PublicKey = PRISM_CORE_PROGRAM_ID,
-): [PublicKey, number] {
-  const idBuf = Buffer.alloc(4);
-  idBuf.writeUInt32LE(loanId, 0);
-  return PublicKey.findProgramAddressSync([Buffer.from('loan'), vault.toBuffer(), idBuf], programId);
+  _vault: string,
+  _loanId: number,
+  programId?: string,
+): PdaTuple {
+  return placeholder(programId ?? PRISM_CORE_CONTRACT_ID);
 }
 
 export function getCreditEventPda(
-  vault: PublicKey,
-  seq: number,
-  programId: PublicKey = PRISM_CORE_PROGRAM_ID,
-): [PublicKey, number] {
-  const seqBuf = Buffer.alloc(4);
-  seqBuf.writeUInt32LE(seq, 0);
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('credit_event'), vault.toBuffer(), seqBuf],
-    programId,
-  );
+  _vault: string,
+  _seq: number,
+  programId?: string,
+): PdaTuple {
+  return placeholder(programId ?? PRISM_CORE_CONTRACT_ID);
 }
 
-export function getPoolPda(
-  trancheMint: PublicKey,
-  programId: PublicKey = PRISM_AMM_PROGRAM_ID,
-): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync([Buffer.from('amm'), trancheMint.toBuffer()], programId);
+export function getPoolPda(_trancheMint: string, programId?: string): PdaTuple {
+  return placeholder(programId ?? PRISM_AMM_CONTRACT_ID);
 }
 
-export function getPoolTrancheReservePda(
-  trancheMint: PublicKey,
-  programId: PublicKey = PRISM_AMM_PROGRAM_ID,
-): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('amm_tranche'), trancheMint.toBuffer()],
-    programId,
-  );
+export function getPoolTrancheReservePda(_trancheMint: string, programId?: string): PdaTuple {
+  return placeholder(programId ?? PRISM_AMM_CONTRACT_ID);
 }
 
-export function getPoolQuoteReservePda(
-  trancheMint: PublicKey,
-  programId: PublicKey = PRISM_AMM_PROGRAM_ID,
-): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('amm_quote'), trancheMint.toBuffer()],
-    programId,
-  );
+export function getPoolQuoteReservePda(_trancheMint: string, programId?: string): PdaTuple {
+  return placeholder(programId ?? PRISM_AMM_CONTRACT_ID);
 }
 
-export function getIkaCollateralPda(
-  loan: PublicKey,
-  programId: PublicKey = PRISM_CORE_PROGRAM_ID,
-): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('ika_collateral_v2'), loan.toBuffer()],
-    programId,
-  );
+export function getIkaCollateralPda(_loan: string, programId?: string): PdaTuple {
+  return placeholder(programId ?? PRISM_CORE_CONTRACT_ID);
 }
 
-export function getEncryptHealthPda(
-  loan: PublicKey,
-  programId: PublicKey = PRISM_CORE_PROGRAM_ID,
-): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('encrypt_health'), loan.toBuffer()],
-    programId,
-  );
+export function getEncryptHealthPda(_loan: string, programId?: string): PdaTuple {
+  return placeholder(programId ?? PRISM_CORE_CONTRACT_ID);
 }
 
-export function getCloakPayoutPda(
-  vault: PublicKey,
-  programId: PublicKey = PRISM_CORE_PROGRAM_ID,
-): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('cloak_payout'), vault.toBuffer()],
-    programId,
-  );
+export function getCloakPayoutPda(_vault: string, programId?: string): PdaTuple {
+  return placeholder(programId ?? PRISM_CORE_CONTRACT_ID);
 }
 
-export function getLpMintPda(
-  trancheMint: PublicKey,
-  programId: PublicKey = PRISM_AMM_PROGRAM_ID,
-): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('amm_lp'), trancheMint.toBuffer()],
-    programId,
-  );
+export function getLpMintPda(_trancheMint: string, programId?: string): PdaTuple {
+  return placeholder(programId ?? PRISM_AMM_CONTRACT_ID);
 }

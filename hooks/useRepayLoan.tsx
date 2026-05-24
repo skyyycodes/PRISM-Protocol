@@ -1,70 +1,101 @@
 'use client';
 
-import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
-import { AnchorProvider, BN, Program } from '@coral-xyz/anchor';
-import { PublicKey } from '@solana/web3.js';
+// Repay USDC against a loan via prism-core's `repay_loan` handler.
+//
+// Same Stellar build + sign + submit pattern as useDeposit.
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { TransactionBuilder } from '@stellar/stellar-sdk';
 import { toast } from 'sonner';
 
-import type { PrismCore } from '@/app/lib/idl/prism_core';
-import prismCoreIdl from '@/app/lib/idl/prism_core.json';
-import { getConfigPda, getVaultPda, getLoanPda } from '@/app/lib/pda';
-import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import {
+  NETWORK_PASSPHRASE,
+  USDC_BASE_UNITS,
+} from '@/app/lib/constants';
+import {
+  addr,
+  getCoreClient,
+  getRpcServer,
+  nativeToScVal,
+} from '@/app/lib/stellar';
+import { useStellarWallet } from '@/components/providers/stellar-wallet-provider';
 
 export function useRepayLoan() {
-  const { connection } = useConnection();
-  const wallet = useAnchorWallet();
+  const wallet = useStellarWallet();
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ vaultId, loanId, amountUsdc }: { vaultId: number; loanId: number; amountUsdc: number }) => {
-      if (!wallet) throw new Error('Wallet not connected');
+    mutationFn: async ({
+      vaultId: _vaultId,
+      loanId,
+      amountUsdc,
+    }: {
+      vaultId: number;
+      loanId: number;
+      amountUsdc: number;
+    }) => {
+      if (!wallet.address) {
+        throw new Error('Connect a Stellar wallet first');
+      }
 
-      const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
-      const program = new Program<PrismCore>(prismCoreIdl as PrismCore, provider) as any;
+      // amountUsdc is a UI float (e.g. 12.5); convert to base units (7 decimals).
+      const amountBigInt =
+        BigInt(Math.floor(amountUsdc * Number(USDC_BASE_UNITS))) ?? 0n;
 
-      const [configPda] = getConfigPda();
-      const [vaultPda] = getVaultPda(vaultId);
-      const [loanPda] = getLoanPda(vaultPda, loanId);
-      const [configAcc] = await Promise.all([program.account.globalConfig.fetch(configPda)]);
-      
-      const borrowerUsdcAta = getAssociatedTokenAddressSync(configAcc.usdcMint, wallet.publicKey);
-      const [vaultUsdcReserve] = PublicKey.findProgramAddressSync(
-        [Buffer.from('reserve'), vaultPda.toBuffer()],
-        program.programId
-      );
+      const core = getCoreClient();
+      const server = getRpcServer();
+      const source = await server.getAccount(wallet.address);
 
-      const amount = new BN(Math.floor(amountUsdc * 1_000_000)); // Assuming 6 decimals for USDC
+      let tx = new TransactionBuilder(source, {
+        fee: '1000',
+        networkPassphrase: NETWORK_PASSPHRASE,
+      })
+        .addOperation(
+          core.contract.call(
+            'repay_loan',
+            addr(wallet.address),
+            nativeToScVal(loanId, { type: 'u32' }),
+            nativeToScVal(amountBigInt, { type: 'i128' }),
+          ),
+        )
+        .setTimeout(60)
+        .build();
 
-      const tx = await program.methods
-        .repayLoan(amount)
-        .accounts({
-          borrower: wallet.publicKey,
-          config: configPda,
-          vault: vaultPda,
-          loan: loanPda,
-          borrowerUsdcAta,
-          vaultUsdcReserve,
-          tokenProgram: TOKEN_PROGRAM_ID,
-        })
-        .rpc();
+      tx = await server.prepareTransaction(tx);
 
-      return tx;
+      const signedXdr = await wallet.signTransaction(tx.toXDR());
+      const signedTx = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
+
+      const sendResult = await server.sendTransaction(signedTx as never);
+      if (sendResult.status === 'ERROR') {
+        throw new Error(`Repayment submission failed: ${JSON.stringify(sendResult.errorResult)}`);
+      }
+
+      let status = await server.getTransaction(sendResult.hash);
+      const deadline = Date.now() + 30_000;
+      while (status.status === 'NOT_FOUND' && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 1_500));
+        status = await server.getTransaction(sendResult.hash);
+      }
+      if (status.status !== 'SUCCESS') {
+        throw new Error(`Repayment failed: status=${status.status}`);
+      }
+
+      return sendResult.hash;
     },
-    onSuccess: (sig, variables) => {
-      const [vaultPda] = getVaultPda(variables.vaultId);
-      const [loanPda] = getLoanPda(vaultPda, variables.loanId);
-      qc.invalidateQueries({ queryKey: ['loan-account', loanPda.toBase58()] });
+    onSuccess: (hash, variables) => {
+      qc.invalidateQueries({ queryKey: ['loan-account', variables.loanId] });
       qc.invalidateQueries({ queryKey: ['active-loans', variables.vaultId] });
+      qc.invalidateQueries({ queryKey: ['vault-state'] });
       toast.success('Repayment successful', {
         description: (
           <a
-            href={`https://explorer.solana.com/tx/${sig}?cluster=devnet`}
+            href={`https://stellar.expert/explorer/testnet/tx/${hash}`}
             target="_blank"
             rel="noreferrer"
             className="mt-1 flex items-center gap-1 font-mono text-[10px] text-pink-400/80 hover:text-pink-400 hover:underline"
           >
-            TX: {sig.slice(0, 8)}...{sig.slice(-8)}
+            TX: {hash.slice(0, 8)}...{hash.slice(-8)}
           </a>
         ),
       });

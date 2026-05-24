@@ -1,12 +1,15 @@
 'use client';
 
-import { useConnection } from '@solana/wallet-adapter-react';
+// Probe loan IDs 1..maxScan; collect what comes back.
+//
+// Loans on Soroban are keyed by u32 id (not PDA). Solana version started
+// scanning at 0 — we start at 1 because our prism-core init flow originates
+// loans starting at id 1 (see Phase 3 contract tests).
+
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { VAULT_ID } from '@/app/lib/constants';
-import { getLoanPda, getVaultPda } from '@/app/lib/pda';
-import { buildPrograms } from '@/app/lib/program';
-import { useIdentity } from '@/hooks/useIdentity';
+import { PRISM_CORE_CONTRACT_ID, VAULT_ID } from '@/app/lib/constants';
+import { getCoreClient, nativeToScVal } from '@/app/lib/stellar';
 
 export type LoanRecord = {
   id: number;
@@ -20,39 +23,59 @@ export type LoanRecord = {
   totalRepaid: bigint;
 };
 
+interface LoanSnapshot {
+  apr_bps: number;
+  borrower: string;
+  id: number;
+  maturity_ts: bigint;
+  origination_ts: bigint;
+  principal: bigint;
+  state: string;
+  total_repaid: bigint;
+  vault_id: number;
+}
+
 function queryKey(vaultId: number) {
   return ['active-loans', vaultId] as const;
 }
 
-/** Scans on-chain loan PDAs 0..maxScan until an account is missing, returns all found. */
 export function useActiveLoans(vaultId = VAULT_ID, maxScan = 20) {
-  const { connection } = useConnection();
-  const { keypair } = useIdentity();
-
   return useQuery({
     queryKey: queryKey(vaultId),
-    refetchInterval: 8000,
+    refetchInterval: 8_000,
     queryFn: async (): Promise<LoanRecord[]> => {
-      const { core } = buildPrograms(connection, keypair);
-      const [vaultPda] = getVaultPda(vaultId, core.programId);
+      const core = getCoreClient();
       const loans: LoanRecord[] = [];
 
-      for (let id = 0; id < maxScan; id++) {
-        const [loanPda] = getLoanPda(vaultPda, id, core.programId);
-        const loan = await core.account.loan.fetchNullable(loanPda);
-        if (!loan) break;
+      // Probe in parallel; stop appending after a gap so we mirror the
+      // old "break on first missing" behaviour.
+      const results = await Promise.all(
+        Array.from({ length: maxScan }, (_, i) =>
+          core
+            .read<LoanSnapshot | null>('get_loan', [nativeToScVal(i + 1, { type: 'u32' })])
+            .catch(() => null),
+        ),
+      );
 
-        const stateKey = Object.keys(loan.state as Record<string, unknown>)[0] ?? 'Originated';
+      let consecutiveMissing = 0;
+      for (let i = 0; i < results.length; i++) {
+        const loan = results[i];
+        if (!loan || loan.vault_id !== vaultId) {
+          consecutiveMissing++;
+          if (consecutiveMissing >= 3) break;
+          continue;
+        }
+        consecutiveMissing = 0;
         loans.push({
-          id,
-          pda: loanPda.toBase58(),
-          borrower: loan.borrower.toBase58(),
+          id: loan.id,
+          pda: `${PRISM_CORE_CONTRACT_ID}#loan${loan.id}`,
+          borrower: loan.borrower,
           principal: BigInt(loan.principal.toString()),
-          aprBps: loan.aprBps,
-          originationTs: Number(loan.originationTs.toString()),
-          maturityTs: Number(loan.maturityTs.toString()),
-          state: stateKey,
-          totalRepaid: BigInt(loan.totalRepaid.toString()),
+          aprBps: loan.apr_bps,
+          originationTs: Number(loan.origination_ts.toString()),
+          maturityTs: Number(loan.maturity_ts.toString()),
+          state: String(loan.state),
+          totalRepaid: BigInt(loan.total_repaid.toString()),
         });
       }
 
@@ -61,7 +84,7 @@ export function useActiveLoans(vaultId = VAULT_ID, maxScan = 20) {
   });
 }
 
-// ─── DB write-through (called from ActionPanel after each mutation) ────────────
+// ─── DB write-through unchanged — it just POSTs to /api/loans ───────────────
 
 export type UpsertLoanPayload = {
   loanId: number;

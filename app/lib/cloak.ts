@@ -1,25 +1,12 @@
 /**
- * Cloak batch payout integration.
+ * Cloak batch payout integration — Stellar build.
  *
- * Mirrors the Encrypt two-instruction pattern:
- *   ix[0] Ed25519Program signature verify
- *   ix[1] prism_core::record_cloak_payout
+ * Same 73-byte attestation shape as before, with vault identified by u32 LE
+ * id padded with zeros (not a Stellar pubkey). The on-chain `record_cloak_payout`
+ * verifies the Ed25519 sig via `env.crypto().ed25519_verify`.
  */
 
 import { Buffer } from 'buffer';
-
-import { BN, Program } from '@coral-xyz/anchor';
-import {
-  Ed25519Program,
-  PublicKey,
-  SYSVAR_INSTRUCTIONS_PUBKEY,
-  SystemProgram,
-  Transaction,
-  TransactionInstruction,
-} from '@solana/web3.js';
-
-import type { PrismCore } from './idl/prism_core';
-import { getCloakPayoutPda } from './pda';
 
 const MSG_PREFIX = Buffer.from('clk_atts'); // 8 bytes
 export const CLOAK_MSG_LEN = 73;
@@ -33,8 +20,9 @@ export interface CloakViewingKeys {
 export interface CloakAttestation {
   /** 64-byte Ed25519 signature from the Cloak oracle */
   signature: Uint8Array;
-  oraclePubkey: PublicKey;
-  vaultPubkey: PublicKey;
+  /** 32-byte oracle pubkey (raw bytes, not Stellar StrKey) */
+  oraclePubkey: Uint8Array;
+  vaultId: number;
   /** 32-byte batch commitment (sha256 receipt hash) */
   batchId: Uint8Array;
   batchConfirmed: boolean;
@@ -42,17 +30,16 @@ export interface CloakAttestation {
 }
 
 export function buildCloakAttestationMessage(params: {
-  vaultKey: PublicKey;
+  vaultId: number;
   batchId: Uint8Array;
   batchConfirmed?: boolean;
 }): Buffer {
   if (params.batchId.length !== 32) {
     throw new Error(`Cloak batchId must be 32 bytes (got ${params.batchId.length})`);
   }
-
   const buf = Buffer.alloc(CLOAK_MSG_LEN);
   MSG_PREFIX.copy(buf, 0);
-  params.vaultKey.toBuffer().copy(buf, 8);
+  buf.writeUInt32LE(params.vaultId, 8); // rest of 8..40 is zero-padded
   Buffer.from(params.batchId).copy(buf, 40);
   buf.writeUInt8(params.batchConfirmed === false ? 0x00 : 0x01, 72);
   return buf;
@@ -61,14 +48,14 @@ export function buildCloakAttestationMessage(params: {
 const CLOAK_ORACLE_URL = process.env.NEXT_PUBLIC_CLOAK_ORACLE_URL ?? '/api/cloak-oracle';
 
 export async function fetchCloakAttestation(params: {
-  vaultPubkey: string;
+  vaultId: number;
   totalShieldedAmount: bigint;
 }): Promise<CloakAttestation> {
   const res = await fetch(`${CLOAK_ORACLE_URL}/shield_payout`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      vault_pubkey: params.vaultPubkey,
+      vault_id: params.vaultId,
       total_shielded_amount: params.totalShieldedAmount.toString(),
     }),
   });
@@ -91,8 +78,8 @@ export async function fetchCloakAttestation(params: {
 
   return {
     signature: new Uint8Array(signature),
-    oraclePubkey: new PublicKey(data.oracle_pubkey),
-    vaultPubkey: new PublicKey(params.vaultPubkey),
+    oraclePubkey: Uint8Array.from(Buffer.from(data.oracle_pubkey_hex ?? data.oracle_pubkey, 'hex')),
+    vaultId: params.vaultId,
     batchId: new Uint8Array(batchId),
     batchConfirmed: data.batch_confirmed !== false,
     viewingKeys: {
@@ -101,40 +88,4 @@ export async function fetchCloakAttestation(params: {
       alpha: data.viewing_keys?.alpha ?? '',
     },
   };
-}
-
-export async function buildRecordCloakPayoutTx(params: {
-  program: Program<PrismCore>;
-  attestation: CloakAttestation;
-  vault: PublicKey;
-  config: PublicKey;
-  totalShieldedAmount: bigint;
-}): Promise<Transaction> {
-  const [cloakPayoutPda] = getCloakPayoutPda(params.vault, params.program.programId);
-
-  const message = buildCloakAttestationMessage({
-    vaultKey: params.vault,
-    batchId: params.attestation.batchId,
-    batchConfirmed: params.attestation.batchConfirmed,
-  });
-
-  const ed25519Ix: TransactionInstruction = Ed25519Program.createInstructionWithPublicKey({
-    publicKey: params.attestation.oraclePubkey.toBytes(),
-    message: new Uint8Array(message),
-    signature: new Uint8Array(params.attestation.signature),
-  });
-
-  const recordIx = await params.program.methods
-    .recordCloakPayout(new BN(params.totalShieldedAmount.toString()))
-    .accounts({
-      signer: params.program.provider.publicKey!,
-      config: params.config,
-      vault: params.vault,
-      cloakPayout: cloakPayoutPda,
-      systemProgram: SystemProgram.programId,
-      instructionsSysvar: SYSVAR_INSTRUCTIONS_PUBKEY,
-    })
-    .instruction();
-
-  return new Transaction().add(ed25519Ix, recordIx);
 }

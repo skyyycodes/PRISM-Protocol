@@ -1,85 +1,169 @@
 'use client';
 
-import { useConnection } from '@solana/wallet-adapter-react';
-import { type Keypair, type PublicKey } from '@solana/web3.js';
+// Encrypt FHE oracle integration — Stellar build.
+//
+// Three exports:
+//   - useEncryptHealth(loanId)  — reads EncryptLoanHealth via get_encrypt_health
+//   - useAttachEncryptScore()   — borrower binds a sha256 commitment to a loan
+//   - useVerifyEncryptDefault() — relayer submits oracle attestation → cascade
+//
+// The Soroban contract calls take raw (message, signature) — no Ed25519
+// precompile / instructions sysvar plumbing on the client.
+
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Buffer } from 'buffer';
+import { TransactionBuilder } from '@stellar/stellar-sdk';
 import { toast } from 'sonner';
 
-import { getEncryptHealthPda } from '@/app/lib/pda';
-import { buildPrograms } from '@/app/lib/program';
+import { NETWORK_PASSPHRASE, VAULT_ID } from '@/app/lib/constants';
 import {
-  buildVerifyEncryptDefaultTx,
   pollEncryptAttestation,
   type EncryptAttestation,
 } from '@/app/lib/encrypt';
-import { useIdentity } from '@/hooks/useIdentity';
+import {
+  addr,
+  getCoreClient,
+  getRpcServer,
+  nativeToScVal,
+} from '@/app/lib/stellar';
+import { useStellarWallet } from '@/components/providers/stellar-wallet-provider';
 
 export type EncryptStatus = 'Pending' | 'Verified' | 'DefaultProven';
 
 export interface EncryptHealthState {
-  loan: PublicKey;
+  loanId: number;
   scoreCommitment: Uint8Array;
-  encryptOracle: PublicKey;
+  encryptOracle: Uint8Array;
   status: EncryptStatus;
   defaultProvenTs: number;
-  bump: number;
 }
 
-function statusFromAccount(raw: unknown): EncryptStatus {
-  if (!raw || typeof raw !== 'object') return 'Pending';
-  const key = Object.keys(raw as Record<string, unknown>)[0] ?? 'pending';
-  return (key.charAt(0).toUpperCase() + key.slice(1)) as EncryptStatus;
+interface EncryptHealthSnapshot {
+  default_proven_ts: bigint;
+  encrypt_oracle: Buffer | Uint8Array;
+  loan_id: number;
+  score_commitment: Buffer | Uint8Array;
+  status: string;
 }
 
-/**
- * Polls the EncryptLoanHealth PDA for a given loan. Returns null if the borrower
- * has not yet attached a credit-score commitment.
- */
-export function useEncryptHealth(loanPda: PublicKey | null | undefined) {
-  const { connection } = useConnection();
-  const { keypair } = useIdentity();
+function toBytesArray(x: unknown): Uint8Array {
+  if (x instanceof Uint8Array) return x;
+  if (Buffer.isBuffer(x)) return new Uint8Array(x);
+  if (Array.isArray(x)) return new Uint8Array(x as number[]);
+  if (typeof x === 'string') return new Uint8Array(Buffer.from(x, 'hex'));
+  return new Uint8Array(0);
+}
 
+export function useEncryptHealth(loanId: number | null | undefined) {
   return useQuery<EncryptHealthState | null>({
-    queryKey: [
-      'encrypt-health',
-      connection.rpcEndpoint,
-      loanPda?.toBase58() ?? 'none',
-    ],
-    enabled: !!loanPda,
-    refetchInterval: 5000,
+    queryKey: ['encrypt-health', loanId ?? 'none'],
+    enabled: typeof loanId === 'number',
+    refetchInterval: 5_000,
     queryFn: async () => {
-      if (!loanPda) return null;
-      const { core } = buildPrograms(connection, keypair);
-      const [pda] = getEncryptHealthPda(loanPda, core.programId);
-      const acc = await core.account.encryptLoanHealth.fetchNullable(pda);
+      if (typeof loanId !== 'number') return null;
+      const core = getCoreClient();
+      const acc = await core
+        .read<EncryptHealthSnapshot | null>('get_encrypt_health', [
+          nativeToScVal(loanId, { type: 'u32' }),
+        ])
+        .catch(() => null);
       if (!acc) return null;
       return {
-        loan: acc.loan as PublicKey,
-        scoreCommitment: new Uint8Array(acc.scoreCommitment as number[]),
-        encryptOracle: acc.encryptOracle as PublicKey,
-        status: statusFromAccount(acc.status),
-        defaultProvenTs: Number(acc.defaultProvenTs?.toString?.() ?? acc.defaultProvenTs ?? 0),
-        bump: Number(acc.bump),
+        loanId: acc.loan_id,
+        scoreCommitment: toBytesArray(acc.score_commitment),
+        encryptOracle: toBytesArray(acc.encrypt_oracle),
+        status: String(acc.status) as EncryptStatus,
+        defaultProvenTs: Number(acc.default_proven_ts ?? 0),
       };
     },
   });
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Borrower attaches commitment
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface AttachEncryptScoreParams {
+  loanId: number;
+  /** sha256 of the borrower's Encrypt-sealed credit data (32 bytes). */
+  commitment: Uint8Array;
+  encryptOraclePubkey: Uint8Array; // 32 bytes
+}
+
+export function useAttachEncryptScore() {
+  const wallet = useStellarWallet();
+  const qc = useQueryClient();
+
+  return useMutation<string, Error, AttachEncryptScoreParams>({
+    mutationFn: async (params) => {
+      if (!wallet.address) throw new Error('Connect a Stellar wallet first');
+      if (params.commitment.length !== 32) {
+        throw new Error(`commitment must be 32 bytes (got ${params.commitment.length})`);
+      }
+      if (params.encryptOraclePubkey.length !== 32) {
+        throw new Error(
+          `encryptOraclePubkey must be 32 bytes (got ${params.encryptOraclePubkey.length})`,
+        );
+      }
+
+      const core = getCoreClient();
+      const server = getRpcServer();
+      const source = await server.getAccount(wallet.address);
+
+      let tx = new TransactionBuilder(source, {
+        fee: '1000',
+        networkPassphrase: NETWORK_PASSPHRASE,
+      })
+        .addOperation(
+          core.contract.call(
+            'attach_encrypt_score',
+            addr(wallet.address),
+            nativeToScVal(params.loanId, { type: 'u32' }),
+            nativeToScVal(params.commitment, { type: 'bytes' }),
+            nativeToScVal(params.encryptOraclePubkey, { type: 'bytes' }),
+          ),
+        )
+        .setTimeout(60)
+        .build();
+
+      tx = await server.prepareTransaction(tx);
+      const signedXdr = await wallet.signTransaction(tx.toXDR());
+      const signedTx = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
+
+      const sendResult = await server.sendTransaction(signedTx as never);
+      if (sendResult.status === 'ERROR') {
+        throw new Error(`attach_encrypt_score failed: ${JSON.stringify(sendResult.errorResult)}`);
+      }
+
+      let status = await server.getTransaction(sendResult.hash);
+      const deadline = Date.now() + 30_000;
+      while (status.status === 'NOT_FOUND' && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 1_500));
+        status = await server.getTransaction(sendResult.hash);
+      }
+      if (status.status !== 'SUCCESS') {
+        throw new Error(`attach_encrypt_score failed: status=${status.status}`);
+      }
+      return sendResult.hash;
+    },
+    onSuccess: (hash, params) => {
+      toast.success(`Encrypt score commitment attached (tx ${hash.slice(0, 8)}…)`);
+      qc.invalidateQueries({ queryKey: ['encrypt-health', params.loanId] });
+    },
+    onError: (e) => toast.error(`Attach FHE score failed: ${e.message}`),
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Verify default (the "magic moment" mutation)
+// ─────────────────────────────────────────────────────────────────────────────
+
 export interface VerifyEncryptDefaultParams {
-  loanPubkey: PublicKey;
+  loanId: number;
   scoreCommitment: Uint8Array;
-  configPda: PublicKey;
-  vaultPda: PublicKey;
-  tranchePrimePda: PublicKey;
-  trancheCorePda: PublicKey;
-  trancheAlphaPda: PublicKey;
-  vaultReservePda: PublicKey;
-  lossBucketPda: PublicKey;
-  creditEventPda: PublicKey;
+  vaultId?: number;
   lossAmount: bigint;
   severityBps: number;
-  /** The signer for this tx — typically the admin demo keypair. */
-  signer: Keypair;
 }
 
 export interface VerifyEncryptDefaultResult {
@@ -87,20 +171,13 @@ export interface VerifyEncryptDefaultResult {
   attestation: EncryptAttestation;
 }
 
-/**
- * The "magic moment" mutation:
- *   1. Calls the Encrypt FHE oracle for an attestation
- *   2. Builds the dual-ix tx (Ed25519 precompile + verify_encrypt_default)
- *   3. Signs and sends — the on-chain handler atomically marks DefaultProven
- *      and fires the credit-event cascade
- */
 export function useVerifyEncryptDefault() {
-  const { connection } = useConnection();
+  const wallet = useStellarWallet();
   const qc = useQueryClient();
 
   return useMutation<VerifyEncryptDefaultResult, Error, VerifyEncryptDefaultParams>({
     mutationFn: async (params) => {
-      const { core, provider } = buildPrograms(connection, params.signer);
+      if (!wallet.address) throw new Error('Connect a Stellar wallet first');
 
       toast.loading('Encrypt FHE oracle: computing default attestation…', {
         id: 'encrypt-fhe',
@@ -108,7 +185,7 @@ export function useVerifyEncryptDefault() {
       });
 
       const attestation = await pollEncryptAttestation(
-        params.loanPubkey,
+        params.loanId,
         params.scoreCommitment,
       );
 
@@ -118,86 +195,67 @@ export function useVerifyEncryptDefault() {
         );
       }
 
-      const tx = await buildVerifyEncryptDefaultTx({
-        program: core,
-        attestation,
-        configPda: params.configPda,
-        vaultPda: params.vaultPda,
-        tranchePrimePda: params.tranchePrimePda,
-        trancheCorePda: params.trancheCorePda,
-        trancheAlphaPda: params.trancheAlphaPda,
-        vaultReservePda: params.vaultReservePda,
-        lossBucketPda: params.lossBucketPda,
-        creditEventPda: params.creditEventPda,
-        lossAmount: params.lossAmount,
-        severityBps: params.severityBps,
+      // Build the 73-byte message the contract will re-derive + verify.
+      const message = (await import('@/app/lib/encrypt')).buildEncryptAttestationMessage({
+        loanId: attestation.loanId,
+        scoreCommitment: attestation.scoreCommitment,
+        defaultProven: attestation.defaultProven,
       });
 
-      const signature = await provider.sendAndConfirm(tx, [params.signer], {
-        commitment: 'confirmed',
-      });
+      const core = getCoreClient();
+      const server = getRpcServer();
+      const source = await server.getAccount(wallet.address);
 
-      return { signature, attestation };
+      let tx = new TransactionBuilder(source, {
+        fee: '1000',
+        networkPassphrase: NETWORK_PASSPHRASE,
+      })
+        .addOperation(
+          core.contract.call(
+            'verify_encrypt_default',
+            addr(wallet.address),
+            nativeToScVal(params.vaultId ?? VAULT_ID, { type: 'u32' }),
+            nativeToScVal(params.loanId, { type: 'u32' }),
+            nativeToScVal(new Uint8Array(message), { type: 'bytes' }),
+            nativeToScVal(attestation.signature, { type: 'bytes' }),
+            nativeToScVal(params.lossAmount, { type: 'i128' }),
+            nativeToScVal(params.severityBps, { type: 'u32' }),
+          ),
+        )
+        .setTimeout(60)
+        .build();
+
+      tx = await server.prepareTransaction(tx);
+      const signedXdr = await wallet.signTransaction(tx.toXDR());
+      const signedTx = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
+
+      const sendResult = await server.sendTransaction(signedTx as never);
+      if (sendResult.status === 'ERROR') {
+        throw new Error(
+          `verify_encrypt_default failed: ${JSON.stringify(sendResult.errorResult)}`,
+        );
+      }
+
+      let status = await server.getTransaction(sendResult.hash);
+      const deadline = Date.now() + 30_000;
+      while (status.status === 'NOT_FOUND' && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 1_500));
+        status = await server.getTransaction(sendResult.hash);
+      }
+      if (status.status !== 'SUCCESS') {
+        throw new Error(`verify_encrypt_default failed: status=${status.status}`);
+      }
+
+      return { signature: sendResult.hash, attestation };
     },
     onSuccess: ({ signature, attestation }) => {
       toast.success(
         `FHE default proven on-chain (tx ${signature.slice(0, 8)}…). Cascade complete.`,
         { id: 'encrypt-fhe' },
       );
-      qc.invalidateQueries({
-        queryKey: ['encrypt-health', connection.rpcEndpoint, attestation.loanPubkey.toBase58()],
-      });
+      qc.invalidateQueries({ queryKey: ['encrypt-health', attestation.loanId] });
       qc.invalidateQueries({ queryKey: ['vault-state'] });
     },
-    onError: (e) => {
-      toast.error(`FHE verify failed: ${e.message}`, { id: 'encrypt-fhe' });
-    },
-  });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Borrower-side mutation: register the Encrypt-sealed score commitment on-chain.
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface AttachEncryptScoreParams {
-  borrower: Keypair;
-  loanPda: PublicKey;
-  configPda: PublicKey;
-  /** sha256 of the borrower's Encrypt-sealed credit data (32 bytes). */
-  commitment: Uint8Array;
-  encryptOracle: PublicKey;
-}
-
-export function useAttachEncryptScore() {
-  const { connection } = useConnection();
-  const qc = useQueryClient();
-
-  return useMutation<string, Error, AttachEncryptScoreParams>({
-    mutationFn: async (params) => {
-      if (params.commitment.length !== 32) {
-        throw new Error(`commitment must be 32 bytes (got ${params.commitment.length})`);
-      }
-      const { core } = buildPrograms(connection, params.borrower);
-      const [encryptHealthPda] = getEncryptHealthPda(params.loanPda, core.programId);
-      const sig = await core.methods
-        .attachEncryptScore(Array.from(params.commitment), params.encryptOracle)
-        .accounts({
-          borrower: params.borrower.publicKey,
-          config: params.configPda,
-          loan: params.loanPda,
-          encryptHealth: encryptHealthPda,
-          systemProgram: (await import('@solana/web3.js')).SystemProgram.programId,
-        })
-        .signers([params.borrower])
-        .rpc({ commitment: 'confirmed' });
-      return sig;
-    },
-    onSuccess: (sig, params) => {
-      toast.success(`Encrypt score commitment attached (tx ${sig.slice(0, 8)}…)`);
-      qc.invalidateQueries({
-        queryKey: ['encrypt-health', connection.rpcEndpoint, params.loanPda.toBase58()],
-      });
-    },
-    onError: (e) => toast.error(`Attach FHE score failed: ${e.message}`),
+    onError: (e) => toast.error(`FHE verify failed: ${e.message}`, { id: 'encrypt-fhe' }),
   });
 }

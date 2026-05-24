@@ -1,41 +1,58 @@
 'use client';
 
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+// Per-user pTranche balances. On Stellar these are SAC balances on the
+// pre-deployed tranche pToken contracts (looked up via `get_tranche` on prism-core).
+
 import { useQuery } from '@tanstack/react-query';
-import { getAssociatedTokenAddress } from '@solana/spl-token';
 
-import { VAULT_ID, TrancheKind } from '@/app/lib/constants';
-import { getTrancheMintPda, getVaultPda } from '@/app/lib/pda';
+import { TrancheKind, VAULT_ID } from '@/app/lib/constants';
+import { toBigInt } from '@/app/lib/format';
+import { ContractClient, addr, getCoreClient, nativeToScVal } from '@/app/lib/stellar';
+import { useStellarWallet } from '@/components/providers/stellar-wallet-provider';
 
-const KINDS = [TrancheKind.Prime, TrancheKind.Core, TrancheKind.Alpha];
+const KINDS = [TrancheKind.Prime, TrancheKind.Core, TrancheKind.Alpha] as const;
 
 export interface TranchePosition {
   kind: TrancheKind;
   balance: bigint;
 }
 
+interface TrancheSnapshot {
+  ptoken: string;
+}
+
+async function readSacBalance(contractId: string, holder: string): Promise<bigint> {
+  try {
+    const client = new ContractClient(contractId);
+    const bal = await client.read<bigint | number | string>('balance', [addr(holder)]);
+    return toBigInt(bal);
+  } catch {
+    return 0n;
+  }
+}
+
 export function useUserPosition() {
-  const { connection } = useConnection();
-  const { publicKey } = useWallet();
+  const { address } = useStellarWallet();
 
   return useQuery<TranchePosition[]>({
-    queryKey: ['userPosition', publicKey?.toBase58()],
-    enabled: !!publicKey,
+    queryKey: ['user-position', address],
+    enabled: !!address,
     refetchInterval: 10_000,
     queryFn: async () => {
-      if (!publicKey) return [];
-      const [vaultPda] = getVaultPda(VAULT_ID);
+      if (!address) return [];
+      const core = getCoreClient();
 
       return Promise.all(
         KINDS.map(async (kind) => {
-          const [mintPda] = getTrancheMintPda(vaultPda, kind);
-          const ata = await getAssociatedTokenAddress(mintPda, publicKey);
-          try {
-            const bal = await connection.getTokenAccountBalance(ata);
-            return { kind, balance: BigInt(bal.value.amount) };
-          } catch {
-            return { kind, balance: 0n };
-          }
+          const tranche = await core
+            .read<TrancheSnapshot | null>('get_tranche', [
+              nativeToScVal(VAULT_ID, { type: 'u32' }),
+              nativeToScVal(kind, { type: 'u32' }),
+            ])
+            .catch(() => null);
+          if (!tranche?.ptoken) return { kind, balance: 0n };
+          const balance = await readSacBalance(tranche.ptoken, address);
+          return { kind, balance };
         }),
       );
     },

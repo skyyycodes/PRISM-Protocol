@@ -1,291 +1,100 @@
 'use client';
 
-import { useCallback, useState } from 'react';
-import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
-import { AnchorProvider, BN, Program } from '@coral-xyz/anchor';
-import { PublicKey, SystemProgram, type Connection } from '@solana/web3.js';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+// IKA collateral integration was dropped for the Stellar build (Phase 0
+// decision — IKA Network is Sui-native and doesn't have a Stellar
+// attestation path yet). This stub keeps the export surface so existing
+// imports compile; every hook reports "feature unavailable" and surfaces
+// a friendly error if the user actually triggers the flow.
+//
+// If you want cross-chain BTC/ETH collateral back on the Stellar build,
+// the path forward is: (a) IKA ships Stellar attestations, or (b) wire
+// up a different MPC provider with Stellar support.
+
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-import type { PrismCore } from '@/app/lib/idl/prism_core';
-import prismCoreIdl from '@/app/lib/idl/prism_core.json';
-import { PRISM_CORE_PROGRAM_ID } from '@/app/lib/constants';
-import { getConfigPda, getIkaCollateralPda, getLoanPda, getVaultPda } from '@/app/lib/pda';
-import {
-  buildVerifyCollateralTx,
-  IkaDwalletInfo,
-  IkaChain,
-  pollOracleAttestation,
-} from '@/app/lib/ika';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
+export type IkaChain = 'BTC' | 'ETH' | 'SUI';
 
 export interface IkaCollateralState {
-  loan: PublicKey;
+  loanId: number;
   dwalletId: Uint8Array;
   chainId: number;
   collateralAmountUsd: bigint;
   status: 'Pending' | 'Locked' | 'Released' | 'Liquidated';
-  oraclePubkey: PublicKey;
+  oraclePubkey: Uint8Array;
   lockedTs: number;
-  bump: number;
 }
 
-type FetchableAccount<T = any> = {
-  fetch(address: PublicKey): Promise<T>;
-  fetchNullable(address: PublicKey): Promise<T | null>;
-};
-
-type PrismCoreProgram = Program<PrismCore> & {
-  account: {
-    ikaCollateral: FetchableAccount;
-    loan: FetchableAccount;
-  };
-};
-
-function buildPrismCoreProgram(
-  connection: Connection,
-  wallet: NonNullable<ReturnType<typeof useAnchorWallet>>,
-): PrismCoreProgram {
-  const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed', preflightCommitment: 'processed' });
-  return new Program<PrismCore>(prismCoreIdl as PrismCore, provider) as PrismCoreProgram;
+export interface IkaDwalletInfo {
+  dwalletId: string;
+  chain: IkaChain;
+  fundedAmountUsd: bigint;
+  address: string;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Read: fetch IkaCollateral PDA state
-// ─────────────────────────────────────────────────────────────────────────────
+const UNAVAILABLE_MSG = 'IKA cross-chain collateral is not available on the Stellar build.';
 
-export function useIkaCollateralAccount(loanPubkey: PublicKey | null) {
-  const { connection } = useConnection();
-  const wallet = useAnchorWallet();
-
-  return useQuery({
-    queryKey: ['ika-collateral', loanPubkey?.toBase58()],
-    enabled: !!loanPubkey && !!wallet,
-    queryFn: async (): Promise<IkaCollateralState | null> => {
-      if (!loanPubkey || !wallet) return null;
-      const program = buildPrismCoreProgram(connection, wallet);
-      const [pda] = getIkaCollateralPda(loanPubkey);
-      try {
-        const acc = await program.account.ikaCollateral.fetch(pda);
-        const statusRaw = Object.keys(acc.status)[0];
-        const status = (statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1)) as IkaCollateralState['status'];
-        return {
-          loan: acc.loan,
-          dwalletId: new Uint8Array(acc.dwalletId),
-          chainId: acc.chainId,
-          collateralAmountUsd: BigInt(acc.collateralAmountUsd.toString()),
-          status,
-          oraclePubkey: acc.oraclePubkey,
-          lockedTs: acc.lockedTs.toNumber(),
-          bump: acc.bump,
-        };
-      } catch {
-        return null; // account does not exist yet
-      }
-    },
+export function useIkaCollateralAccount(_loanPubkey: unknown) {
+  return useQuery<IkaCollateralState | null>({
+    queryKey: ['ika-collateral', 'stellar-stub'],
+    queryFn: async () => null,
+    enabled: false,
+    staleTime: Infinity,
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Mutations
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface AttachParams {
-  vaultId: number;
-  loanId: number;
-  dwallet: IkaDwalletInfo;
-  chainId: IkaChain;
-  collateralAmountUsd: bigint;
-  oraclePubkey: PublicKey;
+export function useCreateIkaDwallet() {
+  return useMutation<IkaDwalletInfo, Error, { chain: IkaChain; usd: number }>({
+    mutationFn: async () => {
+      throw new Error(UNAVAILABLE_MSG);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 }
 
 export function useAttachIkaCollateral() {
-  const { connection } = useConnection();
-  const wallet = useAnchorWallet();
-  const qc = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (params: AttachParams) => {
-      if (!wallet) throw new Error('Wallet not connected');
-      const program = buildPrismCoreProgram(connection, wallet);
-
-      const [vaultPda] = getVaultPda(Number(params.vaultId));
-      const [loanPda] = getLoanPda(vaultPda, Number(params.loanId));
-      const [ikaCollateralPda] = getIkaCollateralPda(loanPda);
-      const [configPda] = getConfigPda();
-
-      const sig = await program.methods
-        .attachIkaCollateral(
-          Array.from(params.dwallet.dwalletId) as unknown as number[],
-          params.chainId,
-          new BN(params.collateralAmountUsd.toString()),
-          params.oraclePubkey,
-        )
-        .accounts({
-          borrower: wallet.publicKey,
-          config: configPda,
-          loan: loanPda,
-          ikaCollateral: ikaCollateralPda,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc({ commitment: 'confirmed', skipPreflight: true });
-
-      return { sig, loanPda };
+  return useMutation<string, Error, unknown>({
+    mutationFn: async () => {
+      throw new Error(UNAVAILABLE_MSG);
     },
-    onSuccess: ({ sig, loanPda }) => {
-      qc.invalidateQueries({ queryKey: ['ika-collateral', loanPda.toBase58()] });
-      toast.success('IKA collateral registered', {
-        description: (
-          <a
-            href={`https://explorer.solana.com/tx/${sig}?cluster=devnet`}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-1 flex items-center gap-1 font-mono text-[10px] text-pink-400/80 hover:text-pink-400 hover:underline"
-          >
-            TX: {sig.slice(0, 8)}...{sig.slice(-8)}
-          </a>
-        ),
-      });
-    },
-    onError: (e: Error) => toast.error(`Attach failed: ${e.message}`),
+    onError: (e: Error) => toast.error(e.message),
   });
-}
-
-interface VerifyParams {
-  vaultId: number;
-  loanId: number;
 }
 
 export function useVerifyIkaCollateral() {
-  const { connection } = useConnection();
-  const wallet = useAnchorWallet();
-  const qc = useQueryClient();
-  const [isPolling, setIsPolling] = useState(false);
-
-  const verify = useCallback(
-    async (params: VerifyParams & { dwalletId: Uint8Array; chainId: IkaChain }) => {
-      if (!wallet) throw new Error('Wallet not connected');
-      const program = buildPrismCoreProgram(connection, wallet);
-
-      const [vaultPda] = getVaultPda(Number(params.vaultId));
-      const [loanPda] = getLoanPda(vaultPda, Number(params.loanId));
-      const [configPda] = getConfigPda();
-
-      // Poll IKA oracle until attestation is ready.
-      setIsPolling(true);
-      try {
-        toast('Waiting for IKA oracle attestation…', { duration: 8000 });
-        const attestation = await pollOracleAttestation(
-          params.dwalletId,
-          params.chainId,
-          loanPda,
-        );
-
-        // Build the ed25519 + verify_ika_collateral transaction.
-        const tx = await buildVerifyCollateralTx(program, attestation, configPda);
-
-        const { blockhash } = await connection.getLatestBlockhash('confirmed');
-        tx.recentBlockhash = blockhash;
-        tx.feePayer = wallet.publicKey;
-
-        const signed = await wallet.signTransaction(tx);
-        const sig = await connection.sendRawTransaction(signed.serialize());
-        await connection.confirmTransaction(sig, 'confirmed');
-
-        qc.invalidateQueries({ queryKey: ['ika-collateral', loanPda.toBase58()] });
-        
-        toast.success('IKA collateral verified', {
-          description: (
-            <a
-              href={`https://explorer.solana.com/tx/${sig}?cluster=devnet`}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-1 flex items-center gap-1 font-mono text-[10px] text-pink-400/80 hover:text-pink-400 hover:underline"
-            >
-              TX: {sig.slice(0, 8)}...{sig.slice(-8)}
-            </a>
-          ),
-        });
-
-        return sig;
-      } finally {
-        setIsPolling(false);
-      }
+  return useMutation<string, Error, unknown>({
+    mutationFn: async () => {
+      throw new Error(UNAVAILABLE_MSG);
     },
-    [connection, wallet, qc],
-  );
-
-  return { verify, isPolling };
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Read: fetch Loan account state (for gating release)
-// ─────────────────────────────────────────────────────────────────────────────
-
-export function useLoanAccount(loanPubkey: PublicKey | null) {
-  const { connection } = useConnection();
-  const wallet = useAnchorWallet();
-
-  return useQuery({
-    queryKey: ['loan-account', loanPubkey?.toBase58()],
-    enabled: !!loanPubkey && !!wallet,
-    refetchInterval: 5_000,
-    queryFn: async () => {
-      if (!loanPubkey || !wallet) return null;
-      const program = buildPrismCoreProgram(connection, wallet);
-      return program.account.loan.fetchNullable(loanPubkey);
-    },
+    onError: (e: Error) => toast.error(e.message),
   });
 }
 
-interface ReleaseParams {
-  vaultId: number;
-  loanId: number;
+export function useReleaseIkaCollateral() {
+  return useMutation<string, Error, unknown>({
+    mutationFn: async () => {
+      throw new Error(UNAVAILABLE_MSG);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 }
 
-export function useReleaseIkaCollateral() {
-  const { connection } = useConnection();
-  const wallet = useAnchorWallet();
-  const qc = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (params: ReleaseParams) => {
-      if (!wallet) throw new Error('Wallet not connected');
-      const program = buildPrismCoreProgram(connection, wallet);
-
-      const [vaultPda] = getVaultPda(Number(params.vaultId));
-      const [loanPda] = getLoanPda(vaultPda, Number(params.loanId));
-      const [ikaCollateralPda] = getIkaCollateralPda(loanPda);
-
-      const sig = await program.methods
-        .releaseIkaCollateral()
-        .accounts({
-          signer: wallet.publicKey,
-          loan: loanPda,
-          ikaCollateral: ikaCollateralPda,
-        })
-        .rpc({ commitment: 'confirmed', skipPreflight: true });
-
-      return { sig, loanPda };
+export function useLiquidateIkaCollateral() {
+  return useMutation<string, Error, unknown>({
+    mutationFn: async () => {
+      throw new Error(UNAVAILABLE_MSG);
     },
-    onSuccess: ({ sig, loanPda }) => {
-      qc.invalidateQueries({ queryKey: ['ika-collateral', loanPda.toBase58()] });
-      toast.success('Collateral released', {
-        description: (
-          <a
-            href={`https://explorer.solana.com/tx/${sig}?cluster=devnet`}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-1 flex items-center gap-1 font-mono text-[10px] text-pink-400/80 hover:text-pink-400 hover:underline"
-          >
-            TX: {sig.slice(0, 8)}...{sig.slice(-8)}
-          </a>
-        ),
-      });
-    },
-    onError: (e: Error) => toast.error(`Release failed: ${e.message}`),
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+// The old IKA hook also exposed a `useLoanAccount(loanPda)` reader. Stubbed
+// here so legacy callers compile; returns null forever.
+export function useLoanAccount(_loanPda: unknown) {
+  return useQuery<unknown | null>({
+    queryKey: ['ika-loan-account', 'stellar-stub'],
+    queryFn: async () => null,
+    enabled: false,
+    staleTime: Infinity,
   });
 }

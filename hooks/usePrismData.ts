@@ -1,9 +1,12 @@
 'use client';
 
-import { useWallet } from '@solana/wallet-adapter-react';
+// Dashboard aggregator — reshapes `useVaultState` output into the props
+// dashboard surfaces expect. No chain calls of its own.
+
 import { useVaultState } from '@/hooks/useVaultState';
 import { TRANCHE_CONFIG, TrancheKind, VAULT_ID } from '@/app/lib/constants';
 import { shortKey, stateName, toBigInt } from '@/app/lib/format';
+import { useStellarWallet } from '@/components/providers/stellar-wallet-provider';
 
 const TRANCHE_ORDER = [TrancheKind.Prime, TrancheKind.Core, TrancheKind.Alpha] as const;
 
@@ -40,7 +43,7 @@ function sum(values: bigint[]) {
 }
 
 export function usePrismData(vaultId: number = VAULT_ID): PrismData {
-  const { connected, publicKey } = useWallet();
+  const { connected, address } = useStellarWallet();
   const vaultQuery = useVaultState(vaultId);
   const data = vaultQuery.data;
 
@@ -60,7 +63,10 @@ export function usePrismData(vaultId: number = VAULT_ID): PrismData {
       cumulativeLoss: live?.cumulativeLoss ?? 0n,
       ammQuoteBalance: ammQuote,
       ammTrancheBalance: live?.ammTrancheBalance ?? 0n,
-      utilization: totalAssets > 0n ? Number(((totalAssets - ammQuote) * 10000n) / totalAssets) / 100 : 0,
+      utilization:
+        totalAssets > 0n
+          ? Number(((totalAssets - ammQuote) * 10_000n) / totalAssets) / 100
+          : 0,
     };
   });
 
@@ -71,7 +77,7 @@ export function usePrismData(vaultId: number = VAULT_ID): PrismData {
 
   return {
     connected,
-    walletLabel: connected && publicKey ? shortKey(publicKey) : 'Not connected',
+    walletLabel: connected && address ? shortKey(address) : 'Not connected',
     vaultLabel: data ? shortKey(data.vaultPda) : 'Vault #0',
     vaultStatus: stateName(data?.vault?.state),
     tranches,
@@ -79,7 +85,10 @@ export function usePrismData(vaultId: number = VAULT_ID): PrismData {
     yieldDistributed: sum(tranches.map((tranche) => tranche.cumulativeYield)),
     poolLiquidity: sum(tranches.map((tranche) => tranche.ammQuoteBalance)),
     lossBucket,
-    vaultHealth: vaultCapital > 0n ? Number(((vaultCapital - lossBucket) * 10000n) / vaultCapital) / 100 : 100,
+    vaultHealth:
+      vaultCapital > 0n
+        ? Number(((vaultCapital - lossBucket) * 10_000n) / vaultCapital) / 100
+        : 100,
     isLoading: vaultQuery.isLoading,
     error: vaultQuery.error instanceof Error ? vaultQuery.error : undefined,
   };

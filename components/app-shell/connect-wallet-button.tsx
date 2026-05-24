@@ -1,17 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { ChevronDown, Copy, ExternalLink, LogOut, Wallet } from "lucide-react";
+
+import { useStellarWallet } from "@/components/providers/stellar-wallet-provider";
 
 function shortAddress(addr: string) {
   return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
 }
 
 export function ConnectWalletButton() {
-  const { publicKey, wallet, connected, disconnect } = useWallet();
-  const { setVisible } = useWalletModal();
+  const { address, connected, connect, disconnect, pending } = useStellarWallet();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -24,23 +23,24 @@ export function ConnectWalletButton() {
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
 
-  if (!connected || !publicKey) {
+  if (!connected || !address) {
     return (
       <button
         type="button"
-        onClick={() => setVisible(true)}
+        onClick={() => {
+          void connect();
+        }}
+        disabled={pending}
         aria-label="Connect wallet"
-        className="group flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-pink-500/70 bg-pink-500/50 text-sm font-semibold text-pink-200 shadow-[0_10px_32px_rgba(236,72,153,0.25)] transition-all duration-300 hover:w-[172px] hover:px-5"
+        className="group flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-pink-500/70 bg-pink-500/50 text-sm font-semibold text-pink-200 shadow-[0_10px_32px_rgba(236,72,153,0.25)] transition-all duration-300 hover:w-[172px] hover:px-5 disabled:opacity-50"
       >
         <Wallet className="h-5 w-5 shrink-0" />
         <span className="max-w-0 overflow-hidden whitespace-nowrap transition-all duration-300 group-hover:ml-2 group-hover:max-w-[100px]">
-          Connect Wallet
+          {pending ? "Connecting…" : "Connect Wallet"}
         </span>
       </button>
     );
   }
-
-  const address = publicKey.toBase58();
 
   return (
     <div ref={ref} className="relative">
@@ -53,12 +53,7 @@ export function ConnectWalletButton() {
           open ? "w-[172px] px-5" : "w-14 hover:w-[172px] hover:px-5",
         ].join(" ")}
       >
-        {wallet?.adapter.icon ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={wallet.adapter.icon} alt="" className="h-5 w-5 shrink-0" />
-        ) : (
-          <Wallet className="h-5 w-5 shrink-0" />
-        )}
+        <Wallet className="h-5 w-5 shrink-0" />
         <span
           className={[
             "overflow-hidden whitespace-nowrap font-mono text-xs transition-all duration-300",
@@ -82,7 +77,7 @@ export function ConnectWalletButton() {
       {open && (
         <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-md border border-white/10 bg-black/95 shadow-2xl backdrop-blur">
           <div className="border-b border-white/10 px-3 py-2 text-[11px] text-white/50">
-            Connected via {wallet?.adapter.name ?? "wallet"}
+            Connected to Stellar testnet
           </div>
           <button
             type="button"
@@ -96,7 +91,7 @@ export function ConnectWalletButton() {
             Copy address
           </button>
           <a
-            href={`https://explorer.solana.com/address/${address}?cluster=devnet`}
+            href={`https://stellar.expert/explorer/testnet/account/${address}`}
             target="_blank"
             rel="noreferrer"
             onClick={() => setOpen(false)}
@@ -108,7 +103,7 @@ export function ConnectWalletButton() {
           <button
             type="button"
             onClick={() => {
-              disconnect();
+              void disconnect();
               setOpen(false);
             }}
             className="flex w-full items-center gap-2 border-t border-white/10 px-3 py-2.5 text-left text-sm text-pink-300 transition-colors hover:bg-pink-500/10"

@@ -1,24 +1,54 @@
-import { PublicKey } from '@solana/web3.js';
+// Stellar / Soroban deployment constants.
+//
+// All addresses below are 56-char Stellar StrKey contract IDs (CXX...) or
+// account IDs (GXX...). The legacy Solana `PublicKey` import is gone — these
+// values are plain strings now. Use `import { Address } from '@stellar/stellar-sdk'`
+// when you need to wrap one for Soroban invocation.
 
-import prismAmmIdl from '@/app/lib/idl/prism_amm.json';
-import prismCoreIdl from '@/app/lib/idl/prism_core.json';
+// Deployed Soroban contract IDs (Soroban testnet, May 2026).
+// Override with NEXT_PUBLIC_* env vars if you redeploy.
+export const PRISM_CORE_CONTRACT_ID =
+  process.env.NEXT_PUBLIC_PRISM_CORE_CONTRACT_ID ??
+  'CC35ET26VOV4O2KT5PJ64ZVVQGGS3CMJTPY35IGJFHWG6Y3X7XKWSU7V';
 
-export const PRISM_CORE_PROGRAM_ID = new PublicKey(
-  process.env.NEXT_PUBLIC_PRISM_CORE_PROGRAM_ID ?? prismCoreIdl.address,
-);
+export const PRISM_AMM_CONTRACT_ID =
+  process.env.NEXT_PUBLIC_PRISM_AMM_CONTRACT_ID ??
+  'CA4S4LSQ6VO5QRYLJY3UVKYRVSM2AG3SZ7MAGCLMZ3PILD3QCJM37YVV';
 
-export const PRISM_AMM_PROGRAM_ID = new PublicKey(
-  process.env.NEXT_PUBLIC_PRISM_AMM_PROGRAM_ID ?? prismAmmIdl.address,
-);
+// Stellar Asset Contract for Circle's testnet USDC.
+// USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5 → SAC.
+export const USDC_CONTRACT_ID =
+  process.env.NEXT_PUBLIC_USDC_CONTRACT_ID ??
+  'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA';
 
-export const USDC_MINT = new PublicKey(
-  process.env.NEXT_PUBLIC_USDC_MINT ?? '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
-);
+// Legacy alias kept so old `import { USDC_MINT }` lines don't break.
+// New code should import `USDC_CONTRACT_ID` directly.
+export const USDC_MINT = USDC_CONTRACT_ID;
 
 export const VAULT_ID = Number.parseInt(process.env.NEXT_PUBLIC_VAULT_ID ?? '0', 10);
-export const USDC_DECIMALS = 6;
-export const USDC_BASE_UNITS = 1_000_000n;
+
+// Stellar USDC has 7 decimals (Solana USDC had 6).
+export const USDC_DECIMALS = 7;
+export const USDC_BASE_UNITS = 10_000_000n;
 export const Q64_ONE = 1n << 64n;
+
+// Soroban RPC endpoint. Stellar's public testnet RPC.
+export const SOROBAN_RPC_URL =
+  process.env.NEXT_PUBLIC_SOROBAN_RPC_URL ?? 'https://soroban-testnet.stellar.org';
+
+// Stellar testnet network passphrase. Used for transaction signing.
+export const NETWORK_PASSPHRASE =
+  process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE ??
+  'Test SDF Network ; September 2015';
+
+// Horizon endpoint (for account / asset queries that aren't Soroban contract calls).
+export const HORIZON_URL =
+  process.env.NEXT_PUBLIC_HORIZON_URL ?? 'https://horizon-testnet.stellar.org';
+
+// Legacy program-id aliases. Kept so old `import { PRISM_CORE_PROGRAM_ID }`
+// lines don't break — they now resolve to the same Stellar contract string.
+export const PRISM_CORE_PROGRAM_ID = PRISM_CORE_CONTRACT_ID;
+export const PRISM_AMM_PROGRAM_ID = PRISM_AMM_CONTRACT_ID;
 
 export enum TrancheKind {
   Prime = 0,
@@ -50,9 +80,9 @@ export const TRANCHE_CONFIG = {
   },
 } as const;
 
-export const DEFAULT_DEMO_LOSS_AMOUNT = 6_500_000_000n;
-export const DEFAULT_DEMO_YIELD_AMOUNT = 100_000_000n;
-export const DEFAULT_DEMO_LOAN_PRINCIPAL = 20_000_000_000n;
+export const DEFAULT_DEMO_LOSS_AMOUNT = 65_000_000_000n; // 6_500 USDC (7-dec)
+export const DEFAULT_DEMO_YIELD_AMOUNT = 1_000_000_000n; // 100 USDC (7-dec)
+export const DEFAULT_DEMO_LOAN_PRINCIPAL = 200_000_000_000n; // 20_000 USDC (7-dec)
 
 // ── Protocol risk parameters (single source of truth) ─────────────────────────
 export const PROTOCOL_DEFAULT_APR_PCT = 8.5;
@@ -61,8 +91,7 @@ export const PROTOCOL_MAX_LTV_PCT = 80;
 export const INSTITUTIONAL_CREDIT_LIMIT_USD = 500_000;
 export const INDIVIDUAL_CREDIT_LIMIT_USD = 100_000;
 
-// Pool display names keyed by vault id. No on-chain metadata exists for these
-// yet, so they live here until a vault metadata instruction is added.
+// Pool display names keyed by vault id.
 export const POOL_NAMES: Record<number, string> = {
   0: 'Institutional Stablecoin Credit',
   1: 'BTC Treasury Lending',
@@ -70,23 +99,20 @@ export const POOL_NAMES: Record<number, string> = {
   3: 'Growth Capital Market',
 };
 
-// Ed25519 pubkey of the demo Encrypt FHE oracle.
-// Derived from a deterministic 32-byte zero seed so the mock oracle route
-// (app/api/encrypt-oracle/route.ts) and the on-chain allowlist agree.
-// In production this is replaced by the real Encrypt oracle key.
-export const ENCRYPT_ORACLE_PUBKEY = new PublicKey(
-  process.env.NEXT_PUBLIC_ENCRYPT_ORACLE_PUBKEY ?? '4zvwRjXUKGfvwnParsHAS3HuSVzV5cA4McphgmoCtajS',
-);
+// Ed25519 pubkey of the demo Encrypt FHE oracle. 32-byte hex (no Stellar StrKey
+// wrapping — these are raw oracle keys, used by `env.crypto().ed25519_verify`
+// inside the contract). The mock oracle at /api/encrypt-oracle/* uses the
+// matching secret (deterministic zero seed).
+export const ENCRYPT_ORACLE_PUBKEY_HEX =
+  process.env.NEXT_PUBLIC_ENCRYPT_ORACLE_PUBKEY_HEX ??
+  '3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29';
 
-// Demo Cloak oracle pubkey (derived from deterministic 0x11... seed in
-// app/api/cloak-oracle/shield_payout/route.ts). Replace with real oracle key
-// for production.
-export const CLOAK_ORACLE_PUBKEY = new PublicKey(
-  process.env.NEXT_PUBLIC_CLOAK_ORACLE_PUBKEY ?? 'F25s3DdjXdCxYBhh2z8FBusVEMT4b9bGNFVKJi3wFoF4',
-);
+// Demo Cloak oracle pubkey (deterministic 0x11... seed).
+export const CLOAK_ORACLE_PUBKEY_HEX =
+  process.env.NEXT_PUBLIC_CLOAK_ORACLE_PUBKEY_HEX ??
+  '8a88e3dd7409f195fd52db2d3cba5d72ca6709bf1d94121bf3748801b40f6f5c';
 
-// Optional Cloak program id for SDK-based integrations. Current flow records
-// attestation only, so this is informational unless explicitly used.
-export const CLOAK_PROGRAM_ID = new PublicKey(
-  process.env.NEXT_PUBLIC_CLOAK_PROGRAM_ID ?? '11111111111111111111111111111111',
-);
+// Legacy aliases. Stored as 32-byte hex strings now (no PublicKey wrapping).
+export const ENCRYPT_ORACLE_PUBKEY = ENCRYPT_ORACLE_PUBKEY_HEX;
+export const CLOAK_ORACLE_PUBKEY = CLOAK_ORACLE_PUBKEY_HEX;
+export const CLOAK_PROGRAM_ID = ''; // No equivalent on Stellar; kept for import compatibility.

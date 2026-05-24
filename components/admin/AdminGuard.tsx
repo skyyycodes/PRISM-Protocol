@@ -1,39 +1,33 @@
 "use client";
 
-import { useWallet } from '@solana/wallet-adapter-react';
-import { useWalletModal } from '@solana/wallet-adapter-react-ui';
-import { useIdentity } from '@/hooks/useIdentity';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2, ShieldAlert } from 'lucide-react';
 
+import { useIdentity } from '@/hooks/useIdentity';
+import { useStellarWallet } from '@/components/providers/stellar-wallet-provider';
+
 export function AdminGuard({ children }: { children: React.ReactNode }) {
-  const { publicKey, connected } = useWallet();
-  const { setVisible } = useWalletModal();
-  const { keypair } = useIdentity();
+  const { address: walletAddress, connected, connect } = useStellarWallet();
+  const { address: adminAddress } = useIdentity();
   const router = useRouter();
   const [status, setStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
 
-  const adminPubkey = keypair.publicKey.toBase58();
-
   useEffect(() => {
-    // Give it a moment to resolve wallet connection
     const timer = setTimeout(() => {
-      if (connected && publicKey) {
-        if (publicKey.toBase58() === adminPubkey) {
+      if (connected && walletAddress) {
+        if (walletAddress === adminAddress) {
           setStatus('authorized');
         } else {
           setStatus('unauthorized');
-          // Optional: Auto-redirect after some time
-          // setTimeout(() => router.push('/dashboard'), 3000);
         }
-      } else if (connected === false) {
+      } else {
         setStatus('unauthorized');
       }
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [connected, publicKey, adminPubkey, router]);
+  }, [connected, walletAddress, adminAddress]);
 
   if (status === 'loading') {
     return (
@@ -57,22 +51,24 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
             {connected ? 'Access Restricted' : 'Admin Terminal Locked'}
           </h1>
           <p className="max-w-xs text-sm text-white/40 leading-relaxed">
-            {connected 
-              ? 'This terminal is reserved for Protocol Administrators. Please connect the authorized administrative wallet to proceed.'
+            {connected
+              ? 'This terminal is reserved for Protocol Administrators. Please connect the deployer wallet to proceed.'
               : 'Please connect your administrative wallet to access the Mission Control terminal.'}
           </p>
         </div>
-        
+
         <div className="flex flex-col gap-3 w-full max-w-[240px]">
           {!connected ? (
-            <button 
-              onClick={() => setVisible(true)}
+            <button
+              onClick={() => {
+                void connect();
+              }}
               className="w-full rounded-xl bg-white px-6 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-black transition-all hover:bg-white/90"
             >
               Connect Admin Wallet
             </button>
           ) : (
-            <button 
+            <button
               onClick={() => router.push('/dashboard')}
               className="w-full rounded-xl border border-white/10 bg-white/5 px-6 py-3 font-mono text-[11px] uppercase tracking-widest text-white/60 transition-all hover:bg-white/10 hover:text-white"
             >
