@@ -517,7 +517,7 @@ async function printSummary(ctx: SetupContext) {
   MM Trade #2 inv:     2K pALPHA + 0.5K pCORE
   Yield event:         ${SKIP_YIELD ? "skipped" : "100 USDC accrued"}
 
-  → Visit http://localhost:3000/dashboard
+  → Visit the dashboard at the app URL (default: http://localhost:3000/dashboard)
 ═══════════════════════════════════════════════════════════
 `);
 }

@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'node:crypto';
 import { signWebhook } from '@/app/lib/dodo';
+import { getAppUrl } from '@/lib/origin';
 
 export const runtime = 'nodejs';
 
@@ -57,9 +58,8 @@ export async function POST(req: NextRequest) {
 
   const signature = signWebhook(raw, id, timestamp, secret);
 
-  // Forward to the real webhook handler. We construct an absolute URL using
-  // the request's origin so this works behind cloudflared too.
-  const url = new URL('/api/dodo/webhook', req.nextUrl.origin);
+  const appUrl = getAppUrl(req);
+  const url = new URL('/api/dodo/webhook', appUrl);
   const fwd = await fetch(url.toString(), {
     method: 'POST',
     headers: {

@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 
 export default function PositionsPage() {
   return (
-    <div data-app-scroll className="relative flex-1 overflow-y-auto [overscroll-behavior:contain] px-4 pt-7 pb-4">
+    <div data-app-scroll className="relative flex-1 overflow-y-auto [overscroll-behavior:contain] px-8 py-8 md:px-10 md:py-10">
       <PositionsOverview />
     </div>
   );

@@ -792,14 +792,14 @@ export function ActionPanel() {
   if (!isMounted) return null;
 
   return (
-    <section className="rounded-lg border border-white/10 bg-black/30 p-5" aria-label="Action panel">
+    <section className="rounded-2xl border border-transparent bg-[#0c0c0f] p-6 transition-all duration-300" aria-label="Action panel">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-sm font-semibold text-white">Action Panel</div>
           <p className="mt-1 text-xs text-white/45">{identity.label} signed transactions only.</p>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <span className="rounded-md bg-white/10 px-2 py-1 font-mono text-[10px] uppercase text-white/60">
+          <span className="rounded-full border border-emerald-500/20 bg-emerald-500/[0.06] px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-emerald-400/80">
             confirmed
           </span>
           <div className="flex items-center gap-1.5 font-mono text-[10px] text-emerald-400/80">
@@ -811,7 +811,7 @@ export function ActionPanel() {
 
       {identity.role === 'senior' || identity.role === 'junior' ? (
         <div className="mt-5 space-y-5">
-          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+          <div className="rounded-xl border border-white/[0.015] bg-[#08080a] p-4">
             <div className="flex items-center gap-2 text-sm font-medium text-white">
               <Landmark className="h-4 w-4 text-white/50" />
               {investorTrancheConfig.label} tranche entry
@@ -824,7 +824,7 @@ export function ActionPanel() {
               </Button>
             </div>
           </div>
-          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+          <div className="rounded-xl border border-white/[0.015] bg-[#08080a] p-4">
             <div className="flex items-center gap-2 text-sm font-medium text-white">
               <Banknote className="h-4 w-4 text-white/50" />
               Withdraw or emergency exit
@@ -846,7 +846,7 @@ export function ActionPanel() {
 
       {identity.role === 'borrower' ? (
         <div className="mt-5 space-y-5">
-          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+          <div className="rounded-xl border border-white/[0.015] bg-[#08080a] p-4">
             <div className="text-sm font-medium text-white">Loan lifecycle</div>
             <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
               <Input value={loanAmount} onChange={(event) => setLoanAmount(event.target.value)} />
@@ -858,9 +858,9 @@ export function ActionPanel() {
               </Button>
             </div>
           </div>
-          <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/[0.04] p-4">
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] p-4">
             <div className="flex items-center gap-2 text-sm font-medium text-white">
-              <Lock className="h-4 w-4 text-emerald-300" />
+              <Lock className="h-4 w-4 text-emerald-400" />
               Encrypt FHE credit score
             </div>
             <p className="mt-1 text-xs text-white/55">
@@ -881,7 +881,7 @@ export function ActionPanel() {
             </div>
             {encryptHealth.data ? (
               <div className="mt-3 font-mono text-[11px] text-white/55">
-                Status: <span className="text-emerald-300">{encryptHealth.data.status}</span>
+                Status: <span className="text-emerald-400">{encryptHealth.data.status}</span>
               </div>
             ) : null}
           </div>
@@ -890,7 +890,7 @@ export function ActionPanel() {
 
       {identity.role === 'admin' ? (
         <div className="mt-5 space-y-5">
-          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+          <div className="rounded-xl border border-white/[0.015] bg-[#08080a] p-4">
             <div className="flex items-center gap-2 text-sm font-medium text-white">
               <Play className="h-4 w-4 text-white/50" />
               Protocol operations
@@ -979,7 +979,7 @@ export function ActionPanel() {
               </Button>
             </div>
           </div>
-          <div className="flex gap-2 rounded-lg border border-amber-300/20 bg-amber-300/10 p-3 text-xs text-amber-100">
+          <div className="flex gap-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.03] p-3.5 text-xs text-amber-200">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             Failed withdrawals surface the on-chain error and point the user to AMM exit liquidity.
           </div>

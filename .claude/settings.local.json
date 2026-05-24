@@ -96,7 +96,15 @@
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\manov\\\\Desktop\\\\code\\\\PRISM-Protocol\" -Recurse -Directory | Select-Object -First 30 | ForEach-Object { $_.FullName })",
       "Bash(git fetch *)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\manov\\\\Desktop\\\\code\\\\PRISM-Protocol\" -Recurse -Filter \"*.tsx\" -o ErrorAction SilentlyContinue)",
-      "Bash(Select-Object -First 20)"
+      "Bash(Select-Object -First 20)",
+      "Bash(git filter-branch *)",
+      "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch --msg-filter 'grep -v \"Co-Authored-By\"' HEAD~3..HEAD)",
+      "PowerShell(git add *)",
+      "PowerShell(git commit *)",
+      "PowerShell(git push *)",
+      "Bash(npm run *)",
+      "WebFetch(domain:www.solana.new)",
+      "PowerShell(git restore *)"
     ]
   }
 }

@@ -59,7 +59,7 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
           <p className="max-w-xs text-sm text-white/40 leading-relaxed">
             {connected 
               ? 'This terminal is reserved for Protocol Administrators. Please connect the authorized administrative wallet to proceed.'
-              : 'Please connect your administrative wallet to access the Mission Control terminal.'}
+              : 'Please connect your administrative wallet to access the Admin dashboard.'}
           </p>
         </div>
         

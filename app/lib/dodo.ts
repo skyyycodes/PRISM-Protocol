@@ -90,11 +90,7 @@ export async function createCheckout(params: CreateCheckoutParams): Promise<Chec
   return { payment_id: data.session_id, checkout_url: data.checkout_url };
 }
 
-function getAppOrigin(): string {
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return 'http://localhost:3000';
-}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Standard Webhooks signature verification
