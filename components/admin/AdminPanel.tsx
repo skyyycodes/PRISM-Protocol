@@ -807,7 +807,7 @@ export function AdminPanel() {
         <div>
           <h1 className="text-xl font-semibold text-white">Protocol Control Center</h1>
           <p className="font-mono text-[11px] text-white/30">
-            Vault {VAULT_ID} · {PRISM_CORE_PROGRAM_ID.toBase58().slice(0, 8)}…
+            Vault {VAULT_ID} · {PRISM_CORE_PROGRAM_ID.slice(0, 8)}…
           </p>
         </div>
         <div className="flex items-center gap-3">

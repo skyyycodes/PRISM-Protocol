@@ -9,8 +9,8 @@ const EMPTY: FetchEventsResult = { events: [], duneCount: 0 };
 
 export function useEvents() {
   return useQuery<FetchEventsResult>({
-    queryKey: ['dune-events', PRISM_CORE_PROGRAM_ID.toBase58()],
-    queryFn: () => fetchProtocolEvents(PRISM_CORE_PROGRAM_ID.toBase58()),
+    queryKey: ['dune-events', PRISM_CORE_PROGRAM_ID],
+    queryFn: () => fetchProtocolEvents(PRISM_CORE_PROGRAM_ID),
     refetchInterval: 15_000,
     staleTime: 10_000,
     initialData: EMPTY,
