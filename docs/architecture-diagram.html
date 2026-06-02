@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PRISM Protocol — Architecture</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: #0a0d14;
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 48px 32px;
+    }
+
+    h1 {
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+    h2 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 48px;
+      letter-spacing: -0.5px;
+    }
+
+    .diagram {
+      display: grid;
+      grid-template-columns: 200px 80px 320px 80px 200px;
+      grid-template-rows: auto auto auto auto auto;
+      gap: 0;
+      align-items: center;
+      justify-items: center;
+      width: 100%;
+      max-width: 920px;
+      position: relative;
+    }
+
+    /* ── Column headers ── */
+    .col-label {
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #475569;
+      text-align: center;
+      padding-bottom: 16px;
+    }
+
+    /* ── Investor cards ── */
+    .investor-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      grid-column: 1;
+      grid-row: 2 / 5;
+      align-self: center;
+    }
+    .investor {
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      border: 1px solid;
+    }
+    .investor.conservative {
+      background: rgba(59,130,246,0.08);
+      border-color: rgba(59,130,246,0.25);
+    }
+    .investor.balanced {
+      background: rgba(168,85,247,0.08);
+      border-color: rgba(168,85,247,0.25);
+    }
+    .investor.aggressive {
+      background: rgba(239,68,68,0.08);
+      border-color: rgba(239,68,68,0.25);
+    }
+    .investor-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .investor.conservative .investor-label { color: #60a5fa; }
+    .investor.balanced    .investor-label { color: #c084fc; }
+    .investor.aggressive  .investor-label { color: #f87171; }
+    .investor-desc {
+      font-size: 10px;
+      color: #64748b;
+    }
+
+    /* ── Arrows ── */
+    .arrow-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 100%;
+    }
+    .arrow-label {
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #334155;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    /* ── Tranche stack ── */
+    .tranche-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      width: 100%;
+      grid-column: 3;
+      grid-row: 2 / 5;
+      position: relative;
+    }
+
+    .tranche {
+      padding: 18px 20px;
+      position: relative;
+      border-left: 4px solid;
+      border-right: 4px solid;
+      transition: opacity 0.2s;
+    }
+    .tranche:first-child {
+      border-top: 4px solid;
+      border-top-left-radius: 12px;
+      border-top-right-radius: 12px;
+    }
+    .tranche:last-child {
+      border-bottom: 4px solid;
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+    }
+
+    .tranche.prime {
+      background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(59,130,246,0.04));
+      border-color: rgba(59,130,246,0.4);
+    }
+    .tranche.core {
+      background: linear-gradient(135deg, rgba(168,85,247,0.10), rgba(168,85,247,0.03));
+      border-color: rgba(168,85,247,0.35);
+      border-top: 0;
+      border-bottom: 0;
+    }
+    .tranche.alpha {
+      background: linear-gradient(135deg, rgba(239,68,68,0.12), rgba(239,68,68,0.04));
+      border-color: rgba(239,68,68,0.4);
+    }
+
+    .tranche-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .tranche-name {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+    .tranche.prime  .tranche-name { color: #60a5fa; }
+    .tranche.core   .tranche-name { color: #c084fc; }
+    .tranche.alpha  .tranche-name { color: #f87171; }
+
+    .tranche-token {
+      font-size: 10px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .tranche.prime  .tranche-token { background: rgba(59,130,246,0.2);  color: #93c5fd; }
+    .tranche.core   .tranche-token { background: rgba(168,85,247,0.2); color: #d8b4fe; }
+    .tranche.alpha  .tranche-token { background: rgba(239,68,68,0.2);  color: #fca5a5; }
+
+    .tranche-meta {
+      display: flex;
+      gap: 16px;
+    }
+    .tranche-stat {
+      display: flex;
+      flex-direction: column;
+    }
+    .tranche-stat-val {
+      font-size: 13px;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+    .tranche-stat-key {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #475569;
+    }
+
+    .tranche-badge {
+      position: absolute;
+      right: 12px;
+      bottom: 10px;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .tranche.prime  .tranche-badge { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .tranche.core   .tranche-badge { background: rgba(168,85,247,0.15); color: #c084fc; }
+    .tranche.alpha  .tranche-badge { background: rgba(239,68,68,0.15);  color: #f87171; }
+
+    /* ── Right col: Borrower + AMM ── */
+    .right-col {
+      grid-column: 5;
+      grid-row: 2 / 5;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 100%;
+      align-self: center;
+    }
+
+    .box {
+      border-radius: 12px;
+      padding: 16px 18px;
+      border: 1px solid;
+    }
+    .box-label {
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .box-desc {
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+    .box-stat {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+
+    .box.borrower {
+      background: rgba(16,185,129,0.07);
+      border-color: rgba(16,185,129,0.25);
+    }
+    .box.borrower .box-label { color: #34d399; }
+
+    .box.amm {
+      background: rgba(251,191,36,0.07);
+      border-color: rgba(251,191,36,0.25);
+    }
+    .box.amm .box-label { color: #fbbf24; }
+
+    /* ── Flow labels beneath ── */
+    .flow-legend {
+      grid-column: 1 / 6;
+      margin-top: 40px;
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .flow-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #64748b;
+    }
+    .flow-line {
+      width: 32px;
+      height: 2px;
+      border-radius: 1px;
+    }
+    .flow-line.usdc    { background: #34d399; }
+    .flow-line.yield   { background: #60a5fa; }
+    .flow-line.loss    { background: #f87171; }
+    .flow-line.token   { background: #fbbf24; }
+    .flow-line.dashed  {
+      background: repeating-linear-gradient(
+        90deg, currentColor 0, currentColor 4px, transparent 4px, transparent 8px
+      );
+    }
+
+    /* ── SVG overlay arrows ── */
+    .svg-layer {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    /* ── Waterfall / cascade labels inside tranche col ── */
+    .flow-annotations {
+      grid-column: 3;
+      grid-row: 5;
+      display: flex;
+      justify-content: space-around;
+      width: 100%;
+      padding-top: 10px;
+    }
+    .annotation {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .annotation.waterfall { color: #60a5fa; }
+    .annotation.cascade   { color: #f87171; }
+    .annotation svg { opacity: 0.8; }
+
+    /* ── Arrow connector SVGs (inline) ── */
+    .connector {
+      grid-row: 2 / 5;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .connector.left  { grid-column: 2; }
+    .connector.right { grid-column: 4; }
+
+    /* ── Subtitle row ── */
+    .subtitle-row {
+      grid-column: 1 / 6;
+      grid-row: 5;
+      text-align: center;
+      padding-top: 8px;
+    }
+
+    /* ── Waterfall direction indicators ── */
+    .tranche-stack::before {
+      content: 'Yield ↓';
+      position: absolute;
+      left: -68px;
+      top: 50%;
+      transform: translateY(-50%) rotate(-90deg);
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #3b82f6;
+      opacity: 0.6;
+      white-space: nowrap;
+    }
+    .tranche-stack::after {
+      content: 'Loss ↑';
+      position: absolute;
+      right: -62px;
+      top: 50%;
+      transform: translateY(-50%) rotate(90deg);
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #ef4444;
+      opacity: 0.6;
+      white-space: nowrap;
+    }
+
+    footer {
+      margin-top: 56px;
+      font-size: 10px;
+      color: #1e293b;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>PRISM Protocol</h1>
+  <h2>Programmable Credit Infrastructure on Solana</h2>
+
+  <div class="diagram">
+
+    <!-- Row 1: column headers -->
+    <div class="col-label" style="grid-column:1; grid-row:1;">Investors</div>
+    <div class="col-label" style="grid-column:2; grid-row:1;">USDC in</div>
+    <div class="col-label" style="grid-column:3; grid-row:1;">Capital Stack</div>
+    <div class="col-label" style="grid-column:4; grid-row:1;">Deploy / Repay</div>
+    <div class="col-label" style="grid-column:5; grid-row:1;">Credit Market</div>
+
+    <!-- Investor stack -->
+    <div class="investor-stack">
+
+      <div class="investor conservative">
+        <span class="investor-label">Conservative</span>
+        <span class="investor-desc">Pension funds, stablecoin yield seekers</span>
+      </div>
+
+      <div class="investor balanced">
+        <span class="investor-label">Balanced</span>
+        <span class="investor-desc">Yield seekers with credit risk tolerance</span>
+      </div>
+
+      <div class="investor aggressive">
+        <span class="investor-label">Aggressive</span>
+        <span class="investor-desc">Risk-on capital, max upside</span>
+      </div>
+
+    </div>
+
+    <!-- Left arrow column -->
+    <div class="connector left" style="grid-row: 2/5;">
+      <svg width="80" height="200" viewBox="0 0 80 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Deposit arrows: left to right, green -->
+        <defs>
+          <marker id="arr-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#34d399"/>
+          </marker>
+          <marker id="arr-blue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#60a5fa"/>
+          </marker>
+          <marker id="arr-red-left" markerWidth="8" markerHeight="8" refX="2" refY="3" orient="auto">
+            <path d="M8,0 L8,6 L0,3 z" fill="#60a5fa"/>
+          </marker>
+        </defs>
+
+        <!-- Arrows from each investor to tranche -->
+        <line x1="10" y1="40"  x2="68" y2="80"  stroke="#34d399" stroke-width="1.5" marker-end="url(#arr-green)" opacity="0.7"/>
+        <line x1="10" y1="100" x2="68" y2="100" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr-green)" opacity="0.7"/>
+        <line x1="10" y1="160" x2="68" y2="120" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr-green)" opacity="0.7"/>
+
+        <!-- Yield return arrows (right to left, blue, dashed) -->
+        <line x1="68" y1="75"  x2="10" y2="35"  stroke="#60a5fa" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arr-red-left)" opacity="0.5"/>
+        <line x1="68" y1="105" x2="10" y2="105" stroke="#60a5fa" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arr-red-left)" opacity="0.5"/>
+        <line x1="68" y1="125" x2="10" y2="165" stroke="#60a5fa" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arr-red-left)" opacity="0.5"/>
+
+        <!-- Labels -->
+        <text x="40" y="60" text-anchor="middle" font-size="7" fill="#34d399" opacity="0.8" font-family="monospace" transform="rotate(-20,40,60)">USDC</text>
+        <text x="40" y="88" text-anchor="middle" font-size="7" fill="#60a5fa" opacity="0.6" font-family="monospace" transform="rotate(20,40,88)">NAV</text>
+      </svg>
+    </div>
+
+    <!-- Tranche stack -->
+    <div class="tranche-stack">
+
+      <div class="tranche prime">
+        <div class="tranche-header">
+          <span class="tranche-name">Prime</span>
+          <span class="tranche-token">pPRIME</span>
+        </div>
+        <div class="tranche-meta">
+          <div class="tranche-stat">
+            <span class="tranche-stat-val">5% APY</span>
+            <span class="tranche-stat-key">Target yield</span>
+          </div>
+          <div class="tranche-stat">
+            <span class="tranche-stat-val">Paid first</span>
+            <span class="tranche-stat-key">Priority</span>
+          </div>
+          <div class="tranche-stat">
+            <span class="tranche-stat-val">Last</span>
+            <span class="tranche-stat-key">Loss exposure</span>
+          </div>
+        </div>
+        <span class="tranche-badge">Lowest risk</span>
+      </div>
+
+      <div class="tranche core">
+        <div class="tranche-header">
+          <span class="tranche-name">Core</span>
+          <span class="tranche-token">pCORE</span>
+        </div>
+        <div class="tranche-meta">
+          <div class="tranche-stat">
+            <span class="tranche-stat-val">8% APY</span>
+            <span class="tranche-stat-key">Target yield</span>
+          </div>
+          <div class="tranche-stat">
+            <span class="tranche-stat-val">Paid second</span>
+            <span class="tranche-stat-key">Priority</span>
+          </div>
+          <div class="tranche-stat">
+            <span class="tranche-stat-val">After Alpha</span>
+            <span class="tranche-stat-key">Loss exposure</span>
+          </div>
+        </div>
+        <span class="tranche-badge">Medium risk</span>
+      </div>
+
+      <div class="tranche alpha">
+        <div class="tranche-header">
+          <span class="tranche-name">Alpha</span>
+          <span class="tranche-token">pALPHA</span>
+        </div>
+        <div class="tranche-meta">
+          <div class="tranche-stat">
+            <span class="tranche-stat-val">15% APY</span>
+            <span class="tranche-stat-key">Target yield</span>
+          </div>
+          <div class="tranche-stat">
+            <span class="tranche-stat-val">Paid last</span>
+            <span class="tranche-stat-key">Priority</span>
+          </div>
+          <div class="tranche-stat">
+            <span class="tranche-stat-val">First</span>
+            <span class="tranche-stat-key">Loss exposure</span>
+          </div>
+        </div>
+        <span class="tranche-badge">First-loss capital</span>
+      </div>
+
+    </div>
+
+    <!-- Right arrow column -->
+    <div class="connector right" style="grid-row: 2/5;">
+      <svg width="80" height="200" viewBox="0 0 80 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr-green2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#34d399"/>
+          </marker>
+          <marker id="arr-green-left" markerWidth="8" markerHeight="8" refX="2" refY="3" orient="auto">
+            <path d="M8,0 L8,6 L0,3 z" fill="#34d399"/>
+          </marker>
+          <marker id="arr-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#f87171"/>
+          </marker>
+          <marker id="arr-yellow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#fbbf24"/>
+          </marker>
+        </defs>
+
+        <!-- Capital deploy (left→right, green) -->
+        <line x1="10" y1="90" x2="68" y2="70" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr-green2)" opacity="0.8"/>
+
+        <!-- Repayment + yield (right→left, blue dashed) -->
+        <line x1="68" y1="110" x2="10" y2="110" stroke="#60a5fa" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arr-green-left)" opacity="0.6"/>
+
+        <!-- Loss cascade (right→left, red) -->
+        <line x1="68" y1="150" x2="10" y2="130" stroke="#f87171" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arr-green-left)" opacity="0.5"/>
+
+        <!-- AMM token flow -->
+        <line x1="10" y1="170" x2="68" y2="170" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arr-yellow)" opacity="0.7"/>
+
+        <text x="40" y="82"  text-anchor="middle" font-size="7" fill="#34d399" opacity="0.9" font-family="monospace" transform="rotate(-10,40,82)">Deploy</text>
+        <text x="40" y="104" text-anchor="middle" font-size="7" fill="#60a5fa" opacity="0.7" font-family="monospace">Repay</text>
+        <text x="40" y="143" text-anchor="middle" font-size="7" fill="#f87171" opacity="0.7" font-family="monospace">Default</text>
+        <text x="40" y="162" text-anchor="middle" font-size="7" fill="#fbbf24" opacity="0.8" font-family="monospace">Trade</text>
+      </svg>
+    </div>
+
+    <!-- Right column: Borrower + AMM -->
+    <div class="right-col">
+
+      <div class="box borrower">
+        <div class="box-label">Borrowers</div>
+        <div class="box-desc">SMEs · Invoice financiers · Trade credit</div>
+        <div class="box-stat">Undercollateralized real-world credit</div>
+      </div>
+
+      <div class="box amm" style="border-color: rgba(251,191,36,0.3);">
+        <div class="box-label">AMM — Secondary Market</div>
+        <div class="box-desc">Constant-product swaps for pPRIME · pCORE · pALPHA</div>
+        <div class="box-stat">0.3% fee · Instant exit · Market prices credit risk</div>
+      </div>
+
+    </div>
+
+    <!-- Flow legend -->
+    <div class="flow-legend">
+      <div class="flow-item">
+        <div class="flow-line usdc"></div>
+        USDC deposit / withdrawal
+      </div>
+      <div class="flow-item">
+        <div class="flow-line yield"></div>
+        Yield waterfall (Prime → Core → Alpha)
+      </div>
+      <div class="flow-item">
+        <div class="flow-line loss"></div>
+        Loss cascade (Alpha → Core → Prime)
+      </div>
+      <div class="flow-item">
+        <div class="flow-line token"></div>
+        Tranche token trading (AMM)
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Second section: the two flows explained -->
+  <div style="margin-top: 64px; max-width: 920px; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+
+    <div style="background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.2); border-radius: 12px; padding: 24px;">
+      <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; color: #3b82f6; margin-bottom: 12px;">Yield Waterfall — Top Down</div>
+      <div style="font-family: 'SF Mono','Fira Code',monospace; font-size: 12px; line-height: 2; color: #94a3b8;">
+        <div style="color: #60a5fa;">① Prime fills to 5% APY first</div>
+        <div style="padding-left: 16px; color: #64748b; font-size: 10px;">↓ overflow</div>
+        <div style="color: #c084fc;">② Core fills to 8% APY second</div>
+        <div style="padding-left: 16px; color: #64748b; font-size: 10px;">↓ overflow</div>
+        <div style="color: #f87171;">③ Alpha receives everything left<br>&nbsp;&nbsp;&nbsp;(can far exceed 15% in boom)</div>
+      </div>
+    </div>
+
+    <div style="background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.2); border-radius: 12px; padding: 24px;">
+      <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; color: #ef4444; margin-bottom: 12px;">Loss Cascade — Bottom Up</div>
+      <div style="font-family: 'SF Mono','Fira Code',monospace; font-size: 12px; line-height: 2; color: #94a3b8;">
+        <div style="color: #f87171;">① Alpha absorbs losses first (wiped first)</div>
+        <div style="padding-left: 16px; color: #64748b; font-size: 10px;">↑ overflow</div>
+        <div style="color: #c084fc;">② Core absorbs only if Alpha = 0</div>
+        <div style="padding-left: 16px; color: #64748b; font-size: 10px;">↑ overflow</div>
+        <div style="color: #60a5fa;">③ Prime only hit if both wiped<br>&nbsp;&nbsp;&nbsp;(protected by two full layers)</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Third section: key numbers -->
+  <div style="margin-top: 24px; max-width: 920px; width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid #1e293b; border-radius: 10px; padding: 16px; text-align: center;">
+      <div style="font-size: 22px; font-weight: 700; color: #f1f5f9;">3</div>
+      <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #475569; margin-top: 4px;">Risk tranches</div>
+    </div>
+
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid #1e293b; border-radius: 10px; padding: 16px; text-align: center;">
+      <div style="font-size: 22px; font-weight: 700; color: #34d399;">NAV</div>
+      <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #475569; margin-top: 4px;">Per-share accounting</div>
+    </div>
+
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid #1e293b; border-radius: 10px; padding: 16px; text-align: center;">
+      <div style="font-size: 22px; font-weight: 700; color: #fbbf24;">AMM</div>
+      <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #475569; margin-top: 4px;">Real-time risk pricing</div>
+    </div>
+
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid #1e293b; border-radius: 10px; padding: 16px; text-align: center;">
+      <div style="font-size: 22px; font-weight: 700; color: #818cf8;">SPL</div>
+      <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #475569; margin-top: 4px;">Composable tokens</div>
+    </div>
+
+  </div>
+
+  <footer>PRISM Protocol · Solana · 2026</footer>
+
+</body>
+</html>
