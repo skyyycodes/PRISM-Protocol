@@ -15,6 +15,16 @@ h1 { font-size:20px; font-weight:700; color:#f1f5f9; letter-spacing:-0.4px; marg
 .diagram { display:none; }
 .diagram.active { display:block; }
 svg { display:block; border-radius:10px; }
+.expl { max-width:980px; padding:24px 0 8px; }
+.expl-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+.expl-card { background:#0d1525; border:1px solid #1e293b; border-radius:8px; padding:16px 18px; }
+.expl-card h4 { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px; }
+.expl-card p, .expl-card li { font-size:12px; color:#64748b; line-height:1.72; }
+.expl-card ul { padding-left:15px; margin-top:5px; }
+.expl-card li { margin-bottom:5px; }
+.expl-card code { font-family:'SF Mono','Fira Code',monospace; font-size:10px; background:#060a14; padding:1px 5px; border-radius:3px; color:#94a3b8; }
+.expl-card strong { color:#e2e8f0; }
+.c-blue { color:#60a5fa; } .c-purple { color:#c084fc; } .c-red { color:#f87171; } .c-green { color:#34d399; } .c-amber { color:#fbbf24; }
 </style>
 </head>
 <body>
@@ -186,6 +196,48 @@ svg { display:block; border-radius:10px; }
 <text x="56" y="357" font-size="8" fill="#374151" font-family="monospace">→ redeem for 1,050 USDC</text>
 
 </svg>
+
+<div class="expl">
+  <div class="expl-grid">
+    <div class="expl-card">
+      <h4 class="c-blue">Why Three Tranches?</h4>
+      <p>PRISM structures a single loan pool into three priority layers. Every investor is exposed to the <strong>same loans</strong> — the tranche only determines payment order and loss exposure.</p>
+      <ul>
+        <li><strong class="c-blue">Prime</strong> — paid first, absorbs losses last. Designed for conservative capital (pension funds, stablecoin yield seekers) that cannot accept principal risk. Target 5% APY.</li>
+        <li><strong class="c-purple">Core</strong> — paid second, only absorbs losses after Alpha is fully wiped. The middle layer for yield-seekers who understand credit risk. Target 8% APY.</li>
+        <li><strong class="c-red">Alpha</strong> — paid last from whatever yield remains (can far exceed 15% in outperforming pools). Absorbs all losses first. The "first-loss piece" — highest risk, highest ceiling. Target 15% APY.</li>
+      </ul>
+      <p style="margin-top:8px">This is how institutional structured finance works (CLOs, ABS) — PRISM makes the same mechanics transparent, on-chain, and accessible to anyone with USDC.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-green">How NAV Works</h4>
+      <p>PRISM uses <strong>NAV-per-share accounting</strong>, not rebasing. Your token count never changes — the price per token changes.</p>
+      <ul>
+        <li>Deposit <code>1,000 USDC</code> at NAV <code>1.0</code> → receive <code>1,000 pPRIME</code> tokens</li>
+        <li>Yield accrues: <code>total_assets ↑</code>, <code>total_supply</code> unchanged → NAV rises to <code>1.05</code></li>
+        <li>Your 1,000 tokens now redeem for <strong>1,050 USDC</strong> — a 5% return in the price, not quantity</li>
+        <li>A new depositor who joins at NAV <code>1.05</code> gets fewer tokens but earns the same forward APY — no dilution of existing holders</li>
+      </ul>
+      <p style="margin-top:8px">On-chain, NAV is stored as <code>nav_per_share_q: u128</code> in Q64.64 fixed-point (<code>1.0 = 2^64</code>) to prevent rounding loss across thousands of waterfall distributions.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-amber">Two Exit Paths</h4>
+      <p><strong>Option A — Direct withdrawal</strong> (<code>withdraw</code>): burns your tranche tokens and transfers USDC at the current on-chain NAV. Always exits at the "fair" NAV price. Requires the vault reserve to have sufficient USDC — if most capital is deployed to active loans, you may need to wait for repayments.</p>
+      <p style="margin-top:8px"><strong>Option B — AMM swap</strong> (<code>prism_amm.swap</code>): sells your tranche tokens at the AMM's spot price. Instant exit, no vault liquidity required. In healthy conditions the AMM price tracks NAV closely. In distressed conditions, the AMM price may trade at a <strong>discount to NAV</strong> — this is intentional. That gap is the market's real-time assessment of credit risk, separate from the on-chain accounting.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-red">Credit Events &amp; Loss Cascade</h4>
+      <p>If a borrower defaults, <code>trigger_credit_event(loss_amount, severity_bps)</code> is called. Loss absorbs from the bottom up:</p>
+      <ul>
+        <li><strong class="c-red">Alpha</strong> absorbs first — <code>alpha.total_assets</code> decreases → <code>nav_per_share_q</code> drops for Alpha holders</li>
+        <li><strong class="c-purple">Core</strong> absorbs only if Alpha is fully wiped and loss remains</li>
+        <li><strong class="c-blue">Prime</strong> only absorbs if both Alpha and Core are wiped — protected by two full layers beneath it</li>
+      </ul>
+      <p style="margin-top:8px">After a credit event, investors can still exit: via <code>withdraw</code> at the reduced NAV, or via the AMM at market price (which may have already priced in the event before the on-chain cascade ran).</p>
+    </div>
+  </div>
+</div>
+
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -436,6 +488,48 @@ svg { display:block; border-radius:10px; }
 </g>
 
 </svg>
+
+<div class="expl">
+  <div class="expl-grid">
+    <div class="expl-card">
+      <h4 class="c-blue">Why Real-World Collateral?</h4>
+      <p>Traditional DeFi lending (Aave, Compound) requires <strong>150%+ overcollateralization</strong> — you deposit $150 of ETH to borrow $100 of USDC. This works only for crypto-native users with existing on-chain capital.</p>
+      <p style="margin-top:8px">PRISM targets <strong>undercollateralized real-world credit</strong>: an SME with $200k of BTC but no DeFi position can deposit that BTC with IKA (via threshold MPC), get an on-chain attestation, and borrow USDC against it — without selling the BTC or going through a custodian.</p>
+      <p style="margin-top:8px">The collateral is locked cryptographically, not via a legal agreement. No single party (not even the PRISM admin) can move it without the protocol's authorization.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-purple">The Two-Instruction Transaction</h4>
+      <p>Solana's Ed25519 signature verification is a <strong>native runtime precompile</strong> — it runs before any user program, cheaper and more secure than doing Ed25519 math inside Rust.</p>
+      <ul>
+        <li><strong>ix[0]</strong> — Ed25519 precompile: verifies the IKA oracle's signature over the 73-byte attestation message (chain_id + dwallet_id + amount + loan_pubkey)</li>
+        <li><strong>ix[1]</strong> — <code>verify_ika_collateral</code>: reads <code>Sysvar::Instructions</code> to confirm ix[0] was the Ed25519 precompile with the authorized oracle key, then parses the payload and sets <code>IkaCollateral.status = Locked</code></li>
+      </ul>
+      <p style="margin-top:8px">Both execute atomically. If the oracle signature is wrong or the attestation message is tampered, the entire transaction reverts — no partial state.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-green">Self-Serve Disbursement</h4>
+      <p><code>verify_and_disburse()</code> combines oracle verification and USDC transfer into a <strong>single atomic transaction</strong>. After the admin calls <code>initialize_loan</code> to agree terms, the borrower handles everything else themselves:</p>
+      <ul>
+        <li>Run DKG on IKA → attach collateral → send the verify tx → receive USDC</li>
+        <li>No further admin interaction needed per loan</li>
+        <li>Trustless from the borrower's perspective: the smart contract enforces the terms, not a human</li>
+      </ul>
+      <p style="margin-top:8px">This design shows PRISM can scale to many concurrent loans without admin becoming a bottleneck. In production, loan origination would be gated by credit underwriting, not manual approval for every disbursement.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-red">What Happens on Default</h4>
+      <p><code>trigger_credit_event(loss_amount, severity_bps)</code> creates a <code>CreditEvent</code> PDA and runs <code>math::waterfall</code> in reverse — loss cascade from Alpha up to Prime.</p>
+      <ul>
+        <li>Each affected tranche's <code>total_assets</code> decreases → <code>nav_per_share_q</code> decreases → token holders' redemption value falls</li>
+        <li><code>liquidate_ika_collateral()</code> sets <code>IkaCollateral.status = Liquidated</code> on-chain as a public record</li>
+        <li>Off-chain: IKA nodes coordinate a threshold MPC signing ceremony to move BTC/ETH to a recovery address</li>
+        <li>Any recovered funds are reinjected via <code>accrue_yield</code> — partially restoring tranche NAVs</li>
+      </ul>
+      <p style="margin-top:8px">The entire default history is verifiable on-chain: CreditEvent PDAs are permanent records with loss amount, severity, and which account triggered it.</p>
+    </div>
+  </div>
+</div>
+
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -706,6 +800,50 @@ svg { display:block; border-radius:10px; }
 </g>
 
 </svg>
+
+<div class="expl" style="max-width:1060px">
+  <div class="expl-grid" style="grid-template-columns:1fr 1fr">
+    <div class="expl-card">
+      <h4 class="c-purple">Threshold MPC vs Multisig</h4>
+      <p>A standard multisig (e.g., Squads 3-of-5) requires private keys to exist on real devices held by real people. A compromised or coerced key-holder breaks the security model.</p>
+      <p style="margin-top:8px"><strong>IKA's dWallet</strong> uses Distributed Key Generation (DKG): the private key for the BTC/ETH threshold address is <strong>mathematically split across IKA nodes at creation time and never reconstructed</strong> by any single party — not the borrower, not the PRISM admin, not IKA itself.</p>
+      <p style="margin-top:8px">Moving the collateral requires M-of-N IKA nodes to cooperate in a multi-party computation signing round. This provides custodial-grade security without a custodian. The PRISM protocol admin cannot unilaterally seize or release collateral.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-purple">The 81-Byte Attestation Message</h4>
+      <p>The IKA oracle constructs a deterministic message that binds four pieces of information together in a single signed payload:</p>
+      <ul>
+        <li><code>chain_id [1 byte]</code> — which chain the collateral sits on (1 = Bitcoin, 2 = Ethereum)</li>
+        <li><code>dwallet_id [32 bytes]</code> — the IKA threshold keypair that controls the collateral address</li>
+        <li><code>collateral_amount_usd [8 bytes]</code> — USD value of the confirmed deposit</li>
+        <li><code>loan_pubkey [32 bytes]</code> — the exact Solana Loan PDA this collateral secures</li>
+      </ul>
+      <p style="margin-top:8px">Including <code>loan_pubkey</code> in the signed message means an attestation <strong>cannot be replayed</strong> for a different loan. The message layout in <code>ika.ts</code> must be byte-identical to what <code>verify_ika_collateral.rs</code> parses — any mismatch causes a signature verification failure.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-blue">Why ix[0] Must Come First</h4>
+      <p><code>Sysvar::Instructions</code> is a Solana-native read-only account that stores all instructions in the current transaction — in order — along with their program IDs and instruction data.</p>
+      <p style="margin-top:8px"><code>verify_ika_collateral</code> reads this sysvar and checks that:</p>
+      <ul>
+        <li>The instruction at index 0 is the Ed25519 native precompile address</li>
+        <li>The <code>oracle_pubkey</code> in that instruction's data matches a key in <code>GlobalConfig.oracle_allowlist</code></li>
+      </ul>
+      <p style="margin-top:8px">Without the oracle's Ed25519 private key, it's computationally infeasible to forge a valid signature. This means <code>IkaCollateral.status = Locked</code> can <strong>only be set by a genuine oracle attestation</strong> — no admin override, no bypass.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-green">Collateral State Machine</h4>
+      <p>The <code>CollateralStatus</code> enum enforces a strict one-way progression:</p>
+      <ul>
+        <li><strong class="c-amber">Pending</strong> — IkaCollateral PDA created by <code>attach_ika_collateral()</code>. Oracle assigned, not yet verified on-chain. Loan cannot be disbursed.</li>
+        <li><strong class="c-purple">Locked</strong> — Oracle signature verified on Solana. BTC/ETH is secured in the IKA threshold address and cannot move without IKA node consensus. Disbursement can now proceed.</li>
+        <li><strong class="c-green">Released</strong> — Triggered by <code>release_ika_collateral()</code> after <code>Loan.state = Repaid</code>. IKA nodes sign a release transaction. Borrower regains control of the collateral.</li>
+        <li><strong class="c-red">Liquidated</strong> — Triggered by <code>liquidate_ika_collateral()</code> after default. Permanent on-chain record. IKA nodes coordinate off-chain seizure and transfer to a recovery address.</li>
+      </ul>
+      <p style="margin-top:8px">Transitions are enforced by the smart contract — no status can go backward, and <code>Locked → Released</code> requires <code>Loan.state = Repaid</code> as a prerequisite.</p>
+    </div>
+  </div>
+</div>
+
 </div>
 
 <script>

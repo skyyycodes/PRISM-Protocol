@@ -8,6 +8,18 @@
 body { background:#060a14; display:flex; flex-direction:column; align-items:center; padding:28px 16px 40px; font-family:'Inter',system-ui,sans-serif; }
 .wrap { width:1500px; overflow-x:auto; }
 svg { display:block; }
+.expl { width:1500px; padding:28px 0 8px; }
+.expl h3 { font-size:14px; font-weight:700; color:#e2e8f0; margin-bottom:18px; letter-spacing:-0.2px; }
+.expl-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:14px; }
+.expl-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.expl-card { background:#0d1525; border:1px solid #1e293b; border-radius:8px; padding:16px 18px; }
+.expl-card h4 { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px; }
+.expl-card p, .expl-card li { font-size:12px; color:#64748b; line-height:1.72; }
+.expl-card ul { padding-left:15px; margin-top:5px; }
+.expl-card li { margin-bottom:5px; }
+.expl-card code { font-family:'SF Mono','Fira Code',monospace; font-size:10px; background:#060a14; padding:1px 5px; border-radius:3px; color:#94a3b8; }
+.expl-card strong { color:#e2e8f0; }
+.c-blue { color:#60a5fa; } .c-purple { color:#c084fc; } .c-red { color:#f87171; } .c-green { color:#34d399; } .c-amber { color:#fbbf24; } .c-gray { color:#9ca3af; }
 </style>
 </head>
 <body>
@@ -636,6 +648,99 @@ svg { display:block; }
 <text x="80" y="930" font-size="7.5" fill="#374151" font-family="monospace">VaultReserve.amount == Σ(tranche.total_assets)  at all times  ·  nav_per_share_q stored as Q64.64 (u128, Q64_ONE = 1 &lt;&lt; 64)  ·  math::q module: no raw arithmetic</text>
 
 </svg>
+
+<div class="expl">
+  <h3>Architecture Explained</h3>
+  <div class="expl-grid">
+    <div class="expl-card">
+      <h4 class="c-blue">Two Programs — Why Separate?</h4>
+      <p><code>prism_core</code> and <code>prism_amm</code> are deployed as independent Anchor programs with no shared state. This was a deliberate design decision:</p>
+      <ul>
+        <li><strong>Blast-radius isolation</strong> — a bug in the AMM swap math cannot drain the credit vault. The programs interact only through SPL token transfers, not shared accounts</li>
+        <li><strong>Independent upgrades</strong> — the AMM can be redeployed (e.g., to add concentrated liquidity) without touching the credit engine, and vice versa</li>
+        <li><strong>Composability</strong> — the AMM is parameterized on <code>tranche_mint</code>, so a single AMM deployment serves all three tranche tokens from all vaults</li>
+        <li><strong>Pitch clarity</strong> — "two programs" maps cleanly to "credit layer + market layer" in a deck</li>
+      </ul>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-blue">NAV Accounting: Q64.64 Fixed-Point</h4>
+      <p><code>nav_per_share_q</code> is a <code>u128</code> in Q64.64 format: <code>1.0 = 2^64 ≈ 1.84 × 10^19</code>. This gives 18+ decimal places of precision.</p>
+      <p style="margin-top:8px">Why not use floating-point or USDC's 6 decimals?</p>
+      <ul>
+        <li>Solana BPF has no hardware float — software float is expensive and imprecise</li>
+        <li>Dividing <code>total_assets / total_supply</code> in integer arithmetic with USDC's 6 decimals loses precision on every waterfall call, compounding over time</li>
+        <li>Q64.64 preserves sub-lamport precision across thousands of <code>accrue_yield</code> calls without rounding loss</li>
+      </ul>
+      <p style="margin-top:8px">All NAV math lives in <code>contracts/programs/prism-core/src/math/q.rs</code>. Nothing touches <code>nav_per_share_q</code> directly — always through <code>math::q</code>.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-green">Waterfall Math</h4>
+      <p><code>accrue_yield(yield_amount)</code> calls <code>math::waterfall</code>, which distributes yield in strict priority order:</p>
+      <ul>
+        <li>Compute Prime's target: <code>prime.total_assets × prime_apy_bps × elapsed_seconds / (10_000 × 31_536_000)</code></li>
+        <li>Allocate <code>min(yield_remaining, prime_target)</code> to Prime, update <code>prime.total_assets</code>, recompute NAV</li>
+        <li>Repeat for Core with the remainder, then Alpha with whatever is left</li>
+        <li>Alpha's allocation is uncapped — in a surplus pool it can receive multiples of its 15% target</li>
+      </ul>
+      <p style="margin-top:8px">The invariant <code>VaultReserve.amount == Σ(tranche.total_assets)</code> is preserved at every step. Yield increases all three tranche asset totals; withdrawals decrease them. No USDC enters or leaves without a corresponding accounting update.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-amber">PDA Authority &amp; CPI Pattern</h4>
+      <p>Every USDC movement uses CPI to the SPL Token Program. The Vault PDA is the <strong>mint authority</strong> for all three tranche mints and the <strong>transfer authority</strong> for the vault reserve and loss bucket.</p>
+      <p style="margin-top:8px">Because the Vault is a PDA (not an EOA), it signs CPI calls using <code>CpiContext::new_with_signer</code> with its own seeds:</p>
+      <ul>
+        <li><code>seeds = [b"vault", &amp;vault_id.to_le_bytes()]</code></li>
+        <li>No external private key can authorize a USDC move — only the smart contract executing a valid instruction can</li>
+      </ul>
+      <p style="margin-top:8px">This is the core non-custodial guarantee: the protocol is literally incapable of moving funds without executing one of the explicitly coded instruction paths.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-purple">Partner Integrations</h4>
+      <p>PRISM adds three partner accounts at the Rust level — each is a PDA that stores partner-specific state alongside the core credit state:</p>
+      <ul>
+        <li><strong class="c-purple">IKA</strong> (<code>IkaCollateral</code>) — BTC/ETH threshold MPC collateral. Verification requires the two-instruction Ed25519 precompile pattern. Status: <code>Pending → Locked → Released | Liquidated</code></li>
+        <li><strong class="c-green">Encrypt</strong> (<code>EncryptLoanHealth</code>) — FHE credit scoring. The borrower's credit score stays encrypted off-chain; only a <code>sha256</code> commitment is stored on-chain. The Encrypt oracle can later prove default with a ZK proof via <code>verify_encrypt_default</code></li>
+        <li><strong class="c-purple">Cloak</strong> (<code>CloakPayoutRecord</code>) — Shielded batch disbursement. The waterfall pays tranches in a privacy-preserving batch; the batch receipt hash (<code>sha256</code>) is recorded on-chain via <code>record_cloak_payout</code></li>
+      </ul>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-gray">Frontend Simulation Design</h4>
+      <p>The frontend is a <strong>demo simulation harness</strong>, not a live wallet dApp. This was a deliberate hackathon choice: it lets the UI demonstrate all protocol mechanics without requiring real wallets, real USDC, or real borrowers.</p>
+      <ul>
+        <li><code>useIdentity</code> loads 4 demo keypairs from <code>contracts/keys/</code> and exposes a role switcher (admin / senior LP / junior LP / borrower). All on-chain calls use these keypairs — the browser wallet adapter is only used in the IKA borrower flow.</li>
+        <li><code>useVaultState</code> fetches all PDAs in parallel every 5 seconds via React Query and returns a single typed snapshot. No component makes direct RPC calls — this prevents duplicate requests and keeps the UI consistent.</li>
+        <li><code>buildPrograms(connection, keypair)</code> creates Anchor program clients for the active identity. Called on every role switch to ensure the active keypair signs all transactions.</li>
+        <li>All mutations use <code>useMutation</code> and call <code>queryClient.invalidateQueries</code> on settle to force a fresh state fetch.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="expl-grid-2">
+    <div class="expl-card">
+      <h4 class="c-blue">Core Invariants (Never Break)</h4>
+      <ul>
+        <li><code>VaultReserve.amount == Σ(tranche.total_assets)</code> — holds at every instruction boundary, including defaults (losses move to loss bucket, then tranche assets, never disappear)</li>
+        <li>NAV is monotonically increasing under normal operation (yield only) and can only decrease via <code>trigger_credit_event</code> — not via floating-point drift or rounding</li>
+        <li>Tranche tokens are minted at the current NAV — a new depositor never dilutes existing holders</li>
+        <li>The vault authority PDA is the only mint authority — no external key can mint tranche tokens</li>
+        <li><code>IkaCollateral.status = Locked</code> requires a valid oracle Ed25519 signature verified by the Solana native precompile — not settable by any other means</li>
+      </ul>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-amber">Before Mainnet</h4>
+      <p>The current implementation is hackathon / devnet infrastructure. Key gaps before production:</p>
+      <ul>
+        <li><strong>Client-side keypairs</strong> — demo keypairs in <code>contracts/keys/</code> must be replaced with proper wallet signing (admin multisig, borrower wallet)</li>
+        <li><strong>Oracle decentralization</strong> — single admin oracle should be replaced with a decentralized attestation network or multi-sig oracle committee</li>
+        <li><strong>IKA dWallet flow</strong> — the DKG and threshold address derivation flow needs finalization for mainnet IKA release</li>
+        <li><strong>Contract audit</strong> — Sec3, OtterSec, or equivalent Solana-specialist audit before any real capital</li>
+        <li><strong>Withdrawal queue</strong> — no queue for when vault reserve is insufficient; users must wait or use AMM</li>
+        <li><strong>Devnet USDC / program IDs</strong> — all current deployments are devnet-only</li>
+      </ul>
+      <p style="margin-top:8px">See <code>docs/before-mainnet.md</code> for the full production checklist.</p>
+    </div>
+  </div>
+</div>
+
 </div>
 </body>
 </html>
