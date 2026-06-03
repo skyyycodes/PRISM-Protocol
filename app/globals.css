@@ -99,6 +99,18 @@
   html {
     scroll-behavior: smooth;
   }
+  /* App shell renders at 100% browser zoom as if the user manually zoomed to
+     ~110%. Scoped to the (app) route group via [data-app-zoom], so the
+     marketing/landing site is unaffected. Width/height are pre-divided by the
+     zoom factor so the shell still maps exactly to the viewport (no spurious
+     outer scrollbars that a raw `zoom` on a 100vh element would create).
+     Bump --app-zoom to 1.15 for 115%. */
+  [data-app-zoom] {
+    --app-zoom: 1.1;
+    zoom: var(--app-zoom);
+    width: calc(100% / var(--app-zoom));
+    height: calc(100vh / var(--app-zoom));
+  }
   [data-app-scroll] {
     scrollbar-color: #27272a black;
     scrollbar-width: thin;

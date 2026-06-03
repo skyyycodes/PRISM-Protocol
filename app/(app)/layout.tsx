@@ -5,7 +5,10 @@ import { AppProviders } from "@/components/providers/app-providers";
 export default function AppShellLayout({ children }: { children: ReactNode }) {
   return (
     <AppProviders>
-      <div className="relative flex h-screen w-full bg-black text-white overflow-hidden p-3 sm:p-4 md:p-6 lg:p-8">
+      <div
+        data-app-zoom
+        className="relative flex bg-black text-white overflow-hidden p-3 sm:p-4 md:p-6 lg:p-8"
+      >
         {/* Subtle grid lines background overlay */}
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-[0.06]">
           {[...Array(8)].map((_, i) => (
