@@ -48,7 +48,12 @@ export function useAllVaults() {
           utilization,
           tranches: vaultTranches.map((t: any, tIdx: number) => ({
             kind: (tIdx === 0 ? 'Prime' : tIdx === 1 ? 'Core' : 'Alpha') as 'Prime' | 'Core' | 'Alpha',
-            ...t
+            ...t,
+            totalAssets: toBigInt(t?.totalAssets ?? 0),
+            totalSupply: toBigInt(t?.totalSupply ?? 0),
+            navPerShareQ: toBigInt(t?.navPerShareQ ?? 0),
+            cumulativeYield: toBigInt(t?.cumulativeYield ?? 0),
+            cumulativeLoss: toBigInt(t?.cumulativeLoss ?? 0),
           }))
         };
       });
