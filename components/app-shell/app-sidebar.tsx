@@ -182,15 +182,15 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        'group/sidebar fixed left-0 top-0 z-50 flex h-full flex-col overflow-hidden border-r border-white/[0.05] py-5 transition-all duration-300 ease-out backdrop-blur-xl',
+        'group/sidebar fixed left-4 top-4 bottom-4 z-50 flex flex-col overflow-hidden rounded-[24px] border border-white/[0.06] py-6 transition-all duration-300 ease-out backdrop-blur-xl shadow-2xl bg-[#090510]/40',
         walletOpen
-          ? 'w-[240px] bg-black/85 shadow-[20px_0_50px_rgba(0,0,0,0.5)]'
-          : 'w-[72px] hover:w-[240px] bg-black/20 hover:bg-black/85 hover:shadow-[20px_0_50px_rgba(0,0,0,0.5)]',
+          ? 'w-[240px] shadow-[0_12px_40px_rgba(0,0,0,0.6)]'
+          : 'w-[72px] hover:w-[240px] hover:bg-[#090510]/75 hover:shadow-[0_12px_40px_rgba(0,0,0,0.6)]',
       )}
     >
       {/* Logo + Title */}
-      <Link href="/dashboard" className="mb-8 flex items-center gap-3 pl-[14px] pr-3">
-        <span className="relative h-11 w-11 shrink-0">
+      <Link href="/dashboard" className="mb-8 flex items-center gap-3 pl-[16px] pr-3">
+        <span className="relative h-10 w-10 shrink-0">
           <Image
             src="/icon-dark-64x64.png"
             alt="PRISM"
@@ -205,12 +205,12 @@ export function AppSidebar() {
           )}
         >
           <span className="font-display text-xl leading-none tracking-tight text-white">PRISM</span>
-          <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/50">Protocol</span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#eca8d6]/80">Protocol</span>
         </div>
       </Link>
 
       {/* Navigation */}
-      <nav className="flex flex-1 flex-col gap-1">
+      <nav className="flex flex-1 flex-col gap-1.5">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -219,30 +219,30 @@ export function AppSidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "group/item relative flex items-center gap-3 h-11 pl-4 pr-3 transition-colors",
-                isActive ? "bg-white/[0.04]" : "hover:bg-white/[0.02]"
+                "group/item relative flex items-center gap-3 h-12 pl-4 pr-3 transition-all duration-300 rounded-xl mx-2",
+                isActive ? "bg-white/[0.04] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]" : "hover:bg-white/[0.02]"
               )}
             >
               {/* Active indicator bar */}
               {isActive && (
-                <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
+                <div className="absolute left-1 top-2 bottom-2 w-[3px] rounded-full bg-gradient-to-b from-[#eca8d6] to-[#a78bfa] shadow-[0_0_8px_rgba(236,168,214,0.6)]" />
               )}
 
               <div
                 className={cn(
-                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all duration-200',
+                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all duration-300',
                   isActive
-                    ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)]'
+                    ? 'bg-[#eca8d6]/10 text-[#eca8d6] border border-[#eca8d6]/20 shadow-[0_0_12px_rgba(236,168,214,0.2)]'
                     : 'text-white/40 group-hover/item:text-white/90',
                 )}
               >
-                <Icon className="h-5 w-5" strokeWidth={isActive ? 2.25 : 1.75} />
+                <Icon className="h-5 w-5" strokeWidth={isActive ? 2.0 : 1.75} />
               </div>
               <span
                 className={cn(
                   'whitespace-nowrap font-mono text-[13px] tracking-tight transition-opacity duration-200',
                   walletOpen ? 'opacity-100' : 'opacity-0 group-hover/sidebar:opacity-100',
-                  isActive ? 'text-white font-medium' : 'text-white/50 group-hover/item:text-white/80',
+                  isActive ? 'text-[#eca8d6] font-medium' : 'text-white/50 group-hover/item:text-white/80',
                 )}
               >
                 {item.label}
@@ -253,7 +253,7 @@ export function AppSidebar() {
       </nav>
 
       {/* Bottom Actions */}
-      <div className="flex flex-col gap-1 border-t border-white/[0.05] pt-4">
+      <div className="flex flex-col gap-1.5 border-t border-white/[0.05] pt-4">
         <SidebarWalletButton walletOpen={walletOpen} setWalletOpen={setWalletOpen} />
 
         {BOTTOM_ITEMS.map((item) => {
@@ -274,7 +274,7 @@ export function AppSidebar() {
               </span>
             </>
           );
-          const className = "group/item flex items-center gap-3 h-11 pl-4 pr-3 hover:bg-white/[0.02] transition-colors";
+          const className = "group/item flex items-center gap-3 h-12 pl-4 pr-3 hover:bg-white/[0.02] rounded-xl mx-2 transition-all duration-300";
 
           return item.external ? (
             <a

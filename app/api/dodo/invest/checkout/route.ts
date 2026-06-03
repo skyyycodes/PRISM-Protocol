@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { createCheckout } from '@/app/lib/dodo';
 import { recordInvestIntent } from '@/lib/dodoStore';
+import { getAppUrl } from '@/lib/origin';
 
 export const runtime = 'nodejs';
 
@@ -24,10 +25,7 @@ export async function POST(req: NextRequest) {
   }
   const { trancheKind, amountUsd, investorPubkey, returnPath } = parsed.data;
 
-  const host = req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? 'localhost:3000';
-  const proto = req.headers.get('x-forwarded-proto') ?? (host.includes('localhost') ? 'http' : 'https');
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL
-    ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `${proto}://${host}`);
+  const appUrl = getAppUrl(req);
   const targetPath = returnPath || '/dashboard';
   const successUrl = `${appUrl}${targetPath}${targetPath.includes('?') ? '&' : '?'}dodo=invested&tranche=${trancheKind}`;
   const amountUsdCents = Math.round(amountUsd * 100);

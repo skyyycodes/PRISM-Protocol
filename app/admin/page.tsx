@@ -95,7 +95,7 @@ export default function AdminOverviewPage() {
     <div className="space-y-7 p-8">
       {/* Page header */}
       <div>
-        <h1 className="text-[15px] font-semibold text-white">Mission Control</h1>
+        <h1 className="text-[15px] font-semibold text-white">Admin Dashboard</h1>
         <p className="mt-0.5 font-mono text-[10px] text-white/30">
           Protocol overview · Vault #{vaultId}
         </p>

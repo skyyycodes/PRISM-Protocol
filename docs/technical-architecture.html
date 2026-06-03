@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>PRISM Protocol — Technical Architecture</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#060a14; display:flex; flex-direction:column; align-items:center; padding:28px 16px 40px; font-family:'Inter',system-ui,sans-serif; }
+.wrap { width:1500px; overflow-x:auto; }
+svg { display:block; }
+.expl { width:1500px; padding:28px 0 8px; }
+.expl h3 { font-size:14px; font-weight:700; color:#e2e8f0; margin-bottom:18px; letter-spacing:-0.2px; }
+.expl-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:14px; }
+.expl-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.expl-card { background:#0d1525; border:1px solid #1e293b; border-radius:8px; padding:16px 18px; }
+.expl-card h4 { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px; }
+.expl-card p, .expl-card li { font-size:12px; color:#64748b; line-height:1.72; }
+.expl-card ul { padding-left:15px; margin-top:5px; }
+.expl-card li { margin-bottom:5px; }
+.expl-card code { font-family:'SF Mono','Fira Code',monospace; font-size:10px; background:#060a14; padding:1px 5px; border-radius:3px; color:#94a3b8; }
+.expl-card strong { color:#e2e8f0; }
+.c-blue { color:#60a5fa; } .c-purple { color:#c084fc; } .c-red { color:#f87171; } .c-green { color:#34d399; } .c-amber { color:#fbbf24; } .c-gray { color:#9ca3af; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<svg width="1500" height="940" viewBox="0 0 1500 940" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="ag" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#10b981"/></marker>
+  <marker id="agd" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#10b981" opacity=".6"/></marker>
+  <marker id="ab" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#3b82f6"/></marker>
+  <marker id="ar" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#ef4444"/></marker>
+  <marker id="ao" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#f97316"/></marker>
+  <marker id="ap" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#a855f7"/></marker>
+  <marker id="aam" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#f59e0b"/></marker>
+  <marker id="agr" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#6b7280"/></marker>
+  <marker id="apu" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#8b5cf6"/></marker>
+</defs>
+
+<!-- ══ Background ═══════════════════════════════════════════════════════════ -->
+<rect width="1500" height="940" fill="#060a14"/>
+
+<!-- ══ ZONE 1: External ══════════════════════════════════════════════════════ -->
+<rect x="0" y="0" width="1500" height="118" fill="#0c1320"/>
+<text x="10" y="10" font-size="8" fill="#1f2937" font-family="monospace" letter-spacing="2">EXTERNAL ACTORS</text>
+
+<!-- Investors -->
+<g transform="translate(15,14)">
+  <rect width="162" height="88" rx="5" fill="#0e1f35" stroke="#1e40af" stroke-width="1"/>
+  <text x="7" y="14" font-size="8" fill="#475569" font-family="monospace">src: demo keypair</text>
+  <text x="7" y="28" font-size="11" font-weight="700" fill="#60a5fa">Investors</text>
+  <text x="7" y="42" font-size="9" fill="#3b82f6">▪ Conservative → Prime</text>
+  <text x="7" y="53" font-size="9" fill="#7c3aed">▪ Balanced → Core</text>
+  <text x="7" y="64" font-size="9" fill="#dc2626">▪ Aggressive → Alpha</text>
+  <text x="7" y="78" font-size="8" fill="#1e3a5f" font-style="italic">deposit · withdraw</text>
+</g>
+
+<!-- Admin -->
+<g transform="translate(192,14)">
+  <rect width="152" height="88" rx="5" fill="#1c1107" stroke="#92400e" stroke-width="1"/>
+  <text x="7" y="14" font-size="8" fill="#475569" font-family="monospace">contracts/keys/admin.json</text>
+  <text x="7" y="28" font-size="11" font-weight="700" fill="#fbbf24">Admin</text>
+  <text x="7" y="42" font-size="9" fill="#78350f">accrue_yield</text>
+  <text x="7" y="53" font-size="9" fill="#78350f">trigger_credit_event</text>
+  <text x="7" y="64" font-size="9" fill="#78350f">initialize_* · pause</text>
+  <text x="7" y="78" font-size="8" fill="#451a03" font-style="italic">demo keypair (devnet only)</text>
+</g>
+
+<!-- Borrower -->
+<g transform="translate(359,14)">
+  <rect width="150" height="88" rx="5" fill="#0a1f14" stroke="#065f46" stroke-width="1"/>
+  <text x="7" y="14" font-size="8" fill="#475569" font-family="monospace">contracts/keys/borrower.json</text>
+  <text x="7" y="28" font-size="11" font-weight="700" fill="#34d399">Borrower</text>
+  <text x="7" y="42" font-size="9" fill="#065f46">SME / invoice / trade</text>
+  <text x="7" y="53" font-size="9" fill="#065f46">repay_loan(amount)</text>
+  <text x="7" y="64" font-size="9" fill="#065f46">verify_and_disburse()</text>
+  <text x="7" y="78" font-size="8" fill="#022c22" font-style="italic">receives + repays USDC</text>
+</g>
+
+<!-- IKA Oracle -->
+<g transform="translate(524,14)">
+  <rect width="160" height="88" rx="5" fill="#1a0f25" stroke="#5b21b6" stroke-width="1"/>
+  <text x="7" y="14" font-size="8" fill="#475569" font-family="monospace">Sui testnet · dWallet MPC</text>
+  <text x="7" y="28" font-size="11" font-weight="700" fill="#c084fc">IKA Network</text>
+  <text x="7" y="42" font-size="9" fill="#6d28d9">DKG → dwallet_id</text>
+  <text x="7" y="53" font-size="9" fill="#6d28d9">signs 81-byte attestation</text>
+  <text x="7" y="64" font-size="9" fill="#6d28d9">BTC / ETH collateral</text>
+  <text x="7" y="78" font-size="8" fill="#2e1065" font-style="italic">threshold MPC signature</text>
+</g>
+
+<!-- Encrypt Oracle -->
+<g transform="translate(699,14)">
+  <rect width="150" height="88" rx="5" fill="#091a10" stroke="#065f46" stroke-width="1"/>
+  <text x="7" y="14" font-size="8" fill="#475569" font-family="monospace">FHE credit scoring</text>
+  <text x="7" y="28" font-size="11" font-weight="700" fill="#6ee7b7">Encrypt Oracle</text>
+  <text x="7" y="42" font-size="9" fill="#059669">scores stay encrypted</text>
+  <text x="7" y="53" font-size="9" fill="#059669">sends sha256 commitment</text>
+  <text x="7" y="64" font-size="9" fill="#059669">proves default on-chain</text>
+  <text x="7" y="78" font-size="8" fill="#022c22" font-style="italic">via verify_encrypt_default</text>
+</g>
+
+<!-- Cloak Oracle -->
+<g transform="translate(864,14)">
+  <rect width="148" height="88" rx="5" fill="#0c0c1f" stroke="#3730a3" stroke-width="1"/>
+  <text x="7" y="14" font-size="8" fill="#475569" font-family="monospace">shielded batch payout</text>
+  <text x="7" y="28" font-size="11" font-weight="700" fill="#a5b4fc">Cloak Oracle</text>
+  <text x="7" y="42" font-size="9" fill="#3730a3">batch_id: sha256 receipt</text>
+  <text x="7" y="53" font-size="9" fill="#3730a3">total_shielded_amount</text>
+  <text x="7" y="64" font-size="9" fill="#3730a3">shielded USDC waterfall</text>
+  <text x="7" y="78" font-size="8" fill="#1e1b4b" font-style="italic">via record_cloak_payout</text>
+</g>
+
+<!-- User Wallet -->
+<g transform="translate(1027,14)">
+  <rect width="162" height="88" rx="5" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <text x="7" y="14" font-size="8" fill="#475569" font-family="monospace">Solana wallet adapter</text>
+  <text x="7" y="28" font-size="11" font-weight="700" fill="#9ca3af">User Wallet</text>
+  <text x="7" y="42" font-size="9" fill="#4b5563">Phantom / Backpack</text>
+  <text x="7" y="53" font-size="9" fill="#4b5563">holds pPRIME · pCORE · pALPHA</text>
+  <text x="7" y="64" font-size="9" fill="#4b5563">used in IKA flow only</text>
+  <text x="7" y="78" font-size="8" fill="#374151" font-style="italic">sim harness uses keypairs</text>
+</g>
+
+<!-- ══ ZONE 2: prism_core ════════════════════════════════════════════════════ -->
+<rect x="10" y="128" width="955" height="548" rx="8" fill="#0a1525" stroke="#1d4ed8" stroke-width="1.5" stroke-dasharray="5,3"/>
+<text x="24" y="145" font-size="10" fill="#3b82f6" font-weight="700" letter-spacing="0.5">prism_core</text>
+<text x="108" y="145" font-size="8" fill="#1e3a5f" font-family="monospace">  CRzsHoHgdrK7HC2GoGsfxiEJtHP2sPSWY7SgrwqK9ao4</text>
+
+<!-- GlobalConfig -->
+<g transform="translate(26,155)">
+  <rect width="165" height="88" rx="5" fill="#0f1d2e" stroke="#334155" stroke-width="1"/>
+  <text x="6" y="13" font-size="8" fill="#475569" font-family="monospace">["config2"]</text>
+  <text x="6" y="26" font-size="10" font-weight="700" fill="#94a3b8">GlobalConfig</text>
+  <text x="6" y="39" font-size="8" fill="#374151" font-family="monospace">admin: Pubkey</text>
+  <text x="6" y="49" font-size="8" fill="#374151" font-family="monospace">usdc_mint: Pubkey</text>
+  <text x="6" y="59" font-size="8" fill="#374151" font-family="monospace">default_yield_rate_bps: u16</text>
+  <text x="6" y="69" font-size="8" fill="#374151" font-family="monospace">paused: bool</text>
+  <text x="6" y="80" font-size="8" fill="#374151" font-family="monospace">oracle_allowlist: Vec&lt;Pubkey&gt;</text>
+</g>
+
+<!-- Vault -->
+<g transform="translate(207,155)">
+  <rect width="175" height="88" rx="5" fill="#0e2040" stroke="#1d4ed8" stroke-width="1"/>
+  <text x="6" y="13" font-size="8" fill="#475569" font-family="monospace">["vault", vault_id: u32 LE]</text>
+  <text x="6" y="26" font-size="10" font-weight="700" fill="#60a5fa">Vault</text>
+  <text x="6" y="39" font-size="8" fill="#1d4ed8" font-family="monospace">id: u32  ·  state: VaultState</text>
+  <text x="6" y="49" font-size="8" fill="#1d4ed8" font-family="monospace">total_deposits: u64</text>
+  <text x="6" y="59" font-size="8" fill="#1d4ed8" font-family="monospace">total_loaned: u64</text>
+  <text x="6" y="69" font-size="8" fill="#1d4ed8" font-family="monospace">last_yield_timestamp: i64</text>
+  <text x="6" y="80" font-size="8" fill="#1d4ed8" font-family="monospace">credit_event_seq: u32</text>
+</g>
+
+<!-- VaultReserve -->
+<g transform="translate(398,155)">
+  <rect width="158" height="40" rx="5" fill="#0a1f14" stroke="#065f46" stroke-width="1"/>
+  <text x="6" y="13" font-size="8" fill="#475569" font-family="monospace">["reserve", vault]  SPL TA</text>
+  <text x="6" y="27" font-size="10" font-weight="700" fill="#34d399">VaultReserve</text>
+  <text x="97" y="36" font-size="7" fill="#065f46" font-family="monospace">holds USDC</text>
+</g>
+
+<!-- LossBucket -->
+<g transform="translate(398,202)">
+  <rect width="158" height="40" rx="5" fill="#1a0a0a" stroke="#991b1b" stroke-width="1"/>
+  <text x="6" y="13" font-size="8" fill="#475569" font-family="monospace">["loss_bucket", vault]  SPL TA</text>
+  <text x="6" y="27" font-size="10" font-weight="700" fill="#f87171">LossBucket</text>
+  <text x="80" y="36" font-size="7" fill="#991b1b" font-family="monospace">first-loss reserve</text>
+</g>
+
+<!-- TRANCHE COLUMN -->
+<!-- Prime -->
+<g transform="translate(26,258)">
+  <rect width="200" height="82" rx="5" fill="#0d1f3c" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="6" y="13" font-size="8" fill="#475569" font-family="monospace">["tranche", vault, 0]</text>
+  <text x="6" y="26" font-size="10" font-weight="700" fill="#60a5fa">Tranche : Prime</text>
+  <text x="6" y="39" font-size="8" fill="#1d4ed8" font-family="monospace">target_apy_bps: 500  (5%)</text>
+  <text x="6" y="49" font-size="8" fill="#1d4ed8" font-family="monospace">total_assets: u64</text>
+  <text x="6" y="59" font-size="8" fill="#1d4ed8" font-family="monospace">total_supply: u64</text>
+  <text x="6" y="70" font-size="8" fill="#1d4ed8" font-family="monospace">nav_per_share_q: u128 (Q64.64)</text>
+</g>
+<!-- pPRIME Mint -->
+<g transform="translate(242,258)">
+  <rect width="118" height="40" rx="5" fill="#081528" stroke="#1e40af" stroke-width="1"/>
+  <text x="6" y="13" font-size="8" fill="#475569" font-family="monospace">["mint", vault, 0]</text>
+  <text x="6" y="27" font-size="10" font-weight="700" fill="#93c5fd">pPRIME Mint</text>
+</g>
+<!-- Prime label -->
+<text x="242" y="315" font-size="8" fill="#1e3a5f" font-family="monospace">SPL Token Mint · PDA authority</text>
+
+<!-- Core -->
+<g transform="translate(26,352)">
+  <rect width="200" height="82" rx="5" fill="#1a0f2e" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="6" y="13" font-size="8" fill="#475569" font-family="monospace">["tranche", vault, 1]</text>
+  <text x="6" y="26" font-size="10" font-weight="700" fill="#c084fc">Tranche : Core</text>
+  <text x="6" y="39" font-size="8" fill="#7c3aed" font-family="monospace">target_apy_bps: 800  (8%)</text>
+  <text x="6" y="49" font-size="8" fill="#7c3aed" font-family="monospace">total_assets: u64</text>
+  <text x="6" y="59" font-size="8" fill="#7c3aed" font-family="monospace">total_supply: u64</text>
+  <text x="6" y="70" font-size="8" fill="#7c3aed" font-family="monospace">nav_per_share_q: u128 (Q64.64)</text>
+</g>
+<!-- pCORE Mint -->
+<g transform="translate(242,352)">
+  <rect width="118" height="40" rx="5" fill="#14082a" stroke="#5b21b6" stroke-width="1"/>
+  <text x="6" y="13" font-size="8" fill="#475569" font-family="monospace">["mint", vault, 1]</text>
+  <text x="6" y="27" font-size="10" font-weight="700" fill="#d8b4fe">pCORE Mint</text>
+</g>
+
+<!-- Alpha -->
+<g transform="translate(26,446)">
+  <rect width="200" height="82" rx="5" fill="#2a0f0f" stroke="#b91c1c" stroke-width="1.5"/>
+  <text x="6" y="13" font-size="8" fill="#475569" font-family="monospace">["tranche", vault, 2]</text>
+  <text x="6" y="26" font-size="10" font-weight="700" fill="#f87171">Tranche : Alpha</text>
+  <text x="6" y="39" font-size="8" fill="#991b1b" font-family="monospace">target_apy_bps: 1500  (15%)</text>
+  <text x="6" y="49" font-size="8" fill="#991b1b" font-family="monospace">total_assets: u64</text>
+  <text x="6" y="59" font-size="8" fill="#991b1b" font-family="monospace">total_supply: u64</text>
+  <text x="6" y="70" font-size="8" fill="#991b1b" font-family="monospace">nav_per_share_q: u128 (Q64.64)</text>
+</g>
+<!-- pALPHA Mint -->
+<g transform="translate(242,446)">
+  <rect width="118" height="40" rx="5" fill="#200808" stroke="#991b1b" stroke-width="1"/>
+  <text x="6" y="13" font-size="8" fill="#475569" font-family="monospace">["mint", vault, 2]</text>
+  <text x="6" y="27" font-size="10" font-weight="700" fill="#fca5a5">pALPHA Mint</text>
+</g>
+
+<!-- Yield/Loss side labels -->
+<text x="16" y="310" font-size="8" fill="#1d4ed8" transform="rotate(-90,16,310)">yield ▼ waterfall</text>
+<text x="16" y="485" font-size="8" fill="#b91c1c" transform="rotate(90,16,485)">loss ↑ cascade</text>
+<!-- waterfall arrow -->
+<line x1="16" y1="262" x2="16" y2="522" stroke="#1d4ed8" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#ab)" opacity=".5"/>
+<!-- cascade arrow (offset 1px) -->
+<line x1="19" y1="528" x2="19" y2="268" stroke="#b91c1c" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#ar)" opacity=".5"/>
+
+<!-- CREDIT COLUMN -->
+<!-- Loan -->
+<g transform="translate(378,258)">
+  <rect width="165" height="88" rx="5" fill="#1c1007" stroke="#b45309" stroke-width="1"/>
+  <text x="6" y="13" font-size="8" fill="#475569" font-family="monospace">["loan", vault, loan_id: u32 LE]</text>
+  <text x="6" y="26" font-size="10" font-weight="700" fill="#fbbf24">Loan</text>
+  <text x="6" y="39" font-size="8" fill="#92400e" font-family="monospace">id: u32  ·  state: LoanState</text>
+  <text x="6" y="49" font-size="8" fill="#92400e" font-family="monospace">principal: u64  ·  apr_bps: u16</text>
+  <text x="6" y="59" font-size="8" fill="#92400e" font-family="monospace">origination_ts / maturity_ts: i64</text>
+  <text x="6" y="69" font-size="8" fill="#92400e" font-family="monospace">total_repaid: u64</text>
+  <text x="6" y="80" font-size="7" fill="#451a03" font-family="monospace">Originated→Active→Repaying→Repaid/Defaulted</text>
+</g>
+
+<!-- CreditEvent -->
+<g transform="translate(378,358)">
+  <rect width="165" height="82" rx="5" fill="#1f0707" stroke="#7f1d1d" stroke-width="1"/>
+  <text x="6" y="13" font-size="8" fill="#475569" font-family="monospace">["credit_event", vault, seq: u32 LE]</text>
+  <text x="6" y="26" font-size="10" font-weight="700" fill="#f87171">CreditEvent</text>
+  <text x="6" y="39" font-size="8" fill="#7f1d1d" font-family="monospace">event_type: Default|PartialLoss|Recovery</text>
+  <text x="6" y="49" font-size="8" fill="#7f1d1d" font-family="monospace">loss_amount / recovery_amount: u64</text>
+  <text x="6" y="59" font-size="8" fill="#7f1d1d" font-family="monospace">severity_bps: u16</text>
+  <text x="6" y="70" font-size="8" fill="#7f1d1d" font-family="monospace">triggered_by: Pubkey</text>
+</g>
+
+<!-- CreditEvent → Tranche cascade label -->
+<text x="370" y="505" font-size="7" fill="#7f1d1d" text-anchor="end">allocates loss</text>
+<text x="370" y="515" font-size="7" fill="#7f1d1d" text-anchor="end">Alpha→Core→Prime</text>
+<line x1="374" y1="440" x2="374" y2="528" stroke="#7f1d1d" stroke-width="1" stroke-dasharray="2,2" opacity=".5"/>
+
+<!-- PARTNER ACCOUNTS COLUMN -->
+<!-- IkaCollateral -->
+<g transform="translate(558,258)">
+  <rect width="168" height="82" rx="5" fill="#180e28" stroke="#5b21b6" stroke-width="1"/>
+  <text x="6" y="13" font-size="8" fill="#475569" font-family="monospace">["ika_collateral", loan] (approx)</text>
+  <text x="6" y="26" font-size="10" font-weight="700" fill="#c084fc">IkaCollateral</text>
+  <text x="6" y="39" font-size="8" fill="#5b21b6" font-family="monospace">dwallet_id: [u8; 32]</text>
+  <text x="6" y="49" font-size="8" fill="#5b21b6" font-family="monospace">chain_id: u8  ·  status: CollateralStatus</text>
+  <text x="6" y="59" font-size="8" fill="#5b21b6" font-family="monospace">collateral_amount_usd: u64</text>
+  <text x="6" y="70" font-size="8" fill="#5b21b6" font-family="monospace">oracle_pubkey / locked_ts</text>
+</g>
+
+<!-- EncryptLoanHealth -->
+<g transform="translate(558,352)">
+  <rect width="168" height="72" rx="5" fill="#081a10" stroke="#065f46" stroke-width="1"/>
+  <text x="6" y="13" font-size="8" fill="#475569" font-family="monospace">["encrypt_health", loan]</text>
+  <text x="6" y="26" font-size="10" font-weight="700" fill="#6ee7b7">EncryptLoanHealth</text>
+  <text x="6" y="39" font-size="8" fill="#065f46" font-family="monospace">score_commitment: [u8; 32]</text>
+  <text x="6" y="49" font-size="8" fill="#065f46" font-family="monospace">encrypt_oracle: Pubkey</text>
+  <text x="6" y="60" font-size="8" fill="#065f46" font-family="monospace">status: Pending|Verified|DefaultProven</text>
+</g>
+
+<!-- CloakPayoutRecord -->
+<g transform="translate(558,436)">
+  <rect width="168" height="72" rx="5" fill="#0c0c1f" stroke="#3730a3" stroke-width="1"/>
+  <text x="6" y="13" font-size="8" fill="#475569" font-family="monospace">["cloak_payout", vault]</text>
+  <text x="6" y="26" font-size="10" font-weight="700" fill="#a5b4fc">CloakPayoutRecord</text>
+  <text x="6" y="39" font-size="8" fill="#3730a3" font-family="monospace">batch_id: [u8; 32]  (sha256)</text>
+  <text x="6" y="49" font-size="8" fill="#3730a3" font-family="monospace">total_shielded_amount: u64</text>
+  <text x="6" y="60" font-size="8" fill="#3730a3" font-family="monospace">status: Pending|Shielded</text>
+</g>
+
+<!-- INSTRUCTIONS PANEL -->
+<g transform="translate(26,538)">
+  <rect width="923" height="128" rx="5" fill="#0a0f1a" stroke="#1e293b" stroke-width="1"/>
+  <text x="8" y="14" font-size="9" fill="#475569" font-weight="600" letter-spacing="0.5">INSTRUCTIONS</text>
+
+  <!-- col 1: Setup -->
+  <text x="8" y="28" font-size="8" fill="#3b82f6" font-weight="600">Setup</text>
+  <text x="8" y="39" font-size="7.5" fill="#334155" font-family="monospace">initialize_global_config(rate_bps, allowlist)</text>
+  <text x="8" y="49" font-size="7.5" fill="#334155" font-family="monospace">initialize_vault(vault_id: u32)</text>
+  <text x="8" y="59" font-size="7.5" fill="#334155" font-family="monospace">initialize_vault_reserves()</text>
+  <text x="8" y="69" font-size="7.5" fill="#334155" font-family="monospace">initialize_vault_loss_bucket()</text>
+  <text x="8" y="79" font-size="7.5" fill="#334155" font-family="monospace">initialize_tranche(kind: u8, apy_bps: u16)</text>
+  <text x="8" y="89" font-size="7.5" fill="#334155" font-family="monospace">initialize_loan(loan_id, principal, apr_bps, maturity_ts, borrower)</text>
+  <text x="8" y="99" font-size="7.5" fill="#334155" font-family="monospace">pause() · unpause() · reactivate_vault()</text>
+
+  <!-- col 2: Core Flow -->
+  <text x="240" y="28" font-size="8" fill="#10b981" font-weight="600">Core Flow</text>
+  <text x="240" y="39" font-size="7.5" fill="#334155" font-family="monospace">deposit(tranche_kind: u8, usdc_amount: u64)</text>
+  <text x="240" y="49" font-size="7.5" fill="#334155" font-family="monospace">  → CPI: token::transfer user→reserve</text>
+  <text x="240" y="59" font-size="7.5" fill="#334155" font-family="monospace">  → CPI: token::mint_to tranche tokens</text>
+  <text x="240" y="69" font-size="7.5" fill="#334155" font-family="monospace">withdraw(tranche_kind: u8, share_amount: u64)</text>
+  <text x="240" y="79" font-size="7.5" fill="#334155" font-family="monospace">  → CPI: token::burn · token::transfer</text>
+  <text x="240" y="89" font-size="7.5" fill="#334155" font-family="monospace">accrue_yield(yield_amount: u64)</text>
+  <text x="240" y="99" font-size="7.5" fill="#334155" font-family="monospace">  → math::waterfall → nav_per_share_q ↑</text>
+  <text x="240" y="109" font-size="7.5" fill="#334155" font-family="monospace">disburse_loan() · repay_loan(amount: u64)</text>
+
+  <!-- col 3: Credit -->
+  <text x="480" y="28" font-size="8" fill="#f87171" font-weight="600">Credit Events</text>
+  <text x="480" y="39" font-size="7.5" fill="#334155" font-family="monospace">trigger_credit_event(</text>
+  <text x="480" y="49" font-size="7.5" fill="#334155" font-family="monospace">  event_type: u8,</text>
+  <text x="480" y="59" font-size="7.5" fill="#334155" font-family="monospace">  loss_amount: u64,</text>
+  <text x="480" y="69" font-size="7.5" fill="#334155" font-family="monospace">  severity_bps: u16)</text>
+  <text x="480" y="79" font-size="7.5" fill="#334155" font-family="monospace">→ creates CreditEvent PDA</text>
+  <text x="480" y="89" font-size="7.5" fill="#334155" font-family="monospace">→ math::waterfall loss cascade</text>
+  <text x="480" y="99" font-size="7.5" fill="#334155" font-family="monospace">→ nav_per_share_q ↓ (Alpha first)</text>
+
+  <!-- col 4: Partners -->
+  <text x="680" y="28" font-size="8" fill="#c084fc" font-weight="600">Partner Instructions</text>
+  <text x="680" y="39" font-size="7.5" fill="#334155" font-family="monospace">attach_ika_collateral(dwallet_id, chain_id,</text>
+  <text x="680" y="49" font-size="7.5" fill="#334155" font-family="monospace">  collateral_amount_usd, oracle_pubkey)</text>
+  <text x="680" y="59" font-size="7.5" fill="#334155" font-family="monospace">verify_ika_collateral()  ← ix[1] (Ed25519 ix[0])</text>
+  <text x="680" y="69" font-size="7.5" fill="#334155" font-family="monospace">verify_and_disburse()   ← atomic verify + pay</text>
+  <text x="680" y="79" font-size="7.5" fill="#334155" font-family="monospace">release_ika_collateral() · liquidate_ika_collateral()</text>
+  <text x="680" y="89" font-size="7.5" fill="#334155" font-family="monospace">attach_encrypt_score(commitment: [u8;32], oracle)</text>
+  <text x="680" y="99" font-size="7.5" fill="#334155" font-family="monospace">verify_encrypt_default(loss_amount, severity_bps)</text>
+  <text x="680" y="109" font-size="7.5" fill="#334155" font-family="monospace">record_cloak_payout(total_shielded_amount: u64)</text>
+</g>
+
+<!-- ══ ZONE 3: prism_amm ══════════════════════════════════════════════════════ -->
+<rect x="973" y="128" width="517" height="398" rx="8" fill="#0f0c00" stroke="#b45309" stroke-width="1.5" stroke-dasharray="5,3"/>
+<text x="987" y="145" font-size="10" fill="#f59e0b" font-weight="700" letter-spacing="0.5">prism_amm</text>
+<text x="1058" y="145" font-size="8" fill="#451a03" font-family="monospace">  7hbMRBwXF13fqqL8HGsgPrAakv21YoQz2KjtBpDTrRXf</text>
+
+<!-- AmmPool (×3 instances — one per tranche token) -->
+<g transform="translate(987,155)">
+  <rect width="185" height="130" rx="5" fill="#1a1000" stroke="#92400e" stroke-width="1"/>
+  <text x="6" y="13" font-size="8" fill="#475569" font-family="monospace">["amm", tranche_mint]</text>
+  <text x="6" y="26" font-size="10" font-weight="700" fill="#fbbf24">AmmPool  ×3</text>
+  <text x="6" y="38" font-size="7.5" fill="#78350f" font-family="monospace">(one per tranche token)</text>
+  <text x="6" y="51" font-size="8" fill="#92400e" font-family="monospace">tranche_mint: Pubkey</text>
+  <text x="6" y="61" font-size="8" fill="#92400e" font-family="monospace">quote_mint: Pubkey (USDC)</text>
+  <text x="6" y="71" font-size="8" fill="#92400e" font-family="monospace">tranche_reserve: Pubkey</text>
+  <text x="6" y="81" font-size="8" fill="#92400e" font-family="monospace">quote_reserve: Pubkey</text>
+  <text x="6" y="91" font-size="8" fill="#92400e" font-family="monospace">lp_mint: Pubkey</text>
+  <text x="6" y="101" font-size="8" fill="#92400e" font-family="monospace">fee_bps: u16 = 30 (0.30%)</text>
+  <!-- 3 instance badges -->
+  <rect x="5" y="112" width="50" height="14" rx="3" fill="#1d1100" stroke="#3b1a00" stroke-width="1"/>
+  <text x="30" y="122" font-size="8" fill="#60a5fa" text-anchor="middle">pPRIME</text>
+  <rect x="62" y="112" width="50" height="14" rx="3" fill="#1d1100" stroke="#3b1a00" stroke-width="1"/>
+  <text x="87" y="122" font-size="8" fill="#c084fc" text-anchor="middle">pCORE</text>
+  <rect x="119" y="112" width="60" height="14" rx="3" fill="#1d1100" stroke="#3b1a00" stroke-width="1"/>
+  <text x="149" y="122" font-size="8" fill="#f87171" text-anchor="middle">pALPHA</text>
+</g>
+
+<!-- Pool sub-accounts -->
+<g transform="translate(1187,155)">
+  <rect width="155" height="64" rx="5" fill="#0f1200" stroke="#374151" stroke-width="1"/>
+  <text x="6" y="13" font-size="8" fill="#475569" font-family="monospace">["amm_tranche", tranche_mint]</text>
+  <text x="6" y="25" font-size="9" font-weight="600" fill="#86efac">tranche_reserve</text>
+  <text x="6" y="37" font-size="8" fill="#374151" font-family="monospace">["amm_quote", tranche_mint]</text>
+  <text x="6" y="49" font-size="9" font-weight="600" fill="#34d399">quote_reserve (USDC)</text>
+  <text x="6" y="60" font-size="7" fill="#374151">both: SPL token accounts (PDAs)</text>
+</g>
+
+<g transform="translate(1187,228)">
+  <rect width="155" height="40" rx="5" fill="#0f1200" stroke="#374151" stroke-width="1"/>
+  <text x="6" y="13" font-size="8" fill="#475569" font-family="monospace">["amm_lp", tranche_mint]</text>
+  <text x="6" y="27" font-size="9" font-weight="600" fill="#fbbf24">LP Mint</text>
+  <text x="6" y="37" font-size="7" fill="#374151">per-pool liquidity token</text>
+</g>
+
+<!-- AMM constant-product note -->
+<g transform="translate(987,295)">
+  <rect width="355" height="25" rx="4" fill="#120e00" stroke="#292000" stroke-width="1"/>
+  <text x="8" y="16" font-size="8" fill="#78350f" font-family="monospace">x · y = k  ·  Δy = y·Δx·(10000−fee) / (x·10000 + Δx·(10000−fee))</text>
+</g>
+
+<!-- AMM Instructions panel -->
+<g transform="translate(987,330)">
+  <rect width="493" height="186" rx="5" fill="#0a0900" stroke="#1c1400" stroke-width="1"/>
+  <text x="8" y="14" font-size="9" fill="#475569" font-weight="600" letter-spacing="0.5">INSTRUCTIONS</text>
+  <text x="8" y="28" font-size="8" fill="#f59e0b" font-weight="600">Setup</text>
+  <text x="8" y="40" font-size="7.5" fill="#334155" font-family="monospace">initialize_pool(fee_bps: u16)</text>
+  <text x="8" y="50" font-size="7.5" fill="#334155" font-family="monospace">initialize_pool_reserves()  → creates tranche_reserve + quote_reserve PDAs</text>
+  <text x="8" y="66" font-size="8" fill="#f59e0b" font-weight="600">Liquidity</text>
+  <text x="8" y="78" font-size="7.5" fill="#334155" font-family="monospace">add_liquidity(tranche_amount: u64, quote_amount: u64, min_lp_out: u64)</text>
+  <text x="8" y="88" font-size="7.5" fill="#334155" font-family="monospace">  → CPI: token::transfer (user → pool reserves)  ·  token::mint_to (LP tokens)</text>
+  <text x="8" y="98" font-size="7.5" fill="#334155" font-family="monospace">remove_liquidity(lp_amount: u64, min_tranche_out: u64, min_quote_out: u64)</text>
+  <text x="8" y="108" font-size="7.5" fill="#334155" font-family="monospace">  → CPI: token::burn (LP)  ·  token::transfer (reserves → user)</text>
+  <text x="8" y="123" font-size="8" fill="#f59e0b" font-weight="600">Swap</text>
+  <text x="8" y="135" font-size="7.5" fill="#334155" font-family="monospace">swap(amount_in: u64, min_amount_out: u64, direction: u8)</text>
+  <text x="8" y="145" font-size="7.5" fill="#334155" font-family="monospace">  direction 0 = USDC → tranche token (buy)</text>
+  <text x="8" y="155" font-size="7.5" fill="#334155" font-family="monospace">  direction 1 = tranche token → USDC (sell / exit)</text>
+  <text x="8" y="165" font-size="7.5" fill="#334155" font-family="monospace">  → CPI: token::transfer in + out  ·  30 bps fee stays in pool</text>
+  <text x="8" y="178" font-size="7.5" fill="#92400e" font-family="monospace">NOTE: AMM price may diverge from NAV — market reprices credit risk in real time</text>
+</g>
+
+<!-- ══ ZONE 4: IKA + Ed25519 detail ═════════════════════════════════════════ -->
+<rect x="973" y="536" width="517" height="140" rx="8" fill="#100820" stroke="#4c1d95" stroke-width="1" stroke-dasharray="4,3"/>
+<text x="987" y="551" font-size="9" fill="#7c3aed" font-weight="600">IKA dWallet Collateral Flow</text>
+<text x="987" y="564" font-size="8" fill="#4c1d95" font-family="monospace">tx = [ix_0: Ed25519NativeProgram, ix_1: verify_ika_collateral | verify_and_disburse]</text>
+
+<!-- Step boxes -->
+<g transform="translate(987,570)">
+  <rect width="90" height="50" rx="4" fill="#0d0620" stroke="#3b0764" stroke-width="1"/>
+  <text x="45" y="14" font-size="8" fill="#a855f7" text-anchor="middle">① IKA oracle</text>
+  <text x="45" y="25" font-size="7" fill="#5b21b6" text-anchor="middle">signs 81-byte</text>
+  <text x="45" y="35" font-size="7" fill="#5b21b6" text-anchor="middle">attestation msg</text>
+  <text x="45" y="46" font-size="7" fill="#4c1d95" text-anchor="middle">(off-chain)</text>
+</g>
+<text x="1082" y="601" font-size="10" fill="#4c1d95">→</text>
+<g transform="translate(1092,570)">
+  <rect width="105" height="50" rx="4" fill="#0d0620" stroke="#3b0764" stroke-width="1"/>
+  <text x="52" y="14" font-size="8" fill="#a855f7" text-anchor="middle">② ix[0]</text>
+  <text x="52" y="25" font-size="7" fill="#5b21b6" text-anchor="middle">Ed25519 precompile</text>
+  <text x="52" y="35" font-size="7" fill="#5b21b6" text-anchor="middle">verifies oracle sig</text>
+  <text x="52" y="46" font-size="7" fill="#4c1d95" text-anchor="middle">Solana native</text>
+</g>
+<text x="1202" y="601" font-size="10" fill="#4c1d95">→</text>
+<g transform="translate(1212,570)">
+  <rect width="130" height="50" rx="4" fill="#0d0620" stroke="#3b0764" stroke-width="1"/>
+  <text x="65" y="14" font-size="8" fill="#a855f7" text-anchor="middle">③ ix[1]</text>
+  <text x="65" y="25" font-size="7" fill="#5b21b6" text-anchor="middle">verify_ika_collateral</text>
+  <text x="65" y="35" font-size="7" fill="#5b21b6" text-anchor="middle">reads Sysvar:Instructions</text>
+  <text x="65" y="46" font-size="7" fill="#4c1d95" text-anchor="middle">sets IkaCollateral.status=Locked</text>
+</g>
+<text x="1347" y="601" font-size="10" fill="#4c1d95">→</text>
+<g transform="translate(1356,570)">
+  <rect width="120" height="50" rx="4" fill="#0d0620" stroke="#3b0764" stroke-width="1"/>
+  <text x="60" y="14" font-size="8" fill="#a855f7" text-anchor="middle">④ verify_and_disburse</text>
+  <text x="60" y="25" font-size="7" fill="#5b21b6" text-anchor="middle">atomic: verify + pay</text>
+  <text x="60" y="35" font-size="7" fill="#5b21b6" text-anchor="middle">borrower self-serve</text>
+  <text x="60" y="46" font-size="7" fill="#4c1d95" text-anchor="middle">no admin after origination</text>
+</g>
+<text x="987" y="660" font-size="7.5" fill="#3b0764" font-family="monospace">attestation msg (81 bytes): chain_id(1) | dwallet_id(32) | collateral_usd(8) | loan_pubkey(32) | oracle_sig validates via Ed25519</text>
+
+<!-- ══ ZONE 5: Solana Native Programs ════════════════════════════════════════ -->
+<rect x="10" y="688" width="1480" height="72" rx="6" fill="#0a0f0a" stroke="#1f2937" stroke-width="1"/>
+<text x="24" y="702" font-size="8" fill="#374151" letter-spacing="2">SOLANA NATIVE PROGRAMS (CPI targets)</text>
+
+<g transform="translate(24,706)">
+  <rect width="148" height="46" rx="4" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <text x="6" y="14" font-size="9" font-weight="600" fill="#9ca3af">SPL Token Program</text>
+  <text x="6" y="26" font-size="7.5" fill="#374151" font-family="monospace">transfer · mint_to · burn</text>
+  <text x="6" y="37" font-size="7.5" fill="#374151" font-family="monospace">TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA</text>
+</g>
+<g transform="translate(186,706)">
+  <rect width="138" height="46" rx="4" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <text x="6" y="14" font-size="9" font-weight="600" fill="#9ca3af">System Program</text>
+  <text x="6" y="26" font-size="7.5" fill="#374151" font-family="monospace">create_account</text>
+  <text x="6" y="37" font-size="7.5" fill="#374151" font-family="monospace">11111111111111111111111111111111</text>
+</g>
+<g transform="translate(338,706)">
+  <rect width="165" height="46" rx="4" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <text x="6" y="14" font-size="9" font-weight="600" fill="#9ca3af">Ed25519 Precompile</text>
+  <text x="6" y="26" font-size="7.5" fill="#374151" font-family="monospace">verifies ed25519 signatures</text>
+  <text x="6" y="37" font-size="7.5" fill="#374151" font-family="monospace">Ed25519SigVerify111111111111111</text>
+</g>
+<g transform="translate(517,706)">
+  <rect width="172" height="46" rx="4" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <text x="6" y="14" font-size="9" font-weight="600" fill="#9ca3af">Sysvar: Instructions</text>
+  <text x="6" y="26" font-size="7.5" fill="#374151" font-family="monospace">introspect tx instructions</text>
+  <text x="6" y="37" font-size="7.5" fill="#374151" font-family="monospace">used by verify_ika_collateral</text>
+</g>
+
+<!-- ══ ZONE 6: Frontend ═══════════════════════════════════════════════════════ -->
+<rect x="10" y="772" width="1480" height="118" rx="6" fill="#0d0a1a" stroke="#2d1b69" stroke-width="1"/>
+<text x="24" y="787" font-size="8" fill="#4c1d95" letter-spacing="2">FRONTEND  ·  Next.js App Router  ·  TypeScript + Tailwind</text>
+
+<g transform="translate(24,793)">
+  <rect width="172" height="89" rx="4" fill="#120b2a" stroke="#3730a3" stroke-width="1"/>
+  <text x="6" y="14" font-size="9" font-weight="600" fill="#818cf8">useVaultState</text>
+  <text x="6" y="27" font-size="7.5" fill="#3730a3" font-family="monospace">hooks/useVaultState.ts</text>
+  <text x="6" y="39" font-size="7.5" fill="#374151">React Query · refetch 5s</text>
+  <text x="6" y="49" font-size="7.5" fill="#374151">fetches all PDAs in parallel</text>
+  <text x="6" y="59" font-size="7.5" fill="#374151">returns single snapshot</text>
+  <text x="6" y="69" font-size="7.5" fill="#374151">single source of truth for UI</text>
+  <text x="6" y="80" font-size="7" fill="#1e1b4b" font-style="italic">no duplicate RPC in components</text>
+</g>
+<g transform="translate(211,793)">
+  <rect width="168" height="89" rx="4" fill="#120b2a" stroke="#3730a3" stroke-width="1"/>
+  <text x="6" y="14" font-size="9" font-weight="600" fill="#818cf8">useIdentity</text>
+  <text x="6" y="27" font-size="7.5" fill="#3730a3" font-family="monospace">hooks/useIdentity.tsx</text>
+  <text x="6" y="39" font-size="7.5" fill="#374151">4 demo keypairs loaded from</text>
+  <text x="6" y="49" font-size="7.5" fill="#374151" font-family="monospace">contracts/keys/*.json</text>
+  <text x="6" y="59" font-size="7.5" fill="#374151">admin / senior / junior / borrower</text>
+  <text x="6" y="69" font-size="7.5" fill="#374151">role switcher for simulation</text>
+  <text x="6" y="80" font-size="7" fill="#1e1b4b" font-style="italic">wallet adapter only for IKA flow</text>
+</g>
+<g transform="translate(394,793)">
+  <rect width="168" height="89" rx="4" fill="#120b2a" stroke="#3730a3" stroke-width="1"/>
+  <text x="6" y="14" font-size="9" font-weight="600" fill="#818cf8">buildPrograms()</text>
+  <text x="6" y="27" font-size="7.5" fill="#3730a3" font-family="monospace">app/lib/program.ts</text>
+  <text x="6" y="39" font-size="7.5" fill="#374151">buildProvider(conn, keypair)</text>
+  <text x="6" y="49" font-size="7.5" fill="#374151">→ AnchorProvider</text>
+  <text x="6" y="59" font-size="7.5" fill="#374151">→ prism_core Program</text>
+  <text x="6" y="69" font-size="7.5" fill="#374151">→ prism_amm Program</text>
+  <text x="6" y="80" font-size="7" fill="#1e1b4b" font-style="italic">called with active identity keypair</text>
+</g>
+<g transform="translate(577,793)">
+  <rect width="130" height="89" rx="4" fill="#120b2a" stroke="#3730a3" stroke-width="1"/>
+  <text x="6" y="14" font-size="9" font-weight="600" fill="#818cf8">pda.ts</text>
+  <text x="6" y="27" font-size="7.5" fill="#3730a3" font-family="monospace">app/lib/pda.ts</text>
+  <text x="6" y="39" font-size="7.5" fill="#374151">configPda()</text>
+  <text x="6" y="49" font-size="7.5" fill="#374151">vaultPda(id)</text>
+  <text x="6" y="59" font-size="7.5" fill="#374151">tranchePda(vault, kind)</text>
+  <text x="6" y="69" font-size="7.5" fill="#374151">loanPda(vault, id)</text>
+  <text x="6" y="80" font-size="7" fill="#1e1b4b" font-style="italic">mirrors pda.rs exactly</text>
+</g>
+<g transform="translate(722,793)">
+  <rect width="130" height="89" rx="4" fill="#120b2a" stroke="#3730a3" stroke-width="1"/>
+  <text x="6" y="14" font-size="9" font-weight="600" fill="#818cf8">ika.ts</text>
+  <text x="6" y="27" font-size="7.5" fill="#3730a3" font-family="monospace">app/lib/ika.ts</text>
+  <text x="6" y="39" font-size="7.5" fill="#374151">Sui SDK dWallet DKG</text>
+  <text x="6" y="49" font-size="7.5" fill="#374151">buildAttestationMsg()</text>
+  <text x="6" y="59" font-size="7.5" fill="#374151">buildVerifyIkaTx()</text>
+  <text x="6" y="69" font-size="7.5" fill="#374151">fetchOracleAttestation()</text>
+  <text x="6" y="80" font-size="7" fill="#1e1b4b" font-style="italic">81-byte msg layout: must match .rs</text>
+</g>
+<g transform="translate(867,793)">
+  <rect width="168" height="89" rx="4" fill="#120b2a" stroke="#3730a3" stroke-width="1"/>
+  <text x="6" y="14" font-size="9" font-weight="600" fill="#818cf8">useSimulationActions</text>
+  <text x="6" y="27" font-size="7.5" fill="#3730a3" font-family="monospace">hooks/useSimulationActions.tsx</text>
+  <text x="6" y="39" font-size="7.5" fill="#374151">useMutation wrappers for all</text>
+  <text x="6" y="49" font-size="7.5" fill="#374151">admin instructions</text>
+  <text x="6" y="59" font-size="7.5" fill="#374151">toast on success/error (sonner)</text>
+  <text x="6" y="69" font-size="7.5" fill="#374151">invalidates useVaultState on settle</text>
+  <text x="6" y="80" font-size="7" fill="#1e1b4b" font-style="italic">commitment: "confirmed"</text>
+</g>
+
+<!-- ══ ARROWS ════════════════════════════════════════════════════════════════ -->
+
+<!-- 1. deposit USDC: Investors → VaultReserve -->
+<path d="M 100,102 C 100,120 390,120 398,160" stroke="#10b981" stroke-width="1.5" fill="none" marker-end="url(#ag)"/>
+<text x="210" y="116" font-size="8" fill="#059669" font-family="monospace">deposit USDC</text>
+
+<!-- 2. withdraw USDC: VaultReserve → User (right) -->
+<path d="M 556,175 C 650,175 680,140 750,80" stroke="#10b981" stroke-width="1.2" fill="none" stroke-dasharray="4,2" marker-end="url(#agd)"/>
+<text x="648" y="140" font-size="7.5" fill="#059669" font-family="monospace">withdraw USDC (NAV)</text>
+
+<!-- 3. Mint tranche tokens on deposit: Vault authority → pPRIME/pCORE/pALPHA -->
+<path d="M 238,195 C 250,240 262,250 262,258" stroke="#3b82f6" stroke-width="1" fill="none" stroke-dasharray="3,2" marker-end="url(#ab)"/>
+<text x="256" y="238" font-size="7" fill="#1d4ed8" font-family="monospace">mint_to</text>
+
+<!-- 4. disburse_loan: VaultReserve → Borrower -->
+<path d="M 476,160 C 476,130 440,115 440,102" stroke="#10b981" stroke-width="1.5" fill="none" marker-end="url(#ag)"/>
+<text x="480" y="128" font-size="8" fill="#059669" font-family="monospace">disburse_loan</text>
+
+<!-- 5. repay_loan: Borrower → VaultReserve -->
+<path d="M 360,75 C 330,75 390,100 420,160" stroke="#10b981" stroke-width="1.2" fill="none" stroke-dasharray="4,2" marker-end="url(#agd)"/>
+<text x="318" y="95" font-size="8" fill="#059669" font-family="monospace">repay_loan</text>
+
+<!-- 6. Admin → Vault (accrue_yield, trigger_credit_event) -->
+<path d="M 268,102 L 268,155" stroke="#f97316" stroke-width="1.5" fill="none" marker-end="url(#ao)"/>
+<text x="275" y="130" font-size="7.5" fill="#d97706" font-family="monospace">accrue_yield</text>
+<text x="275" y="140" font-size="7.5" fill="#d97706" font-family="monospace">trigger_credit_event</text>
+
+<!-- 7. accrue_yield → Tranche (waterfall: Vault to Prime, Core, Alpha) -->
+<path d="M 265,243 C 200,248 170,250 126,258" stroke="#3b82f6" stroke-width="1" fill="none" marker-end="url(#ab)" opacity=".8"/>
+<path d="M 268,243 L 118,352" stroke="#7c3aed" stroke-width="1" fill="none" marker-end="url(#ab)" opacity=".8"/>
+<path d="M 272,243 C 260,300 200,400 126,446" stroke="#b91c1c" stroke-width="1" fill="none" marker-end="url(#ab)" opacity=".8"/>
+<text x="155" y="250" font-size="7.5" fill="#1d4ed8">waterfall▼</text>
+
+<!-- 8. trigger_credit_event → CreditEvent PDA -->
+<path d="M 415,243 L 450,358" stroke="#ef4444" stroke-width="1.2" fill="none" marker-end="url(#ar)"/>
+<text x="420" y="300" font-size="7" fill="#dc2626" font-family="monospace">creates CreditEvent</text>
+
+<!-- 9. IKA → IkaCollateral -->
+<path d="M 604,102 C 604,190 600,230 600,258" stroke="#a855f7" stroke-width="1.5" fill="none" marker-end="url(#ap)"/>
+<text x="608" y="185" font-size="7.5" fill="#7c3aed" font-family="monospace">attach/verify</text>
+<text x="608" y="195" font-size="7.5" fill="#7c3aed" font-family="monospace">ika_collateral</text>
+
+<!-- 10. Encrypt → EncryptLoanHealth -->
+<path d="M 748,102 C 700,200 680,280 690,352" stroke="#10b981" stroke-width="1.2" fill="none" marker-end="url(#ag)" opacity=".7"/>
+<text x="694" y="220" font-size="7" fill="#059669" font-family="monospace">attach_encrypt_score</text>
+
+<!-- 11. Cloak → CloakPayoutRecord -->
+<path d="M 912,102 C 850,250 760,380 726,436" stroke="#6366f1" stroke-width="1.2" fill="none" marker-end="url(#ap)" opacity=".7"/>
+<text x="838" y="270" font-size="7" fill="#4338ca" font-family="monospace">record_cloak_payout</text>
+
+<!-- 12. pPRIME → AmmPool (trade) -->
+<path d="M 360,275 C 600,275 820,240 987,222" stroke="#f59e0b" stroke-width="1.5" fill="none" marker-end="url(#aam)"/>
+<text x="640" y="262" font-size="7.5" fill="#b45309" font-family="monospace">tranche tokens → swap</text>
+
+<!-- 13. pCORE → AmmPool (trade, slight offset) -->
+<path d="M 360,362 C 600,330 820,270 987,238" stroke="#f59e0b" stroke-width="1" fill="none" marker-end="url(#aam)" stroke-dasharray="4,2" opacity=".7"/>
+
+<!-- 14. pALPHA → AmmPool (trade) -->
+<path d="M 360,456 C 600,400 820,300 987,254" stroke="#f59e0b" stroke-width="1" fill="none" marker-end="url(#aam)" stroke-dasharray="4,2" opacity=".6"/>
+
+<!-- 15. prism_core → SPL Token (CPI) -->
+<path d="M 300,676 C 300,690 100,692 100,706" stroke="#6b7280" stroke-width="1" fill="none" stroke-dasharray="3,2" marker-end="url(#agr)"/>
+<text x="140" y="691" font-size="7.5" fill="#4b5563" font-family="monospace">CPI: transfer / mint_to / burn</text>
+
+<!-- 16. prism_core → System Program (CPI, init) -->
+<path d="M 400,676 C 400,692 265,695 265,706" stroke="#6b7280" stroke-width="1" fill="none" stroke-dasharray="3,2" marker-end="url(#agr)" opacity=".6"/>
+
+<!-- 17. verify_ika_collateral → Ed25519 Precompile -->
+<path d="M 726,676 C 726,692 425,695 425,706" stroke="#a855f7" stroke-width="1" fill="none" stroke-dasharray="3,2" marker-end="url(#ap)"/>
+<text x="530" y="693" font-size="7.5" fill="#6d28d9" font-family="monospace">reads Sysvar:Instructions to check ix[0]</text>
+
+<!-- 18. prism_amm → SPL Token (CPI) -->
+<path d="M 1050,688 C 1050,700 400,710 172,706" stroke="#6b7280" stroke-width="1" fill="none" stroke-dasharray="3,2" marker-end="url(#agr)" opacity=".5"/>
+<text x="620" y="720" font-size="7.5" fill="#374151" font-family="monospace">CPI</text>
+
+<!-- 19. useVaultState → prism_core (polling) -->
+<path d="M 110,793 C 110,740 300,700 300,676" stroke="#8b5cf6" stroke-width="1.2" fill="none" stroke-dasharray="4,2" marker-end="url(#apu)"/>
+<text x="115" y="748" font-size="7.5" fill="#6d28d9" font-family="monospace">getProgramAccounts (5s)</text>
+
+<!-- 20. buildPrograms → prism_core + prism_amm -->
+<path d="M 478,793 C 478,740 500,700 500,676" stroke="#8b5cf6" stroke-width="1" fill="none" stroke-dasharray="4,2" marker-end="url(#apu)" opacity=".7"/>
+<path d="M 562,793 C 700,793 1050,700 1100,688" stroke="#8b5cf6" stroke-width="1" fill="none" stroke-dasharray="4,2" marker-end="url(#apu)" opacity=".6"/>
+<text x="550" y="785" font-size="7.5" fill="#6d28d9" font-family="monospace">AnchorProvider</text>
+
+<!-- ══ LEGEND ══════════════════════════════════════════════════════════════════ -->
+<rect x="10" y="897" width="1480" height="38" rx="4" fill="#060a14"/>
+<text x="20" y="912" font-size="8" fill="#374151" font-weight="600">LEGEND:</text>
+<line x1="80" y1="908" x2="105" y2="908" stroke="#10b981" stroke-width="2" marker-end="url(#ag)"/>
+<text x="108" y="912" font-size="7.5" fill="#374151">USDC flow</text>
+<line x1="180" y1="908" x2="205" y2="908" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#agd)"/>
+<text x="208" y="912" font-size="7.5" fill="#374151">USDC return</text>
+<line x1="295" y1="908" x2="320" y2="908" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#ab)"/>
+<text x="323" y="912" font-size="7.5" fill="#374151">yield waterfall / token mint</text>
+<line x1="450" y1="908" x2="475" y2="908" stroke="#ef4444" stroke-width="1.5" marker-end="url(#ar)"/>
+<text x="478" y="912" font-size="7.5" fill="#374151">loss cascade</text>
+<line x1="555" y1="908" x2="580" y2="908" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#aam)"/>
+<text x="583" y="912" font-size="7.5" fill="#374151">tranche token / AMM swap</text>
+<line x1="695" y1="908" x2="720" y2="908" stroke="#a855f7" stroke-width="1.5" marker-end="url(#ap)"/>
+<text x="723" y="912" font-size="7.5" fill="#374151">IKA / partner oracle</text>
+<line x1="820" y1="908" x2="845" y2="908" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#apu)"/>
+<text x="848" y="912" font-size="7.5" fill="#374151">frontend RPC / provider</text>
+<line x1="960" y1="908" x2="985" y2="908" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#agr)"/>
+<text x="988" y="912" font-size="7.5" fill="#374151">CPI (cross-program invocation)</text>
+
+<!-- second legend row -->
+<text x="20" y="930" font-size="8" fill="#374151" font-weight="600">INVARIANT:</text>
+<text x="80" y="930" font-size="7.5" fill="#374151" font-family="monospace">VaultReserve.amount == Σ(tranche.total_assets)  at all times  ·  nav_per_share_q stored as Q64.64 (u128, Q64_ONE = 1 &lt;&lt; 64)  ·  math::q module: no raw arithmetic</text>
+
+</svg>
+
+<div class="expl">
+  <h3>Architecture Explained</h3>
+  <div class="expl-grid">
+    <div class="expl-card">
+      <h4 class="c-blue">Two Programs — Why Separate?</h4>
+      <p><code>prism_core</code> and <code>prism_amm</code> are deployed as independent Anchor programs with no shared state. This was a deliberate design decision:</p>
+      <ul>
+        <li><strong>Blast-radius isolation</strong> — a bug in the AMM swap math cannot drain the credit vault. The programs interact only through SPL token transfers, not shared accounts</li>
+        <li><strong>Independent upgrades</strong> — the AMM can be redeployed (e.g., to add concentrated liquidity) without touching the credit engine, and vice versa</li>
+        <li><strong>Composability</strong> — the AMM is parameterized on <code>tranche_mint</code>, so a single AMM deployment serves all three tranche tokens from all vaults</li>
+        <li><strong>Pitch clarity</strong> — "two programs" maps cleanly to "credit layer + market layer" in a deck</li>
+      </ul>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-blue">NAV Accounting: Q64.64 Fixed-Point</h4>
+      <p><code>nav_per_share_q</code> is a <code>u128</code> in Q64.64 format: <code>1.0 = 2^64 ≈ 1.84 × 10^19</code>. This gives 18+ decimal places of precision.</p>
+      <p style="margin-top:8px">Why not use floating-point or USDC's 6 decimals?</p>
+      <ul>
+        <li>Solana BPF has no hardware float — software float is expensive and imprecise</li>
+        <li>Dividing <code>total_assets / total_supply</code> in integer arithmetic with USDC's 6 decimals loses precision on every waterfall call, compounding over time</li>
+        <li>Q64.64 preserves sub-lamport precision across thousands of <code>accrue_yield</code> calls without rounding loss</li>
+      </ul>
+      <p style="margin-top:8px">All NAV math lives in <code>contracts/programs/prism-core/src/math/q.rs</code>. Nothing touches <code>nav_per_share_q</code> directly — always through <code>math::q</code>.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-green">Waterfall Math</h4>
+      <p><code>accrue_yield(yield_amount)</code> calls <code>math::waterfall</code>, which distributes yield in strict priority order:</p>
+      <ul>
+        <li>Compute Prime's target: <code>prime.total_assets × prime_apy_bps × elapsed_seconds / (10_000 × 31_536_000)</code></li>
+        <li>Allocate <code>min(yield_remaining, prime_target)</code> to Prime, update <code>prime.total_assets</code>, recompute NAV</li>
+        <li>Repeat for Core with the remainder, then Alpha with whatever is left</li>
+        <li>Alpha's allocation is uncapped — in a surplus pool it can receive multiples of its 15% target</li>
+      </ul>
+      <p style="margin-top:8px">The invariant <code>VaultReserve.amount == Σ(tranche.total_assets)</code> is preserved at every step. Yield increases all three tranche asset totals; withdrawals decrease them. No USDC enters or leaves without a corresponding accounting update.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-amber">PDA Authority &amp; CPI Pattern</h4>
+      <p>Every USDC movement uses CPI to the SPL Token Program. The Vault PDA is the <strong>mint authority</strong> for all three tranche mints and the <strong>transfer authority</strong> for the vault reserve and loss bucket.</p>
+      <p style="margin-top:8px">Because the Vault is a PDA (not an EOA), it signs CPI calls using <code>CpiContext::new_with_signer</code> with its own seeds:</p>
+      <ul>
+        <li><code>seeds = [b"vault", &amp;vault_id.to_le_bytes()]</code></li>
+        <li>No external private key can authorize a USDC move — only the smart contract executing a valid instruction can</li>
+      </ul>
+      <p style="margin-top:8px">This is the core non-custodial guarantee: the protocol is literally incapable of moving funds without executing one of the explicitly coded instruction paths.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-purple">Partner Integrations</h4>
+      <p>PRISM adds three partner accounts at the Rust level — each is a PDA that stores partner-specific state alongside the core credit state:</p>
+      <ul>
+        <li><strong class="c-purple">IKA</strong> (<code>IkaCollateral</code>) — BTC/ETH threshold MPC collateral. Verification requires the two-instruction Ed25519 precompile pattern. Status: <code>Pending → Locked → Released | Liquidated</code></li>
+        <li><strong class="c-green">Encrypt</strong> (<code>EncryptLoanHealth</code>) — FHE credit scoring. The borrower's credit score stays encrypted off-chain; only a <code>sha256</code> commitment is stored on-chain. The Encrypt oracle can later prove default with a ZK proof via <code>verify_encrypt_default</code></li>
+        <li><strong class="c-purple">Cloak</strong> (<code>CloakPayoutRecord</code>) — Shielded batch disbursement. The waterfall pays tranches in a privacy-preserving batch; the batch receipt hash (<code>sha256</code>) is recorded on-chain via <code>record_cloak_payout</code></li>
+      </ul>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-gray">Frontend Simulation Design</h4>
+      <p>The frontend is a <strong>demo simulation harness</strong>, not a live wallet dApp. This was a deliberate hackathon choice: it lets the UI demonstrate all protocol mechanics without requiring real wallets, real USDC, or real borrowers.</p>
+      <ul>
+        <li><code>useIdentity</code> loads 4 demo keypairs from <code>contracts/keys/</code> and exposes a role switcher (admin / senior LP / junior LP / borrower). All on-chain calls use these keypairs — the browser wallet adapter is only used in the IKA borrower flow.</li>
+        <li><code>useVaultState</code> fetches all PDAs in parallel every 5 seconds via React Query and returns a single typed snapshot. No component makes direct RPC calls — this prevents duplicate requests and keeps the UI consistent.</li>
+        <li><code>buildPrograms(connection, keypair)</code> creates Anchor program clients for the active identity. Called on every role switch to ensure the active keypair signs all transactions.</li>
+        <li>All mutations use <code>useMutation</code> and call <code>queryClient.invalidateQueries</code> on settle to force a fresh state fetch.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="expl-grid-2">
+    <div class="expl-card">
+      <h4 class="c-blue">Core Invariants (Never Break)</h4>
+      <ul>
+        <li><code>VaultReserve.amount == Σ(tranche.total_assets)</code> — holds at every instruction boundary, including defaults (losses move to loss bucket, then tranche assets, never disappear)</li>
+        <li>NAV is monotonically increasing under normal operation (yield only) and can only decrease via <code>trigger_credit_event</code> — not via floating-point drift or rounding</li>
+        <li>Tranche tokens are minted at the current NAV — a new depositor never dilutes existing holders</li>
+        <li>The vault authority PDA is the only mint authority — no external key can mint tranche tokens</li>
+        <li><code>IkaCollateral.status = Locked</code> requires a valid oracle Ed25519 signature verified by the Solana native precompile — not settable by any other means</li>
+      </ul>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-amber">Before Mainnet</h4>
+      <p>The current implementation is hackathon / devnet infrastructure. Key gaps before production:</p>
+      <ul>
+        <li><strong>Client-side keypairs</strong> — demo keypairs in <code>contracts/keys/</code> must be replaced with proper wallet signing (admin multisig, borrower wallet)</li>
+        <li><strong>Oracle decentralization</strong> — single admin oracle should be replaced with a decentralized attestation network or multi-sig oracle committee</li>
+        <li><strong>IKA dWallet flow</strong> — the DKG and threshold address derivation flow needs finalization for mainnet IKA release</li>
+        <li><strong>Contract audit</strong> — Sec3, OtterSec, or equivalent Solana-specialist audit before any real capital</li>
+        <li><strong>Withdrawal queue</strong> — no queue for when vault reserve is insufficient; users must wait or use AMM</li>
+        <li><strong>Devnet USDC / program IDs</strong> — all current deployments are devnet-only</li>
+      </ul>
+      <p style="margin-top:8px">See <code>docs/before-mainnet.md</code> for the full production checklist.</p>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

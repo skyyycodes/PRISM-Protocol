@@ -15,6 +15,7 @@ import { z } from 'zod';
 
 import { createCheckout } from '@/app/lib/dodo';
 import { recordIntent } from '@/lib/dodoStore';
+import { getAppUrl } from '@/lib/origin';
 
 export const runtime = 'nodejs';
 
@@ -35,10 +36,7 @@ export async function POST(req: NextRequest) {
   }
   const { loanId, amountUsd, borrowerPubkey } = parsed.data;
 
-  const host = req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? 'localhost:3000';
-  const proto = req.headers.get('x-forwarded-proto') ?? (host.includes('localhost') ? 'http' : 'https');
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL
-    ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `${proto}://${host}`);
+  const appUrl = getAppUrl(req);
   const successUrl = `${appUrl}/borrow?dodo=success&loanId=${loanId}`;
   const amountUsdCents = Math.round(amountUsd * 100);
   const amountUsdMicro = BigInt(amountUsdCents) * 10_000n; // cents -> micro-USDC (6dp)

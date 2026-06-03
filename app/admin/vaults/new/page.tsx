@@ -508,7 +508,7 @@ export default function NewVaultPage() {
                  <span className="font-mono text-[9px] uppercase tracking-widest">Encrypted Session: Active</span>
               </div>
            </div>
-           <div className="font-mono text-[9px] uppercase tracking-widest">PRISM Credit Protocol · Mission Control Center</div>
+           <div className="font-mono text-[9px] uppercase tracking-widest">PRISM Credit Protocol · Admin Dashboard</div>
         </div>
 
       </div>

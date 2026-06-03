@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>PRISM Protocol — Flow Diagrams</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#060a14; color:#e2e8f0; font-family:'Inter',system-ui,sans-serif; display:flex; flex-direction:column; align-items:center; padding:32px 16px 56px; min-height:100vh; }
+h1 { font-size:20px; font-weight:700; color:#f1f5f9; letter-spacing:-0.4px; margin-bottom:6px; }
+.subtitle { font-size:12px; color:#475569; margin-bottom:28px; }
+.tabs { display:flex; gap:8px; margin-bottom:28px; }
+.tab { padding:9px 22px; border-radius:7px; cursor:pointer; font-size:13px; font-weight:500; border:1px solid #1e293b; background:#0f172a; color:#64748b; transition:all .15s; user-select:none; }
+.tab:hover { border-color:#2563eb; color:#93c5fd; }
+.tab.active { background:#0e2040; border-color:#2563eb; color:#60a5fa; }
+.diagram { display:none; }
+.diagram.active { display:block; }
+svg { display:block; border-radius:10px; }
+.expl { max-width:980px; padding:24px 0 8px; }
+.expl-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+.expl-card { background:#0d1525; border:1px solid #1e293b; border-radius:8px; padding:16px 18px; }
+.expl-card h4 { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px; }
+.expl-card p, .expl-card li { font-size:12px; color:#64748b; line-height:1.72; }
+.expl-card ul { padding-left:15px; margin-top:5px; }
+.expl-card li { margin-bottom:5px; }
+.expl-card code { font-family:'SF Mono','Fira Code',monospace; font-size:10px; background:#060a14; padding:1px 5px; border-radius:3px; color:#94a3b8; }
+.expl-card strong { color:#e2e8f0; }
+.c-blue { color:#60a5fa; } .c-purple { color:#c084fc; } .c-red { color:#f87171; } .c-green { color:#34d399; } .c-amber { color:#fbbf24; }
+</style>
+</head>
+<body>
+<h1>PRISM Protocol</h1>
+<p class="subtitle">User Flows &amp; Collateral Architecture</p>
+
+<div class="tabs">
+  <div class="tab active" onclick="show(0)">① Investor Flow</div>
+  <div class="tab" onclick="show(1)">② Borrower Flow</div>
+  <div class="tab" onclick="show(2)">③ Collateral Lock Architecture</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  DIAGRAM 1 — INVESTOR FLOW                                           -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="diagram active" id="d0">
+<svg width="980" height="750" viewBox="0 0 980 750" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="i-ab" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#3b82f6"/></marker>
+  <marker id="i-ag" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#10b981"/></marker>
+  <marker id="i-am" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#f59e0b"/></marker>
+  <marker id="i-ar" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#ef4444"/></marker>
+  <marker id="i-agr" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#6b7280"/></marker>
+</defs>
+<rect width="980" height="750" fill="#080d18" rx="10"/>
+
+<!-- Title -->
+<text x="490" y="28" text-anchor="middle" font-size="15" font-weight="700" fill="#e2e8f0">Investor Journey</text>
+<text x="490" y="44" text-anchor="middle" font-size="10" fill="#475569">From deposit to exit — how capital flows through PRISM's tranche system</text>
+
+<!-- STEP 1: Choose Tranche -->
+<g transform="translate(310,58)">
+  <rect width="360" height="95" rx="7" fill="#0e1f35" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="12" y="18" font-size="9" fill="#475569">STEP 1 — INVESTOR</text>
+  <text x="12" y="33" font-size="12" font-weight="700" fill="#60a5fa">Choose Risk Tranche</text>
+  <!-- 3 mini tranche boxes -->
+  <g transform="translate(10,42)">
+    <rect width="103" height="44" rx="4" fill="#0d2040" stroke="#1d4ed8" stroke-width="1"/>
+    <text x="51" y="14" text-anchor="middle" font-size="9" font-weight="600" fill="#60a5fa">Prime</text>
+    <text x="51" y="25" text-anchor="middle" font-size="8" fill="#334155">5% APY target</text>
+    <text x="51" y="36" text-anchor="middle" font-size="7.5" fill="#1e3a5f">lowest risk · paid first</text>
+  </g>
+  <g transform="translate(128,42)">
+    <rect width="103" height="44" rx="4" fill="#1a0f2e" stroke="#5b21b6" stroke-width="1"/>
+    <text x="51" y="14" text-anchor="middle" font-size="9" font-weight="600" fill="#c084fc">Core</text>
+    <text x="51" y="25" text-anchor="middle" font-size="8" fill="#334155">8% APY target</text>
+    <text x="51" y="36" text-anchor="middle" font-size="7.5" fill="#2e1065">medium risk · paid second</text>
+  </g>
+  <g transform="translate(246,42)">
+    <rect width="103" height="44" rx="4" fill="#2a0f0f" stroke="#b91c1c" stroke-width="1"/>
+    <text x="51" y="14" text-anchor="middle" font-size="9" font-weight="600" fill="#f87171">Alpha</text>
+    <text x="51" y="25" text-anchor="middle" font-size="8" fill="#334155">15% APY target</text>
+    <text x="51" y="36" text-anchor="middle" font-size="7.5" fill="#7f1d1d">highest risk · first-loss</text>
+  </g>
+</g>
+
+<!-- Arrow 1 -->
+<line x1="490" y1="153" x2="490" y2="172" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#i-ab)"/>
+
+<!-- STEP 2: Deposit USDC -->
+<g transform="translate(310,175)">
+  <rect width="360" height="80" rx="7" fill="#0a1f14" stroke="#065f46" stroke-width="1.5"/>
+  <text x="12" y="18" font-size="9" fill="#475569">STEP 2 — INVESTOR</text>
+  <text x="12" y="33" font-size="12" font-weight="700" fill="#34d399">Deposit USDC</text>
+  <text x="12" y="48" font-size="8.5" fill="#374151" font-family="monospace">deposit(tranche_kind, usdc_amount)</text>
+  <text x="12" y="60" font-size="8.5" fill="#374151" font-family="monospace">shares_minted = usdc_amount / nav_per_share_q</text>
+  <text x="12" y="72" font-size="8" fill="#064e3b" font-style="italic">CPI: token::transfer user→vault_reserve · token::mint_to tranche tokens</text>
+</g>
+
+<!-- Arrow 2 -->
+<line x1="490" y1="255" x2="490" y2="274" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#i-ab)"/>
+
+<!-- STEP 3: Receive tranche tokens -->
+<g transform="translate(310,277)">
+  <rect width="360" height="70" rx="7" fill="#0e1f35" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="12" y="18" font-size="9" fill="#475569">STEP 3 — WALLET</text>
+  <text x="12" y="33" font-size="12" font-weight="700" fill="#60a5fa">Receive Tranche Tokens</text>
+  <text x="12" y="47" font-size="8.5" fill="#374151" font-family="monospace">pPRIME  /  pCORE  /  pALPHA  (SPL tokens)</text>
+  <text x="12" y="60" font-size="8" fill="#1e3a5f" font-style="italic">NAV = total_assets / total_supply · token count stays fixed · price changes</text>
+</g>
+
+<!-- Arrow 3 -->
+<line x1="490" y1="347" x2="490" y2="366" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#i-ab)"/>
+
+<!-- STEP 4: NAV Appreciates (waiting period) -->
+<g transform="translate(310,369)">
+  <rect width="360" height="88" rx="7" fill="#0e1f35" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="12" y="18" font-size="9" fill="#475569">STEP 4 — PROTOCOL (automatic)</text>
+  <text x="12" y="33" font-size="12" font-weight="700" fill="#60a5fa">NAV Appreciates</text>
+  <text x="12" y="47" font-size="8.5" fill="#374151">Admin calls accrue_yield(amount)</text>
+  <text x="12" y="58" font-size="8.5" fill="#374151">→ waterfall: Prime fills first → Core → Alpha</text>
+  <text x="12" y="69" font-size="8.5" fill="#374151">→ tranche.total_assets ↑ · total_supply unchanged</text>
+  <text x="12" y="80" font-size="8.5" fill="#374151">→ nav_per_share_q ↑ · your tokens worth more USDC</text>
+</g>
+
+<!-- Credit event sidebar (right of step 4) -->
+<g transform="translate(694,369)">
+  <rect width="240" height="88" rx="6" fill="#1f0707" stroke="#7f1d1d" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="8" y="16" font-size="9" fill="#7f1d1d" font-weight="600">⚠ Possible: Credit Event</text>
+  <text x="8" y="28" font-size="8" fill="#374151">trigger_credit_event fires</text>
+  <text x="8" y="39" font-size="8" fill="#374151">Loss cascade: Alpha absorbs first</text>
+  <text x="8" y="50" font-size="8" fill="#374151">→ alpha.total_assets ↓ → NAV ↓</text>
+  <text x="8" y="61" font-size="8" fill="#374151">Core only hit if Alpha wiped</text>
+  <text x="8" y="72" font-size="8" fill="#374151">Prime only hit if both wiped</text>
+  <text x="8" y="83" font-size="7.5" fill="#7f1d1d" font-style="italic">NAV may drop · still can exit via AMM</text>
+</g>
+<!-- arrow from step4 to credit event -->
+<path d="M 670,413 L 694,413" stroke="#7f1d1d" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#i-ar)" fill="none"/>
+
+<!-- Arrow 4 -->
+<line x1="490" y1="457" x2="490" y2="476" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#i-ab)"/>
+
+<!-- DIAMOND: How to exit? -->
+<polygon points="490,479 570,510 490,541 410,510" fill="#0d1525" stroke="#1d4ed8" stroke-width="1.5"/>
+<text x="490" y="506" text-anchor="middle" font-size="9" font-weight="600" fill="#60a5fa">How to exit?</text>
+<text x="490" y="518" text-anchor="middle" font-size="7.5" fill="#334155">vault has liquidity?</text>
+
+<!-- LEFT BRANCH: Direct Withdrawal -->
+<!-- arrow from diamond left -->
+<path d="M 410,510 L 280,510 L 280,558" stroke="#10b981" stroke-width="1.5" fill="none" marker-end="url(#i-ag)"/>
+<text x="345" y="504" text-anchor="middle" font-size="8" fill="#059669">Direct</text>
+
+<g transform="translate(140,560)">
+  <rect width="280" height="95" rx="7" fill="#0a1f14" stroke="#065f46" stroke-width="1.5"/>
+  <text x="10" y="17" font-size="9" fill="#475569">EXIT OPTION A</text>
+  <text x="10" y="32" font-size="12" font-weight="700" fill="#34d399">Withdraw via Vault</text>
+  <text x="10" y="47" font-size="8.5" fill="#374151" font-family="monospace">withdraw(tranche_kind, share_amount)</text>
+  <text x="10" y="58" font-size="8.5" fill="#374151">usdc_out = shares × nav_per_share_q</text>
+  <text x="10" y="69" font-size="8.5" fill="#374151">CPI: token::burn · token::transfer</text>
+  <text x="10" y="81" font-size="8" fill="#064e3b" font-style="italic">Exit at NAV · vault must have liquidity</text>
+  <text x="10" y="91" font-size="8" fill="#064e3b" font-style="italic">If reserve low → must wait or use AMM</text>
+</g>
+
+<!-- RIGHT BRANCH: AMM Trade -->
+<!-- arrow from diamond right -->
+<path d="M 570,510 L 700,510 L 700,558" stroke="#f59e0b" stroke-width="1.5" fill="none" marker-end="url(#i-am)"/>
+<text x="635" y="504" text-anchor="middle" font-size="8" fill="#d97706">AMM</text>
+
+<g transform="translate(560,560)">
+  <rect width="280" height="95" rx="7" fill="#1a1000" stroke="#b45309" stroke-width="1.5"/>
+  <text x="10" y="17" font-size="9" fill="#475569">EXIT OPTION B</text>
+  <text x="12" y="32" font-size="12" font-weight="700" fill="#fbbf24">Sell on AMM</text>
+  <text x="10" y="47" font-size="8.5" fill="#374151" font-family="monospace">swap(amount_in, min_out, direction=1)</text>
+  <text x="10" y="58" font-size="8.5" fill="#374151">tranche token → USDC · 0.3% fee</text>
+  <text x="10" y="69" font-size="8.5" fill="#374151">price = AMM spot (may differ from NAV)</text>
+  <text x="10" y="81" font-size="8" fill="#92400e" font-style="italic">Instant exit · no vault liquidity needed</text>
+  <text x="10" y="91" font-size="8" fill="#92400e" font-style="italic">In distress: AMM trades at NAV discount</text>
+</g>
+
+<!-- Arrows from both options to final outcome -->
+<path d="M 280,655 C 280,690 410,698 420,700" stroke="#10b981" stroke-width="1.2" fill="none" marker-end="url(#i-ag)"/>
+<path d="M 700,655 C 700,690 570,698 560,700" stroke="#f59e0b" stroke-width="1.2" fill="none" marker-end="url(#i-am)"/>
+
+<!-- FINAL: USDC + P&L -->
+<g transform="translate(310,700)">
+  <rect width="360" height="40" rx="7" fill="#0a1a0a" stroke="#059669" stroke-width="1.5"/>
+  <text x="180" y="15" text-anchor="middle" font-size="9" font-weight="600" fill="#34d399">USDC returned to wallet</text>
+  <text x="180" y="29" text-anchor="middle" font-size="8" fill="#374151">P&amp;L = (exit_nav − entry_nav) / entry_nav × 100%  ·  no fee on direct withdrawal</text>
+</g>
+
+<!-- NAV legend -->
+<rect x="46" y="277" width="240" height="88" rx="6" fill="#0d1020" stroke="#1e293b" stroke-width="1"/>
+<text x="56" y="293" font-size="9" font-weight="600" fill="#9ca3af">NAV Model (vs rebasing)</text>
+<text x="56" y="307" font-size="8" fill="#374151" font-family="monospace">Deposit 1,000 USDC @ NAV 1.0</text>
+<text x="56" y="317" font-size="8" fill="#374151" font-family="monospace">→ receive 1,000 tokens</text>
+<text x="56" y="327" font-size="8" fill="#374151" font-family="monospace">After 5% yield:</text>
+<text x="56" y="337" font-size="8" fill="#374151" font-family="monospace">→ still 1,000 tokens</text>
+<text x="56" y="347" font-size="8" fill="#059669" font-family="monospace">→ each worth 1.05 USDC</text>
+<text x="56" y="357" font-size="8" fill="#374151" font-family="monospace">→ redeem for 1,050 USDC</text>
+
+</svg>
+
+<div class="expl">
+  <div class="expl-grid">
+    <div class="expl-card">
+      <h4 class="c-blue">Why Three Tranches?</h4>
+      <p>PRISM structures a single loan pool into three priority layers. Every investor is exposed to the <strong>same loans</strong> — the tranche only determines payment order and loss exposure.</p>
+      <ul>
+        <li><strong class="c-blue">Prime</strong> — paid first, absorbs losses last. Designed for conservative capital (pension funds, stablecoin yield seekers) that cannot accept principal risk. Target 5% APY.</li>
+        <li><strong class="c-purple">Core</strong> — paid second, only absorbs losses after Alpha is fully wiped. The middle layer for yield-seekers who understand credit risk. Target 8% APY.</li>
+        <li><strong class="c-red">Alpha</strong> — paid last from whatever yield remains (can far exceed 15% in outperforming pools). Absorbs all losses first. The "first-loss piece" — highest risk, highest ceiling. Target 15% APY.</li>
+      </ul>
+      <p style="margin-top:8px">This is how institutional structured finance works (CLOs, ABS) — PRISM makes the same mechanics transparent, on-chain, and accessible to anyone with USDC.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-green">How NAV Works</h4>
+      <p>PRISM uses <strong>NAV-per-share accounting</strong>, not rebasing. Your token count never changes — the price per token changes.</p>
+      <ul>
+        <li>Deposit <code>1,000 USDC</code> at NAV <code>1.0</code> → receive <code>1,000 pPRIME</code> tokens</li>
+        <li>Yield accrues: <code>total_assets ↑</code>, <code>total_supply</code> unchanged → NAV rises to <code>1.05</code></li>
+        <li>Your 1,000 tokens now redeem for <strong>1,050 USDC</strong> — a 5% return in the price, not quantity</li>
+        <li>A new depositor who joins at NAV <code>1.05</code> gets fewer tokens but earns the same forward APY — no dilution of existing holders</li>
+      </ul>
+      <p style="margin-top:8px">On-chain, NAV is stored as <code>nav_per_share_q: u128</code> in Q64.64 fixed-point (<code>1.0 = 2^64</code>) to prevent rounding loss across thousands of waterfall distributions.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-amber">Two Exit Paths</h4>
+      <p><strong>Option A — Direct withdrawal</strong> (<code>withdraw</code>): burns your tranche tokens and transfers USDC at the current on-chain NAV. Always exits at the "fair" NAV price. Requires the vault reserve to have sufficient USDC — if most capital is deployed to active loans, you may need to wait for repayments.</p>
+      <p style="margin-top:8px"><strong>Option B — AMM swap</strong> (<code>prism_amm.swap</code>): sells your tranche tokens at the AMM's spot price. Instant exit, no vault liquidity required. In healthy conditions the AMM price tracks NAV closely. In distressed conditions, the AMM price may trade at a <strong>discount to NAV</strong> — this is intentional. That gap is the market's real-time assessment of credit risk, separate from the on-chain accounting.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-red">Credit Events &amp; Loss Cascade</h4>
+      <p>If a borrower defaults, <code>trigger_credit_event(loss_amount, severity_bps)</code> is called. Loss absorbs from the bottom up:</p>
+      <ul>
+        <li><strong class="c-red">Alpha</strong> absorbs first — <code>alpha.total_assets</code> decreases → <code>nav_per_share_q</code> drops for Alpha holders</li>
+        <li><strong class="c-purple">Core</strong> absorbs only if Alpha is fully wiped and loss remains</li>
+        <li><strong class="c-blue">Prime</strong> only absorbs if both Alpha and Core are wiped — protected by two full layers beneath it</li>
+      </ul>
+      <p style="margin-top:8px">After a credit event, investors can still exit: via <code>withdraw</code> at the reduced NAV, or via the AMM at market price (which may have already priced in the event before the on-chain cascade ran).</p>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  DIAGRAM 2 — BORROWER FLOW                                           -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="diagram" id="d1">
+<svg width="980" height="900" viewBox="0 0 980 900" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="b-ab" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#3b82f6"/></marker>
+  <marker id="b-ag" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#10b981"/></marker>
+  <marker id="b-ao" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#f97316"/></marker>
+  <marker id="b-ap" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#a855f7"/></marker>
+  <marker id="b-ar" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#ef4444"/></marker>
+  <marker id="b-am" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#f59e0b"/></marker>
+</defs>
+<rect width="980" height="900" fill="#080d18" rx="10"/>
+
+<!-- Title -->
+<text x="490" y="27" text-anchor="middle" font-size="15" font-weight="700" fill="#e2e8f0">Borrower Journey</text>
+<text x="490" y="43" text-anchor="middle" font-size="10" fill="#475569">From credit application to repayment — including IKA collateral lifecycle</text>
+
+<!-- Swimlane headers -->
+<rect x="10" y="53" width="300" height="30" rx="4" fill="#0e2040" stroke="#1d4ed8" stroke-width="1"/>
+<text x="160" y="73" text-anchor="middle" font-size="10" font-weight="600" fill="#60a5fa">Borrower</text>
+<rect x="340" y="53" width="300" height="30" rx="4" fill="#1c1107" stroke="#92400e" stroke-width="1"/>
+<text x="490" y="73" text-anchor="middle" font-size="10" font-weight="600" fill="#fbbf24">Admin / Protocol</text>
+<rect x="670" y="53" width="300" height="30" rx="4" fill="#0a0f1a" stroke="#334155" stroke-width="1"/>
+<text x="820" y="73" text-anchor="middle" font-size="10" font-weight="600" fill="#9ca3af">On-chain State</text>
+
+<!-- Swimlane separators (vertical dashed lines) -->
+<line x1="330" y1="53" x2="330" y2="895" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4"/>
+<line x1="660" y1="53" x2="660" y2="895" stroke="#1e293b" stroke-width="1" stroke-dasharray="4,4"/>
+
+<!-- ── PHASE 1: APPLICATION ── -->
+<rect x="10" y="90" width="960" height="18" rx="2" fill="#111827"/>
+<text x="490" y="103" text-anchor="middle" font-size="8" fill="#475569" letter-spacing="2">PHASE 1  ·  APPLICATION</text>
+
+<!-- Apply off-chain -->
+<g transform="translate(16,113)">
+  <rect width="305" height="60" rx="5" fill="#0d1a2e" stroke="#1d4ed8" stroke-width="1"/>
+  <text x="8" y="16" font-size="9" fill="#475569">BORROWER</text>
+  <text x="8" y="29" font-size="11" font-weight="600" fill="#60a5fa">Credit Application (off-chain)</text>
+  <text x="8" y="42" font-size="8" fill="#374151">Revenue / balance sheet / use of funds</text>
+  <text x="8" y="53" font-size="8" fill="#374151">Loan terms negotiated off-chain</text>
+</g>
+
+<!-- Admin underwrites + initialize_loan -->
+<g transform="translate(346,113)">
+  <rect width="305" height="60" rx="5" fill="#1c1107" stroke="#92400e" stroke-width="1"/>
+  <text x="8" y="16" font-size="9" fill="#475569">ADMIN</text>
+  <text x="8" y="29" font-size="11" font-weight="600" fill="#fbbf24">initialize_loan()</text>
+  <text x="8" y="42" font-size="8" fill="#374151" font-family="monospace">loan_id, principal, apr_bps, maturity_ts</text>
+  <text x="8" y="53" font-size="8" fill="#374151" font-family="monospace">borrower: Pubkey</text>
+</g>
+
+<!-- State: Loan{Originated} -->
+<g transform="translate(676,113)">
+  <rect width="295" height="60" rx="5" fill="#0f1a0a" stroke="#374151" stroke-width="1"/>
+  <text x="8" y="16" font-size="9" fill="#475569">ON-CHAIN STATE</text>
+  <text x="8" y="29" font-size="10" font-weight="600" fill="#9ca3af">Loan PDA created</text>
+  <text x="8" y="42" font-size="8" fill="#374151" font-family="monospace">["loan", vault, loan_id]</text>
+  <text x="8" y="53" font-size="8" fill="#f59e0b" font-family="monospace">state: Originated</text>
+</g>
+
+<!-- Phase 1 arrows -->
+<line x1="321" y1="143" x2="341" y2="143" stroke="#f97316" stroke-width="1.2" marker-end="url(#b-ao)"/>
+<line x1="651" y1="143" x2="671" y2="143" stroke="#6b7280" stroke-width="1.2" marker-end="url(#b-ab)"/>
+
+<!-- ── PHASE 2: COLLATERAL ── -->
+<rect x="10" y="184" width="960" height="18" rx="2" fill="#111827"/>
+<text x="490" y="197" text-anchor="middle" font-size="8" fill="#475569" letter-spacing="2">PHASE 2  ·  IKA COLLATERAL</text>
+
+<!-- DKG on Sui -->
+<g transform="translate(16,207)">
+  <rect width="305" height="65" rx="5" fill="#180e28" stroke="#5b21b6" stroke-width="1"/>
+  <text x="8" y="16" font-size="9" fill="#475569">BORROWER  (Sui network)</text>
+  <text x="8" y="29" font-size="11" font-weight="600" fill="#c084fc">Run DKG on IKA Network</text>
+  <text x="8" y="42" font-size="8" fill="#374151">Generates dwallet_id (threshold keypair)</text>
+  <text x="8" y="53" font-size="8" fill="#374151">Derive BTC/ETH threshold address</text>
+  <text x="8" y="63" font-size="8" fill="#374151">Transfer BTC/ETH to that address</text>
+</g>
+
+<!-- IKA oracle signing -->
+<g transform="translate(346,207)">
+  <rect width="305" height="65" rx="5" fill="#180e28" stroke="#5b21b6" stroke-width="1"/>
+  <text x="8" y="16" font-size="9" fill="#475569">IKA ORACLE  (off-chain)</text>
+  <text x="8" y="29" font-size="11" font-weight="600" fill="#c084fc">IKA Oracle Attestation</text>
+  <text x="8" y="42" font-size="8" fill="#374151">Monitors threshold address on BTC/ETH</text>
+  <text x="8" y="53" font-size="8" fill="#374151">Confirms deposit · signs 81-byte msg</text>
+  <text x="8" y="63" font-size="8" fill="#374151" font-family="monospace">chain_id | dwallet_id | amount | loan_pk</text>
+</g>
+
+<!-- State: IkaCollateral Pending -->
+<g transform="translate(676,207)">
+  <rect width="295" height="65" rx="5" fill="#0f1a0a" stroke="#374151" stroke-width="1"/>
+  <text x="8" y="16" font-size="9" fill="#475569">ON-CHAIN STATE</text>
+  <text x="8" y="29" font-size="10" font-weight="600" fill="#9ca3af">attach_ika_collateral() called</text>
+  <text x="8" y="42" font-size="8" fill="#374151" font-family="monospace">IkaCollateral PDA created</text>
+  <text x="8" y="53" font-size="8" fill="#374151" font-family="monospace">dwallet_id, chain_id, oracle_pubkey</text>
+  <text x="8" y="63" font-size="8" fill="#f59e0b" font-family="monospace">status: Pending</text>
+</g>
+
+<!-- Phase 2 arrows -->
+<line x1="321" y1="239" x2="341" y2="239" stroke="#a855f7" stroke-width="1.2" marker-end="url(#b-ap)"/>
+<line x1="651" y1="239" x2="671" y2="239" stroke="#6b7280" stroke-width="1.2" marker-end="url(#b-ab)"/>
+
+<!-- Verify IKA tx -->
+<g transform="translate(16,282)">
+  <rect width="305" height="65" rx="5" fill="#180e28" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="8" y="16" font-size="9" fill="#475569">BORROWER  (Solana)</text>
+  <text x="8" y="29" font-size="11" font-weight="600" fill="#c084fc">Send Verification Tx</text>
+  <text x="8" y="42" font-size="8" fill="#374151" font-family="monospace">ix[0]: Ed25519NativeProgram.verify(</text>
+  <text x="8" y="52" font-size="8" fill="#374151" font-family="monospace">  oracle_pubkey, sig, attestation_msg)</text>
+  <text x="8" y="62" font-size="8" fill="#374151" font-family="monospace">ix[1]: verify_ika_collateral(ctx)</text>
+</g>
+
+<!-- Protocol: processes verify -->
+<g transform="translate(346,282)">
+  <rect width="305" height="65" rx="5" fill="#1c1107" stroke="#92400e" stroke-width="1"/>
+  <text x="8" y="16" font-size="9" fill="#475569">PROTOCOL  (prism_core)</text>
+  <text x="8" y="29" font-size="11" font-weight="600" fill="#fbbf24">Verify Collateral On-chain</text>
+  <text x="8" y="42" font-size="8" fill="#374151">ix[1] reads Sysvar::Instructions</text>
+  <text x="8" y="52" font-size="8" fill="#374151">Confirms ix[0] is Ed25519 precompile</text>
+  <text x="8" y="62" font-size="8" fill="#374151">Parses + validates attestation payload</text>
+</g>
+
+<!-- State: IkaCollateral Locked -->
+<g transform="translate(676,282)">
+  <rect width="295" height="65" rx="5" fill="#1a0f2e" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="8" y="16" font-size="9" fill="#475569">ON-CHAIN STATE</text>
+  <text x="8" y="29" font-size="10" font-weight="600" fill="#c084fc">Collateral Locked</text>
+  <text x="8" y="42" font-size="8" fill="#374151" font-family="monospace">IkaCollateral.status: Pending</text>
+  <text x="64" y="52" font-size="8" fill="#a855f7">  ──→</text>
+  <text x="102" y="52" font-size="8" fill="#a855f7" font-family="monospace" font-weight="600">Locked</text>
+  <text x="8" y="62" font-size="8" fill="#5b21b6" font-style="italic">BTC/ETH secured via MPC threshold</text>
+</g>
+
+<!-- arrows -->
+<line x1="321" y1="314" x2="341" y2="314" stroke="#a855f7" stroke-width="1.2" marker-end="url(#b-ap)"/>
+<line x1="651" y1="314" x2="671" y2="314" stroke="#a855f7" stroke-width="1.2" marker-end="url(#b-ap)"/>
+
+<!-- ── PHASE 3: DISBURSEMENT ── -->
+<rect x="10" y="358" width="960" height="18" rx="2" fill="#111827"/>
+<text x="490" y="371" text-anchor="middle" font-size="8" fill="#475569" letter-spacing="2">PHASE 3  ·  DISBURSEMENT</text>
+
+<g transform="translate(16,381)">
+  <rect width="305" height="60" rx="5" fill="#0d1a2e" stroke="#1d4ed8" stroke-width="1"/>
+  <text x="8" y="16" font-size="9" fill="#475569">BORROWER (self-serve)</text>
+  <text x="8" y="29" font-size="11" font-weight="600" fill="#60a5fa">verify_and_disburse()</text>
+  <text x="8" y="42" font-size="8" fill="#374151">Atomic: ix[0]=Ed25519, ix[1]=verify+pay</text>
+  <text x="8" y="53" font-size="8" fill="#374151">No admin required after origination</text>
+</g>
+
+<g transform="translate(346,381)">
+  <rect width="305" height="60" rx="5" fill="#1c1107" stroke="#92400e" stroke-width="1"/>
+  <text x="8" y="16" font-size="9" fill="#475569">PROTOCOL  (prism_core)</text>
+  <text x="8" y="29" font-size="11" font-weight="600" fill="#fbbf24">Loan Disbursed</text>
+  <text x="8" y="42" font-size="8" fill="#374151">CPI: token::transfer</text>
+  <text x="8" y="53" font-size="8" fill="#374151" font-family="monospace">vault_reserve → borrower_usdc_ata</text>
+</g>
+
+<g transform="translate(676,381)">
+  <rect width="295" height="60" rx="5" fill="#0f1a0a" stroke="#374151" stroke-width="1"/>
+  <text x="8" y="16" font-size="9" fill="#475569">ON-CHAIN STATE</text>
+  <text x="8" y="29" font-size="10" font-weight="600" fill="#34d399">USDC in borrower wallet</text>
+  <text x="8" y="42" font-size="8" fill="#f59e0b" font-family="monospace">Loan.state: Active</text>
+  <text x="8" y="53" font-size="8" fill="#374151">Vault.total_loaned += principal</text>
+</g>
+
+<line x1="321" y1="411" x2="341" y2="411" stroke="#f97316" stroke-width="1.2" marker-end="url(#b-ao)"/>
+<line x1="651" y1="411" x2="671" y2="411" stroke="#10b981" stroke-width="1.2" marker-end="url(#b-ag)"/>
+
+<!-- ── PHASE 4: REPAYMENT ── -->
+<rect x="10" y="452" width="960" height="18" rx="2" fill="#111827"/>
+<text x="490" y="465" text-anchor="middle" font-size="8" fill="#475569" letter-spacing="2">PHASE 4  ·  REPAYMENT</text>
+
+<g transform="translate(16,475)">
+  <rect width="305" height="60" rx="5" fill="#0d1a2e" stroke="#1d4ed8" stroke-width="1"/>
+  <text x="8" y="16" font-size="9" fill="#475569">BORROWER (periodic)</text>
+  <text x="8" y="29" font-size="11" font-weight="600" fill="#60a5fa">repay_loan(amount)</text>
+  <text x="8" y="42" font-size="8" fill="#374151">Sends USDC (principal + interest)</text>
+  <text x="8" y="53" font-size="8" fill="#374151">Interest flows into yield waterfall</text>
+</g>
+
+<g transform="translate(346,475)">
+  <rect width="305" height="60" rx="5" fill="#1c1107" stroke="#92400e" stroke-width="1"/>
+  <text x="8" y="16" font-size="9" fill="#475569">PROTOCOL</text>
+  <text x="8" y="29" font-size="11" font-weight="600" fill="#fbbf24">Repayment Processed</text>
+  <text x="8" y="42" font-size="8" fill="#374151">Loan.total_repaid += principal_portion</text>
+  <text x="8" y="53" font-size="8" fill="#374151">Interest → accrue_yield waterfall</text>
+</g>
+
+<g transform="translate(676,475)">
+  <rect width="295" height="60" rx="5" fill="#0f1a0a" stroke="#374151" stroke-width="1"/>
+  <text x="8" y="16" font-size="9" fill="#475569">ON-CHAIN STATE</text>
+  <text x="8" y="29" font-size="10" font-weight="600" fill="#9ca3af">Loan updated</text>
+  <text x="8" y="42" font-size="8" fill="#f59e0b" font-family="monospace">state: Repaying</text>
+  <text x="8" y="53" font-size="8" fill="#374151" font-family="monospace">total_repaid: u64 ↑</text>
+</g>
+
+<line x1="321" y1="505" x2="341" y2="505" stroke="#10b981" stroke-width="1.2" marker-end="url(#b-ag)"/>
+<line x1="651" y1="505" x2="671" y2="505" stroke="#6b7280" stroke-width="1.2" marker-end="url(#b-ab)"/>
+
+<!-- Arrow to diamond -->
+<line x1="490" y1="535" x2="490" y2="556" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#b-ab)"/>
+
+<!-- DIAMOND: Fully repaid? -->
+<polygon points="490,558 590,585 490,612 390,585" fill="#0d1525" stroke="#1d4ed8" stroke-width="1.5"/>
+<text x="490" y="581" text-anchor="middle" font-size="9" font-weight="600" fill="#60a5fa">Fully repaid?</text>
+<text x="490" y="593" text-anchor="middle" font-size="7.5" fill="#334155">total_repaid ≥ principal</text>
+
+<!-- ── PATH A: REPAID ── -->
+<path d="M 390,585 L 250,585 L 250,626" stroke="#10b981" stroke-width="1.5" fill="none" marker-end="url(#b-ag)"/>
+<text x="320" y="579" text-anchor="middle" font-size="8" fill="#059669">YES</text>
+
+<g transform="translate(16,628)">
+  <rect width="460" height="75" rx="6" fill="#0a1f14" stroke="#065f46" stroke-width="1.5"/>
+  <text x="8" y="16" font-size="9" fill="#475569">SUCCESS PATH</text>
+  <text x="8" y="30" font-size="12" font-weight="700" fill="#34d399">Loan Repaid · Release Collateral</text>
+  <text x="8" y="45" font-size="8.5" fill="#374151" font-family="monospace">Loan.state: Repaid</text>
+  <text x="8" y="56" font-size="8.5" fill="#374151" font-family="monospace">release_ika_collateral() → IkaCollateral.status: Released</text>
+  <text x="8" y="67" font-size="8" fill="#064e3b" font-style="italic">Borrower can now move BTC/ETH from threshold address (IKA MPC releases key)</text>
+</g>
+
+<!-- ── PATH B: DEFAULT ── -->
+<path d="M 590,585 L 730,585 L 730,626" stroke="#ef4444" stroke-width="1.5" fill="none" marker-end="url(#b-ar)"/>
+<text x="660" y="579" text-anchor="middle" font-size="8" fill="#dc2626">NO (default)</text>
+
+<g transform="translate(504,628)">
+  <rect width="460" height="75" rx="6" fill="#1f0707" stroke="#7f1d1d" stroke-width="1.5"/>
+  <text x="8" y="16" font-size="9" fill="#7f1d1d">DEFAULT PATH</text>
+  <text x="8" y="30" font-size="12" font-weight="700" fill="#f87171">Credit Event + Loss Cascade</text>
+  <text x="8" y="45" font-size="8.5" fill="#374151" font-family="monospace">trigger_credit_event(event_type, loss_amount, severity_bps)</text>
+  <text x="8" y="56" font-size="8.5" fill="#374151" font-family="monospace">Loss cascade: Alpha.total_assets ↓ → Core ↓ → Prime ↓</text>
+  <text x="8" y="67" font-size="8" fill="#7f1d1d" font-style="italic">liquidate_ika_collateral() → IkaCollateral.status: Liquidated · off-chain seizure begins</text>
+</g>
+
+<!-- Tranche impact diagram (for default path) -->
+<g transform="translate(504,713)">
+  <rect width="460" height="50" rx="5" fill="#150505" stroke="#450a0a" stroke-width="1"/>
+  <text x="8" y="15" font-size="8" fill="#7f1d1d" font-weight="600">NAV Impact (trigger_credit_event)</text>
+  <rect x="8" y="20" width="130" height="22" rx="3" fill="#1f0707" stroke="#b91c1c" stroke-width="1"/>
+  <text x="73" y="35" text-anchor="middle" font-size="8" fill="#f87171">Alpha ↓ first</text>
+  <rect x="148" y="20" width="130" height="22" rx="3" fill="#1a0f2e" stroke="#7c3aed" stroke-width="1"/>
+  <text x="213" y="35" text-anchor="middle" font-size="8" fill="#c084fc">Core ↓ if Alpha=0</text>
+  <rect x="288" y="20" width="130" height="22" rx="3" fill="#0d2040" stroke="#1d4ed8" stroke-width="1"/>
+  <text x="353" y="35" text-anchor="middle" font-size="8" fill="#60a5fa">Prime ↓ last resort</text>
+</g>
+
+</svg>
+
+<div class="expl">
+  <div class="expl-grid">
+    <div class="expl-card">
+      <h4 class="c-blue">Why Real-World Collateral?</h4>
+      <p>Traditional DeFi lending (Aave, Compound) requires <strong>150%+ overcollateralization</strong> — you deposit $150 of ETH to borrow $100 of USDC. This works only for crypto-native users with existing on-chain capital.</p>
+      <p style="margin-top:8px">PRISM targets <strong>undercollateralized real-world credit</strong>: an SME with $200k of BTC but no DeFi position can deposit that BTC with IKA (via threshold MPC), get an on-chain attestation, and borrow USDC against it — without selling the BTC or going through a custodian.</p>
+      <p style="margin-top:8px">The collateral is locked cryptographically, not via a legal agreement. No single party (not even the PRISM admin) can move it without the protocol's authorization.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-purple">The Two-Instruction Transaction</h4>
+      <p>Solana's Ed25519 signature verification is a <strong>native runtime precompile</strong> — it runs before any user program, cheaper and more secure than doing Ed25519 math inside Rust.</p>
+      <ul>
+        <li><strong>ix[0]</strong> — Ed25519 precompile: verifies the IKA oracle's signature over the 73-byte attestation message (chain_id + dwallet_id + amount + loan_pubkey)</li>
+        <li><strong>ix[1]</strong> — <code>verify_ika_collateral</code>: reads <code>Sysvar::Instructions</code> to confirm ix[0] was the Ed25519 precompile with the authorized oracle key, then parses the payload and sets <code>IkaCollateral.status = Locked</code></li>
+      </ul>
+      <p style="margin-top:8px">Both execute atomically. If the oracle signature is wrong or the attestation message is tampered, the entire transaction reverts — no partial state.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-green">Self-Serve Disbursement</h4>
+      <p><code>verify_and_disburse()</code> combines oracle verification and USDC transfer into a <strong>single atomic transaction</strong>. After the admin calls <code>initialize_loan</code> to agree terms, the borrower handles everything else themselves:</p>
+      <ul>
+        <li>Run DKG on IKA → attach collateral → send the verify tx → receive USDC</li>
+        <li>No further admin interaction needed per loan</li>
+        <li>Trustless from the borrower's perspective: the smart contract enforces the terms, not a human</li>
+      </ul>
+      <p style="margin-top:8px">This design shows PRISM can scale to many concurrent loans without admin becoming a bottleneck. In production, loan origination would be gated by credit underwriting, not manual approval for every disbursement.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-red">What Happens on Default</h4>
+      <p><code>trigger_credit_event(loss_amount, severity_bps)</code> creates a <code>CreditEvent</code> PDA and runs <code>math::waterfall</code> in reverse — loss cascade from Alpha up to Prime.</p>
+      <ul>
+        <li>Each affected tranche's <code>total_assets</code> decreases → <code>nav_per_share_q</code> decreases → token holders' redemption value falls</li>
+        <li><code>liquidate_ika_collateral()</code> sets <code>IkaCollateral.status = Liquidated</code> on-chain as a public record</li>
+        <li>Off-chain: IKA nodes coordinate a threshold MPC signing ceremony to move BTC/ETH to a recovery address</li>
+        <li>Any recovered funds are reinjected via <code>accrue_yield</code> — partially restoring tranche NAVs</li>
+      </ul>
+      <p style="margin-top:8px">The entire default history is verifiable on-chain: CreditEvent PDAs are permanent records with loss amount, severity, and which account triggered it.</p>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  DIAGRAM 3 — COLLATERAL LOCK ARCHITECTURE                            -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="diagram" id="d2">
+<svg width="1060" height="760" viewBox="0 0 1060 760" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="c-ap" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#a855f7"/></marker>
+  <marker id="c-ab" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#3b82f6"/></marker>
+  <marker id="c-ag" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#10b981"/></marker>
+  <marker id="c-ar" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#ef4444"/></marker>
+  <marker id="c-agr" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#6b7280"/></marker>
+  <marker id="c-am" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0,7 3,0 6" fill="#f59e0b"/></marker>
+</defs>
+<rect width="1060" height="760" fill="#080d18" rx="10"/>
+
+<!-- Title -->
+<text x="530" y="27" text-anchor="middle" font-size="15" font-weight="700" fill="#e2e8f0">IKA Collateral Lock Architecture</text>
+<text x="530" y="43" text-anchor="middle" font-size="10" fill="#475569">How BTC/ETH collateral is locked via threshold MPC and verified on Solana</text>
+
+<!-- Zone backgrounds -->
+<rect x="10" y="55" width="315" height="595" rx="8" fill="#100820" stroke="#4c1d95" stroke-width="1" stroke-dasharray="4,3"/>
+<text x="168" y="72" text-anchor="middle" font-size="9" fill="#7c3aed" font-weight="600" letter-spacing="1">ZONE 1  ·  IKA / SUI LAYER</text>
+
+<rect x="345" y="55" width="340" height="595" rx="8" fill="#0d1525" stroke="#1d4ed8" stroke-width="1" stroke-dasharray="4,3"/>
+<text x="515" y="72" text-anchor="middle" font-size="9" fill="#3b82f6" font-weight="600" letter-spacing="1">ZONE 2  ·  SOLANA TRANSACTION</text>
+
+<rect x="705" y="55" width="345" height="595" rx="8" fill="#0a0f1a" stroke="#374151" stroke-width="1" stroke-dasharray="4,3"/>
+<text x="878" y="72" text-anchor="middle" font-size="9" fill="#6b7280" font-weight="600" letter-spacing="1">ZONE 3  ·  ON-CHAIN STATE</text>
+
+<!-- ─── ZONE 1: IKA / Sui ─── -->
+
+<!-- Step 1: DKG -->
+<g transform="translate(20,82)">
+  <rect width="295" height="68" rx="5" fill="#180e28" stroke="#5b21b6" stroke-width="1"/>
+  <text x="8" y="16" font-size="8" fill="#475569">STEP 1  ·  BORROWER (Sui)</text>
+  <text x="8" y="29" font-size="11" font-weight="600" fill="#c084fc">Distributed Key Generation (DKG)</text>
+  <text x="8" y="42" font-size="8" fill="#374151">Borrower calls IKA Network on Sui testnet</text>
+  <text x="8" y="52" font-size="8" fill="#374151">Multi-party computation creates threshold keypair</text>
+  <text x="8" y="63" font-size="8" fill="#7c3aed" font-family="monospace">Output: dwallet_id: [u8; 32]</text>
+</g>
+
+<!-- Arrow -->
+<line x1="168" y1="150" x2="168" y2="168" stroke="#7c3aed" stroke-width="1.2" marker-end="url(#c-ap)"/>
+
+<!-- Step 2: Derive address + lock funds -->
+<g transform="translate(20,170)">
+  <rect width="295" height="75" rx="5" fill="#180e28" stroke="#5b21b6" stroke-width="1"/>
+  <text x="8" y="16" font-size="8" fill="#475569">STEP 2  ·  IKA NETWORK</text>
+  <text x="8" y="29" font-size="11" font-weight="600" fill="#c084fc">Threshold Address Derived</text>
+  <text x="8" y="42" font-size="8" fill="#374151">Bitcoin / Ethereum address derived from dwallet_id</text>
+  <text x="8" y="52" font-size="8" fill="#374151">No single party controls private key</text>
+  <text x="8" y="62" font-size="8" fill="#374151">Requires M-of-N IKA nodes to sign</text>
+  <text x="8" y="72" font-size="8" fill="#7c3aed" font-family="monospace">Borrower deposits BTC / ETH to this address</text>
+</g>
+
+<!-- Arrow -->
+<line x1="168" y1="245" x2="168" y2="263" stroke="#7c3aed" stroke-width="1.2" marker-end="url(#c-ap)"/>
+
+<!-- Step 3: Oracle monitors + signs -->
+<g transform="translate(20,265)">
+  <rect width="295" height="88" rx="5" fill="#180e28" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="8" y="16" font-size="8" fill="#475569">STEP 3  ·  IKA ORACLE (off-chain)</text>
+  <text x="8" y="29" font-size="11" font-weight="600" fill="#c084fc">Oracle Signs Attestation</text>
+  <text x="8" y="42" font-size="8" fill="#374151">Oracle monitors chain for deposit confirmation</text>
+  <text x="8" y="52" font-size="8" fill="#374151">Constructs 81-byte attestation message:</text>
+  <!-- Message bytes breakdown -->
+  <rect x="8" y="57" width="278" height="25" rx="3" fill="#0d0620" stroke="#3b0764" stroke-width="1"/>
+  <text x="14" y="67" font-size="7" fill="#a855f7" font-family="monospace">chain_id[1] | dwallet_id[32] | amount_usd[8] | loan_pubkey[32]</text>
+  <text x="14" y="76" font-size="7" fill="#5b21b6" font-family="monospace">= 73 bytes message  ·  oracle signs with Ed25519 key</text>
+  <text x="8" y="86" font-size="8" fill="#7c3aed" font-family="monospace">Output: (oracle_pubkey, oracle_sig, attestation_msg)</text>
+</g>
+
+<!-- Arrow to zone 2 -->
+<path d="M 315,309 L 340,309" stroke="#a855f7" stroke-width="1.5" fill="none" marker-end="url(#c-ap)"/>
+<text x="312" y="305" text-anchor="end" font-size="7.5" fill="#5b21b6" font-family="monospace">(sig, msg)</text>
+
+<!-- Collateral status indicator -->
+<g transform="translate(20,365)">
+  <rect width="295" height="50" rx="5" fill="#0a0620" stroke="#3b0764" stroke-width="1"/>
+  <text x="8" y="16" font-size="8" fill="#7c3aed" font-weight="600">Collateral security model</text>
+  <text x="8" y="28" font-size="8" fill="#374151">BTC/ETH cannot move without M-of-N</text>
+  <text x="8" y="38" font-size="8" fill="#374151">IKA nodes agreeing to sign a tx</text>
+  <text x="8" y="48" font-size="7.5" fill="#4c1d95" font-style="italic">No custodian · non-custodial threshold MPC</text>
+</g>
+
+<!-- Release / Liquidate paths at bottom of zone 1 -->
+<g transform="translate(20,430)">
+  <rect width="295" height="48" rx="5" fill="#0a1f14" stroke="#065f46" stroke-width="1"/>
+  <text x="8" y="16" font-size="9" font-weight="600" fill="#34d399">On Release (loan repaid)</text>
+  <text x="8" y="29" font-size="8" fill="#374151">release_ika_collateral() called</text>
+  <text x="8" y="40" font-size="8" fill="#374151">IKA nodes release MPC key → borrower can move funds</text>
+</g>
+
+<g transform="translate(20,490)">
+  <rect width="295" height="48" rx="5" fill="#1f0707" stroke="#7f1d1d" stroke-width="1"/>
+  <text x="8" y="16" font-size="9" font-weight="600" fill="#f87171">On Liquidation (default)</text>
+  <text x="8" y="29" font-size="8" fill="#374151">liquidate_ika_collateral() records on-chain</text>
+  <text x="8" y="40" font-size="8" fill="#374151">Off-chain: IKA nodes sign liquidation tx</text>
+</g>
+
+<!-- ─── ZONE 2: Solana Transaction ─── -->
+
+<!-- Tx structure box -->
+<g transform="translate(355,82)">
+  <rect width="320" height="65" rx="5" fill="#0d1525" stroke="#1d4ed8" stroke-width="1"/>
+  <text x="8" y="16" font-size="8" fill="#475569">SOLANA TRANSACTION STRUCTURE</text>
+  <text x="8" y="29" font-size="11" font-weight="600" fill="#60a5fa">Two-Instruction Atomic Tx</text>
+  <text x="8" y="43" font-size="8" fill="#374151" font-family="monospace">Instruction index [0]: Ed25519 precompile</text>
+  <text x="8" y="54" font-size="8" fill="#374151" font-family="monospace">Instruction index [1]: verify_ika_collateral</text>
+  <text x="8" y="63" font-size="8" fill="#1e3a5f" font-style="italic">Both execute atomically · if ix[0] fails, entire tx fails</text>
+</g>
+
+<!-- ix[0] box -->
+<g transform="translate(355,160)">
+  <rect width="320" height="90" rx="5" fill="#0f1a0a" stroke="#374151" stroke-width="1.5"/>
+  <text x="8" y="16" font-size="8" fill="#475569">ix[0]  ·  Solana Native Precompile</text>
+  <text x="8" y="30" font-size="11" font-weight="600" fill="#9ca3af">Ed25519SigVerify</text>
+  <text x="8" y="44" font-size="8" fill="#374151">Program: Ed25519SigVerify111111111111</text>
+  <text x="8" y="55" font-size="8" fill="#374151" font-family="monospace">Inputs:</text>
+  <text x="8" y="65" font-size="8" fill="#374151" font-family="monospace">  oracle_pubkey: [u8; 32]</text>
+  <text x="8" y="75" font-size="8" fill="#374151" font-family="monospace">  oracle_signature: [u8; 64]</text>
+  <text x="8" y="85" font-size="8" fill="#374151" font-family="monospace">  attestation_message: [u8; 73]</text>
+</g>
+
+<!-- Arrow between instructions -->
+<line x1="515" y1="250" x2="515" y2="268" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#c-ab)"/>
+<text x="520" y="261" font-size="7.5" fill="#334155">Sysvar::Instructions</text>
+<text x="520" y="270" font-size="7.5" fill="#334155">result visible to ix[1]</text>
+
+<!-- ix[1] box -->
+<g transform="translate(355,270)">
+  <rect width="320" height="115" rx="5" fill="#0e2040" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="8" y="16" font-size="8" fill="#475569">ix[1]  ·  prism_core program</text>
+  <text x="8" y="30" font-size="11" font-weight="600" fill="#60a5fa">verify_ika_collateral(ctx)</text>
+  <text x="8" y="45" font-size="8" fill="#374151">1. Read Sysvar::Instructions</text>
+  <text x="8" y="56" font-size="8" fill="#374151">2. Confirm ix[0] is Ed25519 precompile</text>
+  <text x="8" y="67" font-size="8" fill="#374151">3. Parse attestation_message bytes:</text>
+  <text x="16" y="77" font-size="7.5" fill="#334155" font-family="monospace">chain_id (byte 0)</text>
+  <text x="16" y="87" font-size="7.5" fill="#334155" font-family="monospace">dwallet_id (bytes 1–32)</text>
+  <text x="16" y="97" font-size="7.5" fill="#334155" font-family="monospace">collateral_usd (bytes 33–40)</text>
+  <text x="16" y="107" font-size="7.5" fill="#334155" font-family="monospace">loan_pubkey (bytes 41–72)</text>
+</g>
+
+<!-- Arrow to zone 3 (verify result) -->
+<path d="M 675,327 L 700,327" stroke="#3b82f6" stroke-width="1.5" fill="none" marker-end="url(#c-ab)"/>
+
+<!-- verify_and_disburse note -->
+<g transform="translate(355,400)">
+  <rect width="320" height="55" rx="5" fill="#1c1107" stroke="#92400e" stroke-width="1"/>
+  <text x="8" y="16" font-size="9" font-weight="600" fill="#fbbf24">Optimization: verify_and_disburse()</text>
+  <text x="8" y="29" font-size="8" fill="#374151">Same tx structure (Ed25519 + ix[1])</text>
+  <text x="8" y="39" font-size="8" fill="#374151">But ix[1] also disburses USDC to borrower</text>
+  <text x="8" y="50" font-size="8" fill="#92400e" font-style="italic">Borrower self-serve: no admin interaction needed post-origination</text>
+</g>
+
+<!-- 81-byte message breakdown (visual) -->
+<g transform="translate(355,470)">
+  <rect width="320" height="85" rx="5" fill="#0d0620" stroke="#3b0764" stroke-width="1"/>
+  <text x="8" y="15" font-size="9" font-weight="600" fill="#a855f7">Attestation Message Layout</text>
+  <!-- byte ruler -->
+  <rect x="8" y="22" width="14" height="18" rx="2" fill="#2e1065" stroke="#5b21b6" stroke-width="1"/>
+  <text x="15" y="35" text-anchor="middle" font-size="6.5" fill="#a855f7">1B</text>
+  <rect x="26" y="22" width="64" height="18" rx="2" fill="#2e1065" stroke="#5b21b6" stroke-width="1"/>
+  <text x="58" y="35" text-anchor="middle" font-size="6.5" fill="#a855f7">32 bytes</text>
+  <rect x="94" y="22" width="32" height="18" rx="2" fill="#2e1065" stroke="#5b21b6" stroke-width="1"/>
+  <text x="110" y="35" text-anchor="middle" font-size="6.5" fill="#a855f7">8B</text>
+  <rect x="130" y="22" width="64" height="18" rx="2" fill="#2e1065" stroke="#5b21b6" stroke-width="1"/>
+  <text x="162" y="35" text-anchor="middle" font-size="6.5" fill="#a855f7">32 bytes</text>
+  <text x="15" y="52" text-anchor="middle" font-size="6.5" fill="#6b7280">chain</text>
+  <text x="15" y="60" text-anchor="middle" font-size="6.5" fill="#6b7280">_id</text>
+  <text x="58" y="52" text-anchor="middle" font-size="6.5" fill="#6b7280">dwallet_id</text>
+  <text x="110" y="52" text-anchor="middle" font-size="6.5" fill="#6b7280">amount</text>
+  <text x="110" y="60" text-anchor="middle" font-size="6.5" fill="#6b7280">_usd</text>
+  <text x="162" y="52" text-anchor="middle" font-size="6.5" fill="#6b7280">loan_pubkey</text>
+  <text x="8" y="72" font-size="7.5" fill="#374151">Total: 73 bytes message · Ed25519 sig: 64 bytes (in ix[0])</text>
+  <text x="8" y="82" font-size="7.5" fill="#4c1d95" font-style="italic">Layout must be byte-identical between ika.ts and verify_ika_collateral.rs</text>
+</g>
+
+<!-- ─── ZONE 3: On-chain State ─── -->
+
+<!-- IkaCollateral PDA -->
+<g transform="translate(715,82)">
+  <rect width="325" height="110" rx="5" fill="#180e28" stroke="#5b21b6" stroke-width="1.5"/>
+  <text x="8" y="16" font-size="8" fill="#475569">IkaCollateral PDA</text>
+  <text x="8" y="29" font-size="11" font-weight="600" fill="#c084fc">IkaCollateral</text>
+  <text x="8" y="43" font-size="8" fill="#374151" font-family="monospace">loan: Pubkey</text>
+  <text x="8" y="53" font-size="8" fill="#374151" font-family="monospace">dwallet_id: [u8; 32]</text>
+  <text x="8" y="63" font-size="8" fill="#374151" font-family="monospace">chain_id: u8  (1=BTC, 2=ETH)</text>
+  <text x="8" y="73" font-size="8" fill="#374151" font-family="monospace">collateral_amount_usd: u64</text>
+  <text x="8" y="83" font-size="8" fill="#374151" font-family="monospace">oracle_pubkey: Pubkey</text>
+  <text x="8" y="93" font-size="8" fill="#374151" font-family="monospace">locked_ts: i64</text>
+  <text x="8" y="103" font-size="8" fill="#374151" font-family="monospace">status: CollateralStatus  ·  bump: u8</text>
+</g>
+
+<!-- State machine -->
+<g transform="translate(715,205)">
+  <rect width="325" height="145" rx="5" fill="#0a0f1a" stroke="#1e293b" stroke-width="1"/>
+  <text x="8" y="16" font-size="9" font-weight="600" fill="#9ca3af">CollateralStatus State Machine</text>
+  <!-- States -->
+  <rect x="8" y="25" width="80" height="28" rx="4" fill="#1a1200" stroke="#78350f" stroke-width="1"/>
+  <text x="48" y="43" text-anchor="middle" font-size="9" font-weight="600" fill="#fbbf24">Pending</text>
+  <text x="92" y="40" font-size="9" fill="#374151">──→</text>
+  <rect x="112" y="25" width="80" height="28" rx="4" fill="#1a0f2e" stroke="#5b21b6" stroke-width="1.5"/>
+  <text x="152" y="43" text-anchor="middle" font-size="9" font-weight="600" fill="#c084fc">Locked</text>
+  <text x="196" y="40" font-size="9" fill="#374151">──→</text>
+  <rect x="216" y="25" width="100" height="28" rx="4" fill="#0a1f14" stroke="#065f46" stroke-width="1"/>
+  <text x="266" y="43" text-anchor="middle" font-size="9" font-weight="600" fill="#34d399">Released</text>
+
+  <text x="152" y="68" text-anchor="middle" font-size="8" fill="#374151">or (on default)</text>
+  <rect x="112" y="75" width="100" height="28" rx="4" fill="#1f0707" stroke="#7f1d1d" stroke-width="1.5"/>
+  <text x="162" y="93" text-anchor="middle" font-size="9" font-weight="600" fill="#f87171">Liquidated</text>
+
+  <!-- state transition labels -->
+  <text x="48" y="68" text-anchor="middle" font-size="7.5" fill="#475569">attach_ika_</text>
+  <text x="48" y="77" text-anchor="middle" font-size="7.5" fill="#475569">collateral()</text>
+  <text x="152" y="18" text-anchor="middle" font-size="7.5" fill="#475569">verify_ika_collateral()</text>
+  <text x="266" y="18" text-anchor="middle" font-size="7.5" fill="#475569">release_ika_</text>
+  <!-- lines from Locked down -->
+  <line x1="152" y1="53" x2="152" y2="75" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#c-ar)"/>
+  <text x="158" y="65" font-size="7.5" fill="#7f1d1d">liquidate_ika_</text>
+  <text x="158" y="74" font-size="7.5" fill="#7f1d1d">collateral()</text>
+
+  <text x="8" y="120" font-size="8" fill="#374151">Pending: IkaCollateral PDA exists, not yet verified</text>
+  <text x="8" y="130" font-size="8" fill="#374151">Locked: oracle verified on-chain, collateral secured</text>
+  <text x="8" y="140" font-size="8" fill="#374151">Released: loan repaid, borrower regains control of asset</text>
+</g>
+
+<!-- Loan PDA (reference) -->
+<g transform="translate(715,363)">
+  <rect width="325" height="65" rx="5" fill="#1c1107" stroke="#92400e" stroke-width="1"/>
+  <text x="8" y="16" font-size="8" fill="#475569">Loan PDA  ["loan", vault, loan_id]</text>
+  <text x="8" y="29" font-size="10" font-weight="600" fill="#fbbf24">Loan.state transitions</text>
+  <text x="8" y="42" font-size="8" fill="#374151" font-family="monospace">Originated → Active → Repaying → Repaid</text>
+  <text x="8" y="52" font-size="8" fill="#374151" font-family="monospace">                               → Defaulted → Resolved</text>
+  <text x="8" y="62" font-size="8" fill="#92400e" font-style="italic">IkaCollateral references Loan PDA via loan_pubkey in attestation</text>
+</g>
+
+<!-- Key invariants -->
+<g transform="translate(715,440)">
+  <rect width="325" height="60" rx="5" fill="#0a1a0a" stroke="#064e3b" stroke-width="1"/>
+  <text x="8" y="16" font-size="9" font-weight="600" fill="#34d399">Security Invariants</text>
+  <text x="8" y="29" font-size="8" fill="#374151">✓ oracle_pubkey in GlobalConfig.oracle_allowlist</text>
+  <text x="8" y="39" font-size="8" fill="#374151">✓ attestation loan_pubkey matches Loan PDA address</text>
+  <text x="8" y="49" font-size="8" fill="#374151">✓ ix[0] must precede ix[1] in same tx (Sysvar check)</text>
+  <text x="8" y="58" font-size="7.5" fill="#065f46" font-style="italic">No human can set IkaCollateral.status=Locked without valid oracle sig</text>
+</g>
+
+<!-- Overall flow arrow Zone 1 → Zone 2 -->
+<text x="340" y="315" text-anchor="middle" font-size="8" fill="#4c1d95" font-style="italic">oracle sig</text>
+<text x="340" y="324" text-anchor="middle" font-size="8" fill="#4c1d95" font-style="italic">+ msg</text>
+
+<!-- Arrow Zone 2 → Zone 3 for state update -->
+<text x="700" y="320" text-anchor="middle" font-size="8" fill="#1e3a5f" font-style="italic">sets status</text>
+<text x="700" y="330" text-anchor="middle" font-size="8" fill="#1e3a5f" font-style="italic">= Locked</text>
+
+<!-- Legend at bottom -->
+<g transform="translate(10,665)">
+  <rect width="1040" height="85" rx="5" fill="#0a0f1a" stroke="#1e293b" stroke-width="1"/>
+  <text x="10" y="16" font-size="9" font-weight="600" fill="#9ca3af">KEY: Why two instructions?</text>
+  <text x="10" y="30" font-size="8" fill="#374151">Solana's Ed25519 signature verification is implemented as a native program that runs before the main program. The result is stored in the</text>
+  <text x="10" y="41" font-size="8" fill="#374151">Sysvar::Instructions account. The verify_ika_collateral instruction (ix[1]) does NOT re-verify the signature itself — it reads the precompile's</text>
+  <text x="10" y="52" font-size="8" fill="#374151">result from the sysvar. This is both cheaper (no in-program Ed25519 math) and more secure (Ed25519 native is audited Solana code).</text>
+  <text x="10" y="66" font-size="9" font-weight="600" fill="#9ca3af">Why threshold MPC (not a multisig)?</text>
+  <text x="10" y="78" font-size="8" fill="#374151">A multisig still requires a private key to exist somewhere. Threshold MPC (via IKA's dWallet) means no single party ever holds the full</text>
+  <text x="10" y="88" font-size="8" fill="#374151">private key — the key is split across IKA nodes. A borrower default cannot be reversed by any single party, including the protocol admin.</text>
+</g>
+
+</svg>
+
+<div class="expl" style="max-width:1060px">
+  <div class="expl-grid" style="grid-template-columns:1fr 1fr">
+    <div class="expl-card">
+      <h4 class="c-purple">Threshold MPC vs Multisig</h4>
+      <p>A standard multisig (e.g., Squads 3-of-5) requires private keys to exist on real devices held by real people. A compromised or coerced key-holder breaks the security model.</p>
+      <p style="margin-top:8px"><strong>IKA's dWallet</strong> uses Distributed Key Generation (DKG): the private key for the BTC/ETH threshold address is <strong>mathematically split across IKA nodes at creation time and never reconstructed</strong> by any single party — not the borrower, not the PRISM admin, not IKA itself.</p>
+      <p style="margin-top:8px">Moving the collateral requires M-of-N IKA nodes to cooperate in a multi-party computation signing round. This provides custodial-grade security without a custodian. The PRISM protocol admin cannot unilaterally seize or release collateral.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-purple">The 81-Byte Attestation Message</h4>
+      <p>The IKA oracle constructs a deterministic message that binds four pieces of information together in a single signed payload:</p>
+      <ul>
+        <li><code>chain_id [1 byte]</code> — which chain the collateral sits on (1 = Bitcoin, 2 = Ethereum)</li>
+        <li><code>dwallet_id [32 bytes]</code> — the IKA threshold keypair that controls the collateral address</li>
+        <li><code>collateral_amount_usd [8 bytes]</code> — USD value of the confirmed deposit</li>
+        <li><code>loan_pubkey [32 bytes]</code> — the exact Solana Loan PDA this collateral secures</li>
+      </ul>
+      <p style="margin-top:8px">Including <code>loan_pubkey</code> in the signed message means an attestation <strong>cannot be replayed</strong> for a different loan. The message layout in <code>ika.ts</code> must be byte-identical to what <code>verify_ika_collateral.rs</code> parses — any mismatch causes a signature verification failure.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-blue">Why ix[0] Must Come First</h4>
+      <p><code>Sysvar::Instructions</code> is a Solana-native read-only account that stores all instructions in the current transaction — in order — along with their program IDs and instruction data.</p>
+      <p style="margin-top:8px"><code>verify_ika_collateral</code> reads this sysvar and checks that:</p>
+      <ul>
+        <li>The instruction at index 0 is the Ed25519 native precompile address</li>
+        <li>The <code>oracle_pubkey</code> in that instruction's data matches a key in <code>GlobalConfig.oracle_allowlist</code></li>
+      </ul>
+      <p style="margin-top:8px">Without the oracle's Ed25519 private key, it's computationally infeasible to forge a valid signature. This means <code>IkaCollateral.status = Locked</code> can <strong>only be set by a genuine oracle attestation</strong> — no admin override, no bypass.</p>
+    </div>
+    <div class="expl-card">
+      <h4 class="c-green">Collateral State Machine</h4>
+      <p>The <code>CollateralStatus</code> enum enforces a strict one-way progression:</p>
+      <ul>
+        <li><strong class="c-amber">Pending</strong> — IkaCollateral PDA created by <code>attach_ika_collateral()</code>. Oracle assigned, not yet verified on-chain. Loan cannot be disbursed.</li>
+        <li><strong class="c-purple">Locked</strong> — Oracle signature verified on Solana. BTC/ETH is secured in the IKA threshold address and cannot move without IKA node consensus. Disbursement can now proceed.</li>
+        <li><strong class="c-green">Released</strong> — Triggered by <code>release_ika_collateral()</code> after <code>Loan.state = Repaid</code>. IKA nodes sign a release transaction. Borrower regains control of the collateral.</li>
+        <li><strong class="c-red">Liquidated</strong> — Triggered by <code>liquidate_ika_collateral()</code> after default. Permanent on-chain record. IKA nodes coordinate off-chain seizure and transfer to a recovery address.</li>
+      </ul>
+      <p style="margin-top:8px">Transitions are enforced by the smart contract — no status can go backward, and <code>Locked → Released</code> requires <code>Loan.state = Repaid</code> as a prerequisite.</p>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+function show(i) {
+  document.querySelectorAll('.tab').forEach((t,j) => t.classList.toggle('active', i===j));
+  document.querySelectorAll('.diagram').forEach((d,j) => d.classList.toggle('active', i===j));
+}
+</script>
+</body>
+</html>
